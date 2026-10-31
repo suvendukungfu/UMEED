@@ -84,3 +84,4 @@ The experiment is fully integrated into the coordinator case view at `/cases/[ca
 ## 5. Verification Verdict
 
 **PASS (LIVE_REMOTE)**. Live MCP retrieval and dual-provider coordination are 100% reproducible via CLI (`npx tsx apps/web/src/lib/ai/meko/probe_a1.ts`) and within the web UI (`A1ExperimentModal`).
+

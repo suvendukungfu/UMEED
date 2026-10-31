@@ -71,3 +71,4 @@ If internet connectivity or Meko remote service experiences an outage during the
 2. The UI clearly displays `status: "OFFLINE_DEMO_FIXTURE"`.
 3. The A1 experiment runs deterministically in 12ms using verified local mock responses.
 4. **Honest Disclosure**: State to judges: *"The live remote MCP server is currently unreachable; the application is demonstrating its deterministic offline resilience using cached verified fixtures."*
+
