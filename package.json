@@ -12,7 +12,9 @@
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "seed:demo": "npx tsx --tsconfig=apps/web/tsconfig.json --env-file=apps/web/.env.local scripts/seed-demo.ts",
+    "reset:demo": "npx tsx --tsconfig=apps/web/tsconfig.json --env-file=apps/web/.env.local scripts/reset-demo.ts"
   },
   "keywords": [
     "umeed",

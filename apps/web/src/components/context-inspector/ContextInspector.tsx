@@ -8,10 +8,12 @@ import {
   Database,
   History,
   CheckCircle2,
+  Play,
 } from "lucide-react";
 import { DatapackStatusBadge } from "./DatapackStatusBadge";
 import { MemoryCard } from "./MemoryCard";
 import { MemoryActionModal, MemoryModalAction } from "./MemoryActionModal";
+import { A1ExperimentModal } from "./A1ExperimentModal";
 import { ContextTraceRecord } from "@/features/context-learning/types";
 
 export interface ContextInspectorProps {
@@ -40,6 +42,7 @@ export function ContextInspector({
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"ALL" | "READS" | "PRIVATE" | "SHARED">("ALL");
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [showA1Modal, setShowA1Modal] = useState(false);
 
   // Modal State
   const [modalState, setModalState] = useState<{
@@ -115,14 +118,24 @@ export function ContextInspector({
           </div>
         </div>
 
-        <button
-          onClick={fetchData}
-          disabled={loading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 shadow-sm transition disabled:opacity-50"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin text-indigo-600" : ""}`} />
-          <span>Refresh Trace</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowA1Modal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 shadow-sm transition"
+          >
+            <Play className="h-3.5 w-3.5" />
+            <span>Run A1 Experiment (OFF vs ON)</span>
+          </button>
+
+          <button
+            onClick={fetchData}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 shadow-sm transition disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin text-indigo-600" : ""}`} />
+            <span>Refresh Trace</span>
+          </button>
+        </div>
       </div>
 
       {/* Datapack Badge */}
@@ -248,6 +261,12 @@ export function ContextInspector({
         caseReference={caseReference}
         onClose={() => setModalState((prev) => ({ ...prev, isOpen: false }))}
         onSuccess={handleActionSuccess}
+      />
+
+      {/* A1 Experiment Modal */}
+      <A1ExperimentModal
+        isOpen={showA1Modal}
+        onClose={() => setShowA1Modal(false)}
       />
     </div>
   );
