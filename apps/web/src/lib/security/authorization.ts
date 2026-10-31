@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { getServerEnv } from "@/lib/config/env";
+import { getServerEnv, getEffectiveCoordinatorKey } from "@/lib/config/env";
 
 /**
  * Server-Side Authorization & Privilege Verification
@@ -10,6 +10,26 @@ import { getServerEnv } from "@/lib/config/env";
  * 3. CITIZEN ACCESS: Requires valid confidential tracking token (trk_...) for incident detail retrieval.
  *    Tokens are NEVER accepted in query strings to prevent leakage via browser histories or server access logs.
  */
+
+function isValidIp(ip: string): boolean {
+  if (!ip || typeof ip !== "string") return false;
+  // Strict IPv4 validation
+  if (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip)) {
+    return true;
+  }
+  // Strict IPv6 validation
+  if (/^[0-9a-fA-F:]{2,39}$/.test(ip) && ip.includes(":")) {
+    return true;
+  }
+  return false;
+}
+
+function extractSanitizedIp(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  // Extract client IP (leftmost entry in X-Forwarded-For chain)
+  const candidate = raw.split(",")[0].trim();
+  return isValidIp(candidate) ? candidate : null;
+}
 
 export function extractClientIp(
   requestOrHeaders: Request | Headers | Record<string, string | string[] | undefined>
@@ -22,20 +42,27 @@ export function extractClientIp(
   }
 
   if (headers) {
-    const forwarded = headers.get("x-forwarded-for");
-    if (forwarded) {
-      return forwarded.split(",")[0].trim();
-    }
-    const realIp = headers.get("x-real-ip");
-    if (realIp) {
-      return realIp.trim();
-    }
+    // 1. Cloudflare Connecting IP (highest fidelity when behind Cloudflare proxy)
+    const cfIp = extractSanitizedIp(headers.get("cf-connecting-ip"));
+    if (cfIp) return cfIp;
+
+    // 2. Standard X-Real-IP set by Nginx / ALB
+    const realIp = extractSanitizedIp(headers.get("x-real-ip"));
+    if (realIp) return realIp;
+
+    // 3. X-Forwarded-For proxy chain
+    const forwarded = extractSanitizedIp(headers.get("x-forwarded-for"));
+    if (forwarded) return forwarded;
   } else {
     const raw = requestOrHeaders as Record<string, string | string[] | undefined>;
-    const fwd = raw["x-forwarded-for"];
-    if (typeof fwd === "string") return fwd.split(",")[0].trim();
-    const rip = raw["x-real-ip"];
-    if (typeof rip === "string") return rip.trim();
+    const cf = typeof raw["cf-connecting-ip"] === "string" ? extractSanitizedIp(raw["cf-connecting-ip"]) : null;
+    if (cf) return cf;
+
+    const rip = typeof raw["x-real-ip"] === "string" ? extractSanitizedIp(raw["x-real-ip"]) : null;
+    if (rip) return rip;
+
+    const fwd = typeof raw["x-forwarded-for"] === "string" ? extractSanitizedIp(raw["x-forwarded-for"]) : null;
+    if (fwd) return fwd;
   }
 
   return "127.0.0.1";
@@ -81,7 +108,14 @@ export function verifyCoordinatorAuth(
   requestOrHeaders: Request | Headers | Record<string, string | string[] | undefined>
 ): { authorized: boolean; reason?: string } {
   const env = getServerEnv();
-  const configuredKey = env.COORDINATOR_API_KEY || "umeed-coordinator-dev-key";
+  const configuredKey = getEffectiveCoordinatorKey(env);
+
+  if (!configuredKey) {
+    return {
+      authorized: false,
+      reason: "Coordinator authorization unavailable: Production coordinator secret is not configured or uses insecure defaults.",
+    };
+  }
 
   let presentedKey: string | null = null;
 

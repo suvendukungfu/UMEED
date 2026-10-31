@@ -16,19 +16,27 @@ This guide walks through configuring and running UMEED locally.
 
 ---
 
-## 2. Environment Variables
+## 2. Environment Variables & Production Safety Boundaries
 
 1. Copy `.env.example` to `apps/web/.env.local`:
    ```bash
    cp .env.example apps/web/.env.local
    ```
-2. Configure credentials when ready:
-   - `MONGODB_URI`: Your MongoDB Atlas cluster connection string.
-   - `GEMINI_API_KEY`: Google Gemini API key for multimodal triage.
-   - `MEKO_API_KEY`: Meko API key for coordination agent memory.
-   - `IOMETE_PAT`: IOMETE Personal Access Token for telemetry stream.
-
-*Note: The platform boots in development mode even if external vendor keys are initially blank.*
+2. **Development vs Production Safety Rules**:
+   - **Development (`NODE_ENV=development`)**:
+     - `MONGODB_URI` may be left blank. The system safely falls back to the built-in `InMemoryIncidentRepository`.
+     - In-memory data is ephemeral and will be lost on server restart (clearly flagged in `/api/health`).
+     - Default keys (`umeed-coordinator-dev-key`, `umeed-crawler-dev-key`) work out of the box.
+   - **Production (`NODE_ENV=production`)**:
+     - `MONGODB_URI` is **mandatory**. Fallback to in-memory storage is strictly prohibited. If MongoDB is unavailable, incident persistence fails closed with HTTP `503 Service Unavailable`.
+     - Default development keys (`umeed-coordinator-dev-key`, `umeed-crawler-dev-key`) and placeholder strings are **strictly rejected**. Strong, unpredictable secrets (min 16 characters) must be configured in the production environment.
+3. Configure credentials when ready:
+   - `MONGODB_URI`: Your MongoDB Atlas cluster connection string (`mongodb+srv://...`).
+   - `COORDINATOR_API_KEY`: Strong coordinator secret key.
+   - `CRAWLER_API_KEY`: Service-to-service crawler secret key.
+   - `GEMINI_API_KEY`: Google Gemini API key for multimodal triage (Phase 3).
+   - `MEKO_API_KEY`: Meko API key for coordination agent memory (Phase 6).
+   - `IOMETE_PAT`: IOMETE Personal Access Token for telemetry stream (Phase 7).
 
 ---
 

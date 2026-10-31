@@ -16,6 +16,7 @@
 | **Phase 1.2**| Dev Toolchain Security & Branch Integration | **COMPLETED** | Vitest 4.1.12, Tinypool removed, 0 Prod vulnerabilities, integrated into `main` (`5876a66`) |
 | **Phase 2** | Canonical Incident Ingestion & MongoDB Data Model | **COMPLETED** | Ingestion API, Idempotency, Tracking Security, In-Memory & Mongo Repositories, 46 tests pass (`621cb5a`) |
 | **Phase 2.1**| Incident Security, Authorization & Privacy Controls | **COMPLETED** | Coordinator Auth, Anti-Enumeration, EXIF Stripping, Rate Limiting, 54 tests pass |
+| **Phase 2.2**| Production Safety & Configuration Boundaries | **COMPLETED** | Fail-closed DB, Production Credential Rejection, Binary EXIF Purging, 70 tests pass |
 | **Phase 3** | Citizen Incident Reporting & Gemini Multimodal Triage | Upcoming | Form, Upload, AI Triage & Fallback Tests |
 | **Phase 4** | NGO Intelligence Registry & Explainable Matching | Upcoming | Hard Capability Filter Tests |
 | **Phase 5** | Closed-Loop Case Coordination & State Machine | Upcoming | State Machine & Recursive Matching Tests |
@@ -73,3 +74,20 @@
 - [x] **TypeScript Strict Compilation**: **0 errors** across workspaces.
 - [x] **ESLint Code Quality**: **✔ No ESLint warnings or errors**.
 - [x] **Production Bundle Build**: **Compiled successfully in 1534ms** (13 routes generated).
+
+---
+
+## Phase 2.2 Verification Checklist
+
+- [x] **Production Rejects Default/Insecure Keys**: Default development keys (`umeed-coordinator-dev-key`, `umeed-crawler-dev-key`) work strictly in `NODE_ENV=development` or `test`. In production, default/placeholder keys are rejected and protected operations fail closed.
+- [x] **Database Fail-Closed Invariant**: `InMemoryIncidentRepository` is strictly prohibited in production (`NODE_ENV=production`). If `MONGODB_URI` is unconfigured or unreachable, repository resolution throws a hard error and API returns HTTP `503 Service Unavailable`.
+- [x] **No False Persistence Success**: Distress reports are never acknowledged with `201 Created` or issued tracking tokens if they cannot be permanently saved to MongoDB.
+- [x] **Development Ephemeral Indicators**: `/api/health` exposes clear indicators (`storage_type: in_memory_ephemeral`) and warnings when running on local temporary memory storage.
+- [x] **Binary Buffer EXIF Stripping**: `stripBinaryExif` directly strips APP1 (`0xFFE1` - EXIF/GPS), APP13 (`0xFFED` - IPTC), COM (`0xFFFE` - Comments) from JPEG bytes and metadata chunks from PNG bytes. Verified with actual binary file inspection tests.
+- [x] **Sanitized Evidence Preview Route**: `/api/evidence/preview/:publicReference/:index` serves privacy-sanitized binary derivatives with `Cache-Control: private, no-transform`.
+- [x] **Rate Limiting & Proxy IP Extraction**: `extractClientIp` validates IPv4/IPv6 syntax and prioritizes trusted proxy headers (`cf-connecting-ip`, `x-real-ip`). Documented reverse proxy trust requirements.
+- [x] **Automated Regression Suite**: **70/70 tests passing** (6 contracts, 64 web) including 10 dedicated Phase 2.2 production safety tests.
+- [x] **TypeScript Strict Compilation**: **0 errors** across all workspaces.
+- [x] **ESLint Code Quality**: **✔ No ESLint warnings or errors**.
+- [x] **Production Bundle Build**: **Compiled successfully** (14 static and dynamic routes).
+- [x] **Zero Production Vulnerabilities**: `npm audit --omit=dev` reports 0 vulnerabilities.

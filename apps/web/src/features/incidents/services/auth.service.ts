@@ -1,4 +1,4 @@
-import { getServerEnv } from "@/lib/config/env";
+import { getServerEnv, getEffectiveCrawlerKey } from "@/lib/config/env";
 import crypto from "crypto";
 
 /**
@@ -18,7 +18,14 @@ export function validateCrawlerAuthorization(
   headers: Headers | Record<string, string | string[] | undefined>
 ): AuthCheckResult {
   const env = getServerEnv();
-  const configuredKey = env.CRAWLER_API_KEY || "umeed-crawler-dev-key";
+  const configuredKey = getEffectiveCrawlerKey(env);
+
+  if (!configuredKey) {
+    return {
+      authorized: false,
+      reason: "Crawler authorization unavailable: Production crawler secret is not configured or uses insecure defaults.",
+    };
+  }
 
   // Extract key from X-Crawler-API-Key or Authorization header
   let presentedKey: string | null = null;

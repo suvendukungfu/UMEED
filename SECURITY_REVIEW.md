@@ -93,16 +93,16 @@ npm run lint --workspace=apps/web
 
 # Automated test suite
 npm run test --workspaces
-# Result: 54/54 tests passing (6 contracts, 48 web) (Exit code: 0)
+# Result: 70/70 tests passing (6 contracts, 64 web) (Exit code: 0)
 
 # Production build
 npm run build --workspace=apps/web
-# Result: Compiled successfully in 1534ms (13 routes generated, Exit code: 0)
+# Result: Compiled successfully in 1361ms (14 routes generated, Exit code: 0)
 ```
 
 ---
 
-## 5. Phase 2 & 2.1 Incident Security & Authorization Controls
+## 5. Phase 2, 2.1 & 2.2 Incident Security & Authorization Controls
 
 ### A. Authorization & Credential Hygiene
 - **Coordinator Feed Access Control**: `GET /api/incidents` enforces strict server-side coordinator authorization via `x-coordinator-key` or `Authorization: Bearer <key>`. Fails closed (`401 Unauthorized`) when unauthenticated.
@@ -110,15 +110,23 @@ npm run build --workspace=apps/web
 - **Anti-Enumeration Protection**: Invalid tracking tokens or missing records return a generic `404 Not Found` response with identical error payload to prevent incident existence enumeration.
 - **Constant-Time Verification**: Verification of API keys and tracking token hashes utilizes `crypto.timingSafeEqual()` to mitigate timing side-channel attacks.
 - **Token Entropy & Storage**: Generated using `crypto.randomBytes(24)` (>192 bits entropy); only SHA-256 hash is persisted; tokens are redacted from all application logs (`trk_***`).
+- **Production Credential Hardening (Phase 2.2)**: Development default credentials (`umeed-coordinator-dev-key`, `umeed-crawler-dev-key`) only work when `NODE_ENV=development` or `test`. Production strictly rejects development defaults and template placeholders (`isPlaceholderValue`). Missing production secrets cause operations to fail closed.
 
-### B. Privacy & Evidence Redaction
+### B. Database Fail-Closed Policy (Phase 2.2)
+- **Zero Silent Memory Fallback in Production**: `InMemoryIncidentRepository` is strictly forbidden in production. If `MONGODB_URI` is unconfigured or unreachable in production, repository resolution throws a hard error and ingestion returns `503 Service Unavailable`.
+- **No False Success**: Reports are never acknowledged as permanently persisted (`201 Created`) if they are only held in ephemeral process memory.
+- **Development Ephemeral Indicator**: When running in development mode without MongoDB, `/api/health` and server startup logs surface clear warnings that data is temporary.
+
+### C. Binary Image Privacy & Evidence Derivatives (Phase 2.2)
+- **Binary EXIF Purging**: EXIF removal is not merely an API response filter. `stripBinaryExif` parses the actual JPEG binary stream (purging APP1 `0xFFE1`, APP13 `0xFFED`, and COM `0xFFFE`) and PNG chunks (`eXIf`, `tEXt`, `zTXt`, `iTXt`), eliminating device metadata and GPS coordinates directly from binary derivative files.
 - **Coordinate Privacy**: Citizen-facing endpoints nullify `location.latitude` and `location.longitude` to prevent public tracking of vulnerable individuals.
 - **Evidence Vault Separation**: Internal cloud storage keys (`s3://...`) are withheld; public endpoints proxy media through `/api/evidence/preview/...`.
-- **EXIF Stripping**: Device camera, GPS coordinates, and hardware tags are removed from public media derivatives.
 - **PII Masking**: Indian mobile numbers, email addresses, and ID numbers in public descriptions are masked with replacement tokens.
 
-### C. Rate Limiting Defense
+### D. Rate Limiting Defense & Proxy Trust (Phase 2.2)
 - **Intake Protection**: Ingestion endpoint (`POST /api/incidents/ingest`) is protected by a sliding-window limiter (30 req/min/IP).
 - **Tracking Enumeration Defense**: Tracking lookup endpoint is limited to 10 req/min/IP.
-- **Production Disclosure**: Current limiter is in-memory (`MemoryRateLimiter`). Multi-instance horizontal scaling requires Redis or edge-gateway state sharing.
+- **IP Extraction & Reverse-Proxy Trust**: `extractClientIp` validates strict IPv4/IPv6 syntax and prioritizes `cf-connecting-ip` and `x-real-ip` before falling back to `x-forwarded-for`. Production deployments must terminate behind a trusted reverse proxy configured to strip incoming untrusted forwarding headers.
+- **Production Disclosure**: Current limiter is in-memory (`MemoryRateLimiter`). Horizontal multi-node deployments must back rate limiters with Redis or edge rate-limiting rules.
+
 

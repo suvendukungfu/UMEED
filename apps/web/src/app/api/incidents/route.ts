@@ -60,6 +60,28 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (err) {
+    const errorMsg = (err as Error).message || "";
+    if (
+      errorMsg.includes("ECONNREFUSED") ||
+      errorMsg.includes("Server selection timed out") ||
+      errorMsg.includes("MongoDB client is unavailable") ||
+      errorMsg.includes("MongoDB is not configured") ||
+      errorMsg.includes("Production environment requires a configured") ||
+      errorMsg.includes("Fallback to in-memory repository is strictly prohibited")
+    ) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "SERVICE_UNAVAILABLE",
+            message: "Database service is unavailable. Coordinator queue cannot be loaded.",
+            status: 503,
+            timestamp: new Date().toISOString(),
+          },
+        },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       {
         error: {

@@ -71,23 +71,27 @@ When an incident is queried via `GET /api/incidents/:publicReference`:
 
 ---
 
-## 4. Media Evidence Preservation & EXIF Stripping
+## 4. Media Evidence Preservation & Binary EXIF Stripping
 
 ### 4.1 Storage Architecture
 1. **Original Evidence Ingestion**:
    - Media uploaded during report intake is stored in private cloud storage buckets (e.g., S3 / GCS with private ACLs).
    - Raw storage keys (e.g., `s3://umeed-private-evidence/incidents/raw/848b61.../photo.jpg`) are **never** returned in API responses.
-2. **EXIF Stripping Pipeline**:
-   - Before serving media to public or external viewers, the `stripExifMetadata` service removes:
-     - EXIF `GPSInfo` tags (GPS Latitude, Longitude, Altitude, Timestamp).
-     - Device identifiers (Make, Model, Software version, Camera Serial Number).
-     - Capture timestamps and authoring tags.
-3. **Token-Mediated Preview URLs**:
-   - Public responses transform private URLs into secure proxy paths:
+2. **Binary Buffer EXIF Stripping Pipeline (`stripBinaryExif`)**:
+   - EXIF removal is **NOT** merely an API metadata filter; it is executed directly on the image binary bytes before public delivery:
+     - **JPEG Files**: The binary stream parser walks markers from SOI (`0xFFD8`), selectively stripping APP1 (`0xFFE1` - EXIF/GPS/XMP), APP13 (`0xFFED` - IPTC), and COM (`0xFFFE` - Comments) markers while retaining image geometry and entropy-coded SOS data.
+     - **PNG Files**: Filters out `eXIf`, `tEXt`, `zTXt`, and `iTXt` metadata chunks.
+   - All GPS tags, hardware serials, timestamps, and device make/model identifiers are completely purged from the resulting derivative file.
+3. **Evidence Preview Derivative Route**:
+   - Public responses route media requests through:
      ```
-     Original Storage:  s3://umeed-evidence-vault/raw/photo_848b.jpg
-     Public Sanitized:  /api/evidence/preview/aHR0cHM6Ly9zdG9yYWdl...
+     /api/evidence/preview/:publicReference/:index
      ```
+   - Serves the binary derivative with strict privacy headers:
+     - `Content-Type: image/jpeg`
+     - `Cache-Control: private, no-transform, max-age=86400`
+     - `X-Content-Type-Options: nosniff`
+     - `X-Privacy-Sanitized: true`
 
 ---
 

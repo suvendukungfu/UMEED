@@ -14,6 +14,31 @@ const optionalUrl = z.preprocess((val) => {
   return val;
 }, z.string().url().optional());
 
+export const DEV_DEFAULT_COORDINATOR_KEY = "umeed-coordinator-dev-key";
+export const DEV_DEFAULT_CRAWLER_KEY = "umeed-crawler-dev-key";
+
+export const INSECURE_DEFAULT_KEYS = new Set([
+  DEV_DEFAULT_COORDINATOR_KEY,
+  DEV_DEFAULT_CRAWLER_KEY,
+  "default",
+  "changeme",
+  "secret",
+  "admin",
+  "password",
+  "test",
+]);
+
+/**
+ * Detects if a credential is a known development default, template placeholder, or trivial string.
+ */
+export function isInsecureOrPlaceholderCredential(val?: string | null): boolean {
+  if (!val || typeof val !== "string") return false;
+  const trimmed = val.trim();
+  if (trimmed === "") return false;
+  if (isPlaceholderValue(trimmed)) return true;
+  return INSECURE_DEFAULT_KEYS.has(trimmed.toLowerCase());
+}
+
 /**
  * Server-side Environment Configuration Schema.
  * Integration credentials are typed and marked optional so the application shell
@@ -40,15 +65,41 @@ const ServerEnvSchema = z.object({
 
   // Discovery Crawler Service - Phase 8
   DISCOVERY_SERVICE_URL: optionalUrl,
-  CRAWLER_API_KEY: z.string().optional().default("umeed-crawler-dev-key"),
+  CRAWLER_API_KEY: emptyToUndefined,
 
   // Coordinator Authentication & Authorization - Phase 2.1
-  COORDINATOR_API_KEY: z.string().optional().default("umeed-coordinator-dev-key"),
+  COORDINATOR_API_KEY: emptyToUndefined,
 });
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;
 
 let parsedEnv: ServerEnv | null = null;
+
+/**
+ * Returns the effective coordinator key or null if unconfigured/insecure in production.
+ */
+export function getEffectiveCoordinatorKey(env: ServerEnv): string | null {
+  if (env.NODE_ENV === "production") {
+    if (!env.COORDINATOR_API_KEY || isInsecureOrPlaceholderCredential(env.COORDINATOR_API_KEY)) {
+      return null;
+    }
+    return env.COORDINATOR_API_KEY;
+  }
+  return env.COORDINATOR_API_KEY || DEV_DEFAULT_COORDINATOR_KEY;
+}
+
+/**
+ * Returns the effective crawler key or null if unconfigured/insecure in production.
+ */
+export function getEffectiveCrawlerKey(env: ServerEnv): string | null {
+  if (env.NODE_ENV === "production") {
+    if (!env.CRAWLER_API_KEY || isInsecureOrPlaceholderCredential(env.CRAWLER_API_KEY)) {
+      return null;
+    }
+    return env.CRAWLER_API_KEY;
+  }
+  return env.CRAWLER_API_KEY || DEV_DEFAULT_CRAWLER_KEY;
+}
 
 /**
  * Detects if an environment variable holds an unconfigured template placeholder

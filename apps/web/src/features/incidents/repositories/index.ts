@@ -23,9 +23,9 @@ export function setIncidentRepository(repo: IIncidentRepository | null): void {
  * Retrieve the active Incident Repository instance via Dependency Injection.
  *
  * Evaluation Strategy:
- * 1. Explicitly injected repository (e.g. In unit tests)
- * 2. MongoIncidentRepository if MONGODB_URI is provided and configured
- * 3. InMemoryIncidentRepository fallback if database is unconfigured or placeholder
+ * 1. Explicitly injected repository (e.g. in unit tests)
+ * 2. Production: MongoDB Atlas required. Fallback to in-memory is strictly prohibited.
+ * 3. Development / Test: MongoIncidentRepository if configured; InMemoryIncidentRepository fallback if unconfigured.
  */
 export function getIncidentRepository(customRepo?: IIncidentRepository): IIncidentRepository {
   if (customRepo) {
@@ -38,9 +38,23 @@ export function getIncidentRepository(customRepo?: IIncidentRepository): IIncide
 
   const env = getServerEnv();
 
+  // Fail-Closed Production Boundary
+  if (env.NODE_ENV === "production") {
+    if (!isMongoConfigured(env.MONGODB_URI)) {
+      throw new Error(
+        "Production environment requires a configured MongoDB Atlas cluster (MONGODB_URI). " +
+        "Fallback to in-memory repository is strictly prohibited in production."
+      );
+    }
+    defaultRepo = new MongoIncidentRepository();
+    logger.info("Using MongoDB Atlas Incident Repository [Production]", "INCIDENT_REPO");
+    return defaultRepo;
+  }
+
+  // Development and Test Execution Modes
   if (isMongoConfigured(env.MONGODB_URI)) {
     defaultRepo = new MongoIncidentRepository();
-    logger.info("Using MongoDB Atlas Incident Repository", "INCIDENT_REPO");
+    logger.info("Using MongoDB Atlas Incident Repository [Development]", "INCIDENT_REPO");
     return defaultRepo;
   }
 
@@ -48,12 +62,12 @@ export function getIncidentRepository(customRepo?: IIncidentRepository): IIncide
     inMemoryFallbackSingleton = new InMemoryIncidentRepository();
     if (env.MONGODB_URI && isPlaceholderValue(env.MONGODB_URI)) {
       logger.warn(
-        "MONGODB_URI contains placeholder template credentials; falling back safely to InMemoryIncidentRepository",
+        "MONGODB_URI contains placeholder template credentials; falling back safely to InMemoryIncidentRepository (EPHEMERAL / TEMPORARY DATA)",
         "INCIDENT_REPO"
       );
     } else {
-      logger.info(
-        "MONGODB_URI unconfigured; using high-fidelity InMemoryIncidentRepository",
+      logger.warn(
+        "MONGODB_URI unconfigured; using high-fidelity InMemoryIncidentRepository (EPHEMERAL / TEMPORARY DATA)",
         "INCIDENT_REPO"
       );
     }

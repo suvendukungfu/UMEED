@@ -163,19 +163,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for MongoDB connection failures
+    // Check for database persistence or connectivity failures (Fail-Closed)
     const errorMsg = (err as Error).message || "";
     if (
       errorMsg.includes("ECONNREFUSED") ||
       errorMsg.includes("Server selection timed out") ||
-      errorMsg.includes("MongoDB client is unavailable")
+      errorMsg.includes("MongoDB client is unavailable") ||
+      errorMsg.includes("MongoDB is not configured") ||
+      errorMsg.includes("Production environment requires a configured") ||
+      errorMsg.includes("Fallback to in-memory repository is strictly prohibited")
     ) {
-      logger.error("Database connection failure during ingestion", err, "INGESTION_API");
+      logger.error("Database persistence failure during ingestion", err, "INGESTION_API");
       return NextResponse.json(
         {
           error: {
             code: "SERVICE_UNAVAILABLE",
-            message: "Database service is temporarily unavailable. Please retry shortly.",
+            message: "Database service is unavailable. The distress report could not be permanently persisted.",
             status: 503,
             timestamp: new Date().toISOString(),
           },
