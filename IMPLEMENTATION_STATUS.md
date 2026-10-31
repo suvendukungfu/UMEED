@@ -1,8 +1,8 @@
 # UMEED Implementation Status Tracker
 
-**Current Phase**: Phase 5 — Closed-Loop NGO Response Coordination & Recursive Assistance Engine  
+**Current Phase**: Phase 6.0 — Meko MCP Connectivity & Runtime Integration Spike (Track A Foundation)  
 **Primary Branch**: `main`  
-**Status**: **COMPLETED & VERIFIED** (Ready for Phase 6: Meko Coordination Memory Agent)  
+**Status**: **COMPLETED & VERIFIED (SPIKE)** (Ready for Phase 6.1: Active Token Binding & Product Agents)  
 
 ---
 
@@ -19,8 +19,9 @@
 | **Phase 2.2** | Production Safety & Configuration Boundaries | **COMPLETED** | Fail-closed DB, Production Credential Rejection, Binary EXIF Purging, 70 tests pass |
 | **Phase 3** | Citizen Incident Reporting & Gemini Multimodal Triage | **COMPLETED** | Gemini 2.5 Flash, Strict Zod Output, Split Review UI, Fail-Soft Fallback, 87 tests pass |
 | **Phase 4** | NGO Intelligence Registry & Explainable Matching | **COMPLETED** | 117 tests pass, 2dsphere indexes, hard capability filters, 0 vulnerabilities |
-| **Phase 5** | Closed-Loop Case Coordination & State Machine | **COMPLETED** | 142 tests pass, 15 assignment states, recursive follow-up engine, 0 errors |
-| **Phase 6** | Meko Coordination Memory Agent | Upcoming | Meko MCP Integration Spike & Recall Tests |
+| **Phase 5** | Closed-Loop Case Coordination & State Machine | **COMPLETED** | 142 tests pass, 15 assignment states, recursive follow-up engine, 0 errors (`eb87466`) |
+| **Phase 6.0** | Meko MCP Connectivity & Runtime Integration Spike | **COMPLETED** | 163 tests pass, isolated client, schemas, canary suite, honest 401 audit |
+| **Phase 6.1** | Meko Product Agents & A1 On/Off Experiment | Upcoming | Live Token Binding, Dual-Run Experiment, Visible Context Inspector |
 | **Phase 7** | IOMETE Impact Analytics & Integration Outbox | Upcoming | Outbox & Event Stream Telemetry Tests |
 | **Phase 8** | Independent Social Distress Discovery Service | Upcoming | Frame Extraction & Contract Serializer Tests |
 | **Phase 9** | End-to-End Verification, Security Audit & Deploy | Upcoming | 10-Step Journey Acceptance Test |
@@ -214,4 +215,41 @@
 - [x] **TypeScript Strict Compilation**: **0 errors** across all workspaces (`tsc --noEmit`).
 - [x] **ESLint Code Quality**: **✔ No ESLint warnings or errors**.
 - [x] **Production Bundle Build**: **Compiled successfully** (36 static and dynamic routes).
+- [x] **Zero Production Vulnerabilities**: Clean audit via `npm audit --omit=dev` (0 vulnerabilities).
+
+---
+
+## Phase 6.0 Verification Checklist (Meko MCP Connectivity & Runtime Integration Spike)
+
+- [x] **Zero-Leakage Meko Client Spike (`apps/web/src/lib/ai/meko/`)**:
+  - `MekoHttpClient` implementing official Streamable HTTP JSON-RPC 2.0 protocol against `https://mcp.mekodata.ai/mcp`.
+  - Typed error hierarchy (`MekoAuthError`, `MekoForbiddenError`, `MekoNotFoundError`, `MekoRateLimitError`, `MekoValidationError`, `MekoPromotedError`, `MekoNetworkError`).
+  - Secret redaction: `sanitizeMekoMessage` purges API keys and Bearer tokens from all error messages and log outputs.
+- [x] **Tool Whitelist & Execution Guardrails**:
+  - Whitelist restricts calls strictly to 10 approved tools: `memory_add`, `memory_search`, `memory_get_by_id`, `memory_get_all`, `memory_update`, `memory_delete_by_id`, `memory_promote`, `datapack_search`, `datapack_list`, `knowledgebase_search`. Arbitrary tool calls fail closed.
+  - Request timeouts enforced via `AbortController` (15s default).
+- [x] **Privacy & De-Identification Safeguards (Requirement A5)**:
+  - `validateOperationalMemoryText` enforces non-negotiable de-identification before any string reaches Meko.
+  - Rejects candidate memories containing candidate phone numbers, email addresses, exact GPS coordinates, citizen tracking tokens (`trk_...`), or API keys.
+  - Rejects oversized text (>2000 characters) and blank inputs.
+- [x] **Three Product Agent Specifications**:
+  - Formal TypeScript interfaces authored for `IMatchingAgent`, `IFollowUpAgent`, and `IKnowledgeCurator`.
+  - Defines `MemoryInfluenceCitation` contracts for transparent memory-to-requirement attribution.
+- [x] **Live Protocol & Authentication Probe**:
+  - Authenticated probe executed against live endpoint `https://mcp.mekodata.ai/mcp`.
+  - Server confirmed running FastAPI/Uvicorn, HTTP/2, Streamable HTTP JSON-RPC 2.0.
+  - Real server response truthfully captured: `HTTP 401 Unauthorized` (`invalid_token`).
+  - Strict compliance with HackCBS honesty rule: halted retry loop without fabricating success.
+- [x] **Non-Destructive Canary Lifecycle Suite**:
+  - `runCanaryTest` method implements full canary lifecycle: `memory_add` -> `memory_get_by_id` -> `memory_delete_by_id`.
+  - Automated test verified in `meko-client.test.ts`.
+- [x] **Comprehensive Documentation**:
+  - `docs/MEKO_REQUIREMENTS_MATRIX.md`: Track A (A1–A5) and shared build datapack criteria tracking.
+  - `docs/MEKO_CONNECTIVITY_PROOF.md`: Exact HTTP probes, live 401 response, and canary protocol.
+  - `docs/MEKO_RUNTIME_ARCHITECTURE.md`: High-level diagram, separate datapacks, and animal rescue story.
+  - `docs/MEKO_INTEGRATION_LIMITATIONS.md`: Upstream constraints, SDK status, latency, and mentor escalation steps.
+- [x] **Automated Test Suite**: **163/163 tests passing** (12 contracts, 151 web), including 21 dedicated Phase 6.0 tests in `meko-client.test.ts`.
+- [x] **TypeScript Strict Compilation**: **0 errors** across all workspaces (`tsc --noEmit`).
+- [x] **ESLint Code Quality**: **✔ No ESLint warnings or errors**.
+- [x] **Production Bundle Build**: **Compiled successfully in 1506ms** (19 static and dynamic routes).
 - [x] **Zero Production Vulnerabilities**: Clean audit via `npm audit --omit=dev` (0 vulnerabilities).
