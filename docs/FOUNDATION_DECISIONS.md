@@ -18,7 +18,7 @@ This document records the foundational engineering decisions established for UME
 ## 2. Fail-Soft Environment Configuration
 
 - **Central Typed Access**: `src/lib/config/env.ts` using Zod.
-- **Optional External Integrations at Boot**: External vendor keys (`GEMINI_API_KEY`, `MEKO_API_KEY`, `IOMETE_PAT`) are typed as optional during initial boot.
+- **Optional External Integrations at Boot**: External vendor keys (`GEMINI_API_KEY`, `MEKO_API_KEY`) are typed as optional during initial boot.
   - *Rationale*: The core application shell, citizen reporting forms, human verification screens, and health check endpoints must boot and operate reliably even if external AI or analytics vendors are offline or unconfigured.
 - **Just-in-Time Assertion**: When an integration is specifically invoked (e.g. calling Gemini multimodal triage in Phase 3), `requireIntegrationConfig(["GEMINI_API_KEY"], "Gemini")` validates presence and raises a helpful error.
 

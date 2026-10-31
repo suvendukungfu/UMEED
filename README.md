@@ -1,31 +1,45 @@
 # UMEED (CARELINK)
 
 > **Every report deserves a response. Every response deserves a verified handoff.**  
-> AI-powered social distress discovery and closed-loop assistance coordination platform for vulnerable individuals and animals.  
+> AI-powered public signal discovery, social distress tracking, and closed-loop assistance coordination platform for vulnerable individuals and animals.  
 > Built for **HackCBS 9.0 | Meko Challenge Track A**.  
-> **Release Candidate**: 1.0 (Phase 10 Release) | **Verification**: 187 passing tests (26 test files), 0 typecheck errors, 0 lint warnings, 19/19 routes compiled.
+> **Release Candidate**: 1.1 (Phase 11 Discovery Release) | **Verification**: 232 passing tests (35 test files), 0 typecheck errors, 0 lint warnings, 23/23 routes compiled.
 
 ---
 
-## 1. Overview & Signature Concept
+## 1. Overview & Signature Concepts
 
 Most emergency relief reporting platforms fail at the most vulnerable moment: **the unverified drop-off**. Conventional platforms celebrate when an ambulance or rescue van picks up a patient. But if the trauma hospital is full or the night shelter lacks medical staff, the victim is abandoned at the facility gate.
 
-**UMEED** changes that with a signature concept: **The Continuity Line**:
+**UMEED** changes that with two core operational pillars:
 
+### A. The Continuity Line: Zero Dropped Handoffs
 ```
-[ REPORT ] ──► [ TRIAGE ] ──► [ COORDINATION ] ──► [ RESCUE ] ──► [ HANDOFF ] ──► [ VERIFIED COMPLETION ]
+[ DISCOVER/REPORT ] ──► [ TRIAGE ] ──► [ COORDINATION ] ──► [ RESCUE ] ──► [ HANDOFF ] ──► [ VERIFIED COMPLETION ]
 ```
 
-1. **Multi-Channel Intake (`/report`)**: Accepts citizen mobile reports (with SHA-256 token privacy) and authorized social media distress discoveries.
-2. **AI Multimodal Triage (`/incidents`)**: Gemini extracts structured condition, urgency, and candidate location information with evidence references—without making autonomous medical diagnoses.
-3. **Human Coordinator Verification (`/incidents`)**: Mandatory human coordinator review gate (`CONFIRM`, `OVERRIDE`, `REJECT`) before dispatch.
-4. **Capability-Aware NGO Matching (`/cases`)**: 5-factor scoring model ranks accredited organizations across Delhi NCR based on capabilities, district authorization, availability, distance, and capacity.
-5. **Field Operations Cockpit (`/responder`)**: Mobile-first touch-friendly interface for field responders to accept tasks, confirm GPS arrival, and submit intervention logs.
-6. **Recursive Assistance Loops (`/cases/[caseReference]`)**: When initial first aid only resolves part of the distress, secondary matching cycles automatically trigger for remaining needs.
-7. **The Downstream Handoff Gate**: Resolution is strictly blocked until the receiving hospital, clinic, or shelter formally verifies admission.
-8. **Meko Institutional Memory (`/agent`)**: Recalls past coordinator lessons (e.g. trauma transport without surgical readiness) before reasoning and injects required handoff checkpoints.
-9. **Interactive Context Inspector**: Full human coordinator inspection, PII-validated correction, deletion, and shared promotion control over AI memory.
+### B. Discovery Intelligence & Distress Radar (`/discovery`)
+- **Compliant Public Web Crawler**: Bounded, RFC 9309-compliant crawler scanning approved public feeds, Open Government Data (`data.gov.in`), and municipal shelter advisories.
+- **SSRF & DNS Rebinding Immunity**: Multi-tier security guard protecting private IPv4/IPv6 ranges and cloud metadata (`169.254.169.254`).
+- **Interactive Geospatial Map**: MapLibre GL JS client renderer with coarsened privacy coordinates (~1.1 km area centroids) across all 11 Delhi revenue districts.
+- **Mandatory Review Gate**: Public signals are ingested strictly as candidates; human coordinator approval is required before converting to active UMEED incidents.
+
+---
+
+## 2. Core Experience Architecture
+
+1. **Discovery Radar (`/discovery`)**: Live distress signal map, candidate tracker, and coordinator review drawer.
+2. **Approved Source Registry (`/discovery/sources`)**: Directory of authorized public feeds with license, terms, and robots.txt health inspection.
+3. **Crawl Execution Monitor (`/discovery/runs`)**: Real-time bounded crawl batch logs, metrics, and execution audit trails.
+4. **Multi-Channel Intake (`/report`)**: Accepts citizen mobile reports (with SHA-256 token privacy) and authorized social media distress discoveries.
+5. **AI Multimodal Triage (`/incidents`)**: Gemini extracts structured condition, urgency, and candidate location information with evidence references—without making autonomous medical diagnoses.
+6. **Human Coordinator Verification (`/incidents`)**: Mandatory human coordinator review gate (`CONFIRM`, `OVERRIDE`, `REJECT`) before dispatch.
+7. **Capability-Aware NGO Matching (`/cases`)**: 5-factor scoring model ranks accredited organizations across Delhi NCR based on capabilities, district authorization, availability, distance, and capacity.
+8. **Field Operations Cockpit (`/responder`)**: Mobile-first touch-friendly interface for field responders to accept tasks, confirm GPS arrival, and submit intervention logs.
+9. **Recursive Assistance Loops (`/cases/[caseReference]`)**: When initial first aid only resolves part of the distress, secondary matching cycles automatically trigger for remaining needs.
+10. **The Downstream Handoff Gate**: Resolution is strictly blocked until the receiving hospital, clinic, or shelter formally verifies admission.
+11. **Meko Institutional Memory (`/agent`)**: Recalls past coordinator lessons (e.g. trauma transport without surgical readiness) before reasoning and injects required handoff checkpoints.
+12. **Interactive Context Inspector**: Full human coordinator inspection, PII-validated correction, deletion, and shared promotion control over AI memory.
 
 ---
 

@@ -4,7 +4,7 @@ import React from "react";
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
-  elevation?: "none" | "subtle" | "card" | "elevated";
+  elevation?: "none" | "subtle" | "card" | "elevated" | "sm" | "md";
   padding?: "none" | "sm" | "md" | "lg";
   className?: string;
 }
@@ -19,7 +19,9 @@ export function Card({
   const elevationStyles = {
     none: "border border-warm-grey-200 bg-white",
     subtle: "border border-warm-grey-200 bg-white shadow-subtle",
+    sm: "border border-warm-grey-200 bg-white shadow-subtle",
     card: "border border-warm-grey-200 bg-white shadow-card",
+    md: "border border-warm-grey-200 bg-white shadow-card",
     elevated: "border border-forest-800/10 bg-white shadow-elevated",
   };
 
@@ -42,6 +44,7 @@ export function Card({
 
 export interface MetricCardProps {
   label: string;
+  elevation?: "none" | "subtle" | "card" | "elevated";
   value: string | number;
   subtext?: string;
   icon?: React.ComponentType<{ className?: string }>;
@@ -57,10 +60,11 @@ export function MetricCard({
   icon: Icon,
   trend,
   badge,
+  elevation = "subtle",
   className = "",
 }: MetricCardProps) {
   return (
-    <Card elevation="subtle" padding="sm" className={`flex flex-col justify-between ${className}`}>
+    <Card elevation={elevation} padding="sm" className={`flex flex-col justify-between ${className}`}>
       <div className="flex items-center justify-between gap-2 mb-2">
         <span className="text-xs font-semibold uppercase tracking-wider text-forest-700/80">
           {label}

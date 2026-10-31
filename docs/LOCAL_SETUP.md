@@ -90,9 +90,9 @@ GEMINI_API_KEY=
 # MEKO_API_KEY=
 # MEKO_DATAPACK_ID=
 
-# Historical Analytics Stream (Phase 7)
+# Historical Analytics (Unused / Out of Scope)
 # IOMETE_PAT=
-# IOMETE_EVENT_STREAM_URL=https://workspace.iomete.cloud/api/v1/event-stream
+# IOMETE_EVENT_STREAM_URL=
 
 # Discovery Crawler (Phase 8)
 DISCOVERY_SERVICE_URL=http://localhost:8000

@@ -73,12 +73,11 @@
 
 ---
 
-### [ ] Phase 7 — IOMETE Impact Analytics & Integration Outbox
-- **Milestone 7.1**: Implement durable Integration Outbox in MongoDB saving lifecycle events transactionally.
-- **Milestone 7.2**: Build IOMETE Event Stream worker pushing events to IOMETE Iceberg table with exponential backoff and error tracking.
-- **Milestone 7.3**: Build Analytics Dashboard (`/analytics`) displaying reports by district, categories, acceptance rate, response times, and unmet assistance needs.
-- **Milestone 7.4**: Implement data coverage warnings and synthetic data labels.
-- **Milestone 7.5**: Document setup and SQL queries in `IOMETE_INTEGRATION.md`.
+### [ ] Phase 7 — Operational Telemetry & Analytics Dashboard
+- **Milestone 7.1**: Implement durable assistance telemetry and lifecycle event capture.
+- **Milestone 7.2**: Build Operational Analytics Dashboard (`/analytics`) displaying reports by district, categories, acceptance rate, response times, and unmet assistance needs.
+- **Milestone 7.3**: Implement data coverage warnings, transparency notices, and synthetic demonstration data labels.
+- **Milestone 7.4**: Verify metric aggregations across incident intake, triage latency, and case resolutions.
 
 ---
 

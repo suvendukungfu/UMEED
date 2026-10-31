@@ -40,7 +40,7 @@ This guide walks through configuring and running UMEED locally.
    - `CRAWLER_API_KEY`: Service-to-service crawler secret key.
    - `GEMINI_API_KEY`: Google Gemini API key for multimodal triage (Phase 3).
    - `MEKO_API_KEY`: Meko API key for coordination agent memory (Phase 6).
-   - `IOMETE_PAT`: IOMETE Personal Access Token for telemetry stream (Phase 7).
+   - `IOMETE_PAT`: (Unused / Out of Scope) Retained as empty compatibility placeholder.
 
 ---
 

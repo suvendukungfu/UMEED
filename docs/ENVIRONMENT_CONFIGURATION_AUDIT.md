@@ -1,9 +1,9 @@
 # UMEED — Environment Configuration Audit & Infrastructure Validation
 
-**Document Version**: 1.0.0  
+**Document Version**: 1.1.0  
 **Audit Date**: 2026-11-01  
 **Environment**: Local Development (`apps/web/.env.local`)  
-**Auditor**: Staff Software Engineer & Infrastructure Architect  
+**Auditor**: Staff Software Engineer & Principal Platform Architect  
 **Classification**: Engineering Confidential — Redacted / Zero Plaintext Secrets  
 
 ---
@@ -24,21 +24,26 @@ All four verification stages pass:
 
 Every variable supported by UMEED's server-side configuration schema ([env.ts](file:///Users/suvendusahoo/hackcbs/apps/web/src/lib/config/env.ts)) was audited for existence, population status, structural validity, and consuming subsystems without disclosing secret values:
 
-| Environment Variable | Exists in `.env.local` | Populated | Structural Validity | Requirement Level | Consuming Subsystem |
-| :--- | :---: | :---: | :---: | :---: | :--- |
-| `NODE_ENV` | **YES** | **YES** | Valid runtime environment (`development`) | Optional (Default: `development`) | Runtime Kernel / Next.js Engine |
-| `PORT` | **YES** | **YES** | Valid port integer (`3000`) | Optional (Default: `3000`) | Next.js HTTP Server |
-| `MONGODB_URI` | **YES** | **NO** (Unset) | N/A (Unpopulated) | Optional (Fail-soft fallback) | Database Layer / Repositories |
-| `MONGODB_DB` | **YES** | **YES** | Valid string identifier | Optional (Default: `umeed_db`) | MongoDB Database Namespace |
-| `COORDINATOR_API_KEY` | **YES** | **YES** | Valid non-empty credential string | Optional (Dev default available) | Coordinator Security & RBAC |
-| `CRAWLER_API_KEY` | **YES** | **NO** (Unset) | N/A (Unpopulated) | Optional (Dev default available) | Crawler Ingestion Security |
-| `GEMINI_API_KEY` | **YES** | **YES** | Valid non-empty credential string | Optional (Fail-soft triage fallback) | Google Gemini AI Multimodal Triage |
-| `MEKO_API_KEY` | **YES** | **YES** | Valid non-empty credential string | Optional (Fail-soft baseline fallback) | Meko Context Engine (MCP HTTP) |
-| `MEKO_PRODUCT_DATAPACK_ID` | **YES** | **YES** | Valid canonical UUID | Optional (Product Context default) | Operational Product Agents |
-| `MEKO_BUILD_DATAPACK_ID` | **YES** | **YES** | Valid canonical UUID | Optional (Build Knowledge default) | Engineering ADRs / Check T |
-| `IOMETE_PAT` | **YES** | **NO** (Unset) | N/A (Unpopulated) | Optional (Disabled if unset) | Impact Lakehouse Analytics |
-| `IOMETE_EVENT_STREAM_URL` | **YES** | **NO** (Unset) | N/A (Unpopulated) | Optional (Disabled if unset) | Impact Streaming Endpoint |
-| `DISCOVERY_SERVICE_URL` | **YES** | **NO** (Unset) | N/A (Unpopulated) | Optional (Disabled if unset) | External Social Distress Scraper |
+| Environment Variable | Exists in `.env.local` | Status | Description / Consuming Subsystem | Requirement Level |
+| :--- | :---: | :---: | :--- | :--- |
+| `NODE_ENV` | **YES** | **POPULATED** | Valid runtime environment (`development`) | Optional (Default: `development`) |
+| `PORT` | **YES** | **POPULATED** | Valid port integer (`3000`) | Optional (Default: `3000`) |
+| `MONGODB_URI` | **YES** | **UNPOPULATED** | Database Layer / Repositories (In-memory demo fallback active) | Optional (Fail-soft fallback) |
+| `MONGODB_DB` | **YES** | **POPULATED** | MongoDB Database Namespace (`umeed_db`) | Optional (Default: `umeed_db`) |
+| `COORDINATOR_API_KEY` | **YES** | **POPULATED** | Coordinator Security & RBAC | Optional (Dev default available) |
+| `CRAWLER_API_KEY` | **YES** | **UNPOPULATED** | Crawler Ingestion Security | Optional (Dev default available) |
+| `GEMINI_API_KEY` | **YES** | **POPULATED** | Google Gemini AI Multimodal Triage | Optional (Fail-soft triage fallback) |
+| `MEKO_API_KEY` | **YES** | **POPULATED** | Meko Context Engine (MCP HTTP) | Optional (Fail-soft baseline fallback) |
+| `MEKO_PRODUCT_DATAPACK_ID` | **YES** | **POPULATED** | Operational Product Agents (`MatchingAgent`, `FollowUpAgent`) | Optional (Product Context default) |
+| `MEKO_BUILD_DATAPACK_ID` | **YES** | **POPULATED** | Engineering ADRs / Check T Multi-Agent Grounding | Optional (Build Knowledge default) |
+| `IOMETE_PAT` | **YES** | **UNUSED / OUT OF SCOPE** | Retained as an empty compatibility placeholder; no active integration | Unused / Reserved / Out of Scope |
+| `IOMETE_EVENT_STREAM_URL` | **YES** | **UNUSED / OUT OF SCOPE** | Retained as an empty compatibility placeholder; no active integration | Unused / Reserved / Out of Scope |
+| `DISCOVERY_SERVICE_URL` | **YES** | **UNPOPULATED** | Social Distress Crawler Service | Optional (Disabled if unset) |
+
+> **Architectural Scope Clarification**:
+> UMEED does not currently integrate with IOMETE. These variables are retained in the local environment template for configuration compatibility only. They are not consumed by an active application subsystem.
+> 
+> No Impact Lakehouse subsystem is active, no external event streaming worker is running or required, and system health is completely decoupled from IOMETE. The `/analytics` interface is powered exclusively by internal assistance telemetry and case lifecycle events.
 
 ---
 
@@ -150,12 +155,13 @@ Next.js Production Build (next build):
 
 ---
 
-## 6. Missing External Dependencies & Manual Action Items
+## 6. External Dependencies Status & Developer Action Items
 
-| Subsystem | Current State | Impact | Developer Action Needed |
+| Subsystem | Current State | Architecture Status | Developer Action Needed |
 | :--- | :--- | :--- | :--- |
-| **MongoDB Atlas** | `MONGODB_URI` unset | System uses high-fidelity in-memory storage (data resets on server restart). | To persist data across server restarts, supply a valid connection string: `mongodb+srv://<user>:<password>@cluster.mongodb.net/` in `apps/web/.env.local`. |
-| **IOMETE Lakehouse** | `IOMETE_PAT` & URL unset | Real-time analytics streaming is disabled (analytics dashboard uses local aggregation). | Provide IOMETE Personal Access Token in `.env.local` if lakehouse synchronization is required. |
-| **Distress Scraper** | `DISCOVERY_SERVICE_URL` unset | External crawler dispatch is disabled; manual and API ingestion remain fully operational. | Configure the social distress scraper service endpoint if autonomous discovery is required. |
-| **Live Credential Privacy** | Keys present in local file | Existing keys are preserved in `.env.local`. | Replace any credentials that may have been previously shared across team channels directly in `.env.local`. |
+| **MongoDB Atlas** | `MONGODB_URI` unset | ACTIVE (In-Memory Demo Fallback) | To persist data across server restarts, supply a valid connection string: `mongodb+srv://<user>:<password>@cluster.mongodb.net/` in `apps/web/.env.local`. |
+| **Google Gemini** | `GEMINI_API_KEY` populated | ACTIVE (Multimodal Triage) | Operates automatically for citizen report multimodal triage. |
+| **Meko Context** | `MEKO_API_KEY` populated | ACTIVE (Coordination Memory) | Scoped to `umeed-product-context` and `umeed-build`. |
+| **IOMETE** | `IOMETE_PAT` & URL unset | **UNUSED / OUT OF SCOPE** | **None.** Retained in `.env.local` as empty placeholder. No active integration or dependency exists. |
+| **Distress Scraper** | `DISCOVERY_SERVICE_URL` unset | OPTIONAL / STANDALONE | Configure external scraper endpoint only if autonomous public feed scraping is desired. |
 

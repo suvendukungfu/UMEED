@@ -14,6 +14,7 @@ import {
   Building2,
   Brain,
   Truck,
+  Radar,
 } from "lucide-react";
 import { HealthIndicator } from "@/components/common/HealthIndicator";
 import { Button } from "@/components/ui/Button";
@@ -62,6 +63,13 @@ export function AppNavbar({ onOpenA1Modal }: AppNavbarProps) {
             className="text-sm font-semibold text-forest-800 hover:text-coral-500 transition-colors"
           >
             Continuity Line
+          </Link>
+          <Link
+            href="/discovery"
+            className="text-sm font-semibold text-forest-800 hover:text-coral-500 transition-colors flex items-center gap-1.5"
+          >
+            <Radar className="h-4 w-4 text-coral-500" />
+            <span>Discovery Radar</span>
           </Link>
           <Link
             href="/ngos"
@@ -149,6 +157,14 @@ export function AppNavbar({ onOpenA1Modal }: AppNavbarProps) {
               className="px-3 py-2 rounded-md text-sm font-bold text-coral-600 hover:bg-coral-50"
             >
               Submit Citizen Report
+            </Link>
+            <Link
+              href="/discovery"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-md text-sm font-semibold text-coral-600 hover:bg-coral-50 flex items-center gap-1.5"
+            >
+              <Radar className="h-4 w-4" />
+              <span>Discovery Radar</span>
             </Link>
             <Link
               href="/cases"

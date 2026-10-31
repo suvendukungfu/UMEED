@@ -30,7 +30,7 @@ umeed/
 │       │   │   ├── cases/              # State machine & lifecycle management
 │       │   │   ├── evidence/           # Media upload and provenance
 │       │   │   ├── matching/           # Capability-aware matching engine
-│       │   │   ├── analytics/          # IOMETE event models
+│       │   │   ├── analytics/          # Operational analytics & metrics models
 │       │   │   └── agent/              # Meko coordination memory agent
 │       │   └── lib/                    # Shared core infrastructure
 │       │       ├── config/             # Zod environment validation & runtime access

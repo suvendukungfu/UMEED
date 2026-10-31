@@ -39,7 +39,7 @@ To maximize hackathon impact while maintaining strict engineering rigor, every U
 | **Admin NGO DARPAN Verification Governance** | Administrator | **P1** | Medium | Admin API & NGO Registry | Authorizes organizations into `operationally_verified` dispatch tiers. |
 | **Offline IndexedDB Queue for Field Submissions** | Citizen / NGO | **P2** | High | Service Worker & Local Storage Adapter | Stores submissions locally when offline and syncs upon reconnection. |
 | **Meko Persistent Coordination Memory Panel** | Coordinator | **P2** | Medium | Meko MCP Server & Datapack Configuration | Remembers coordinator dispatch preferences across recurring sessions. |
-| **IOMETE Iceberg Telemetry Dashboard (`/analytics`)** | Administrator | **P2** | Medium | Integration Outbox Worker & IOMETE Client | Visualizes macro district trends, recurring distress hotspots, and response lag. |
+| **Operational Telemetry Dashboard (`/analytics`)** | Administrator | **P2** | Medium | Analytics Service & In-Memory/Mongo Aggregations | Visualizes macro district trends, recurring distress hotspots, and response lag. |
 | **Social Distress Discovery Crawler (`services/discovery`)** | System | **P2** | High | FastAPI, FFmpeg, and Multimodal Vision Model | Automatically ingests public distress media from social channels. |
 
 ---

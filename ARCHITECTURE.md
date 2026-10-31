@@ -13,7 +13,6 @@ UMEED is designed with a strict separation of concerns to guarantee resilience:
 - **External Integrations**:
   - **Gemini (Multimodal)**: Structured incident extraction and triage recommendation.
   - **Meko**: Persistent coordination memory and coordinator preference recall.
-  - **IOMETE**: Durable historical impact analytics powered by an asynchronous Integration Outbox.
 
 ```mermaid
 flowchart TD
@@ -41,8 +40,7 @@ flowchart TD
 
     subgraph AnalyticsMemory["4. Memory & Analytics"]
         MEKO["Meko Coordination Memory\n(Coordinator Preferences & Session Recall)"]
-        OUTBOX["Integration Outbox Queue"]
-        IOMETE["IOMETE Iceberg Event Stream\n(Historical Impact & Response Analytics)"]
+        OUTBOX["Operational Telemetry &\nAssistance Event Metrics"]
     end
 
     CR --> API
@@ -57,7 +55,6 @@ flowchart TD
     DASH -->|Intervention Incomplete| RECURSIVE
     RECURSIVE --> MATCH
     STATE --> OUTBOX
-    OUTBOX --> IOMETE
     REV <--> MEKO
 ```
 
@@ -153,9 +150,9 @@ Where:
 
 ## 5. Resilience & Integration Outbox
 
-To prevent external vendor outages (IOMETE, Gemini, Meko) from degrading core operational coordination:
+To prevent external vendor outages (Gemini, Meko) from degrading core operational coordination:
 1. **Fallback Triage**: If Gemini API is unreachable, incidents transition to `UNDER_REVIEW` with an `AI_UNAVAILABLE` flag for direct human triage.
-2. **Durable Outbox for Analytics**: Events (`incident_created`, `case_resolved`, etc.) are written in MongoDB transactionally within `integration_outbox`. A background worker pushes batches to IOMETE with exponential backoff.
+2. **Durable Operational Telemetry**: Assistance events (`incident_created`, `case_resolved`, etc.) are captured transactionally within the operational database for internal reporting and metrics without external lakehouse dependency.
 3. **Meko Memory Isolation**: Meko memory operations run server-side with fail-soft boundaries. If the Meko MCP server is unavailable, the coordinator interface falls back to standard rule-based recommendations.
 
 ---
@@ -165,5 +162,5 @@ To prevent external vendor outages (IOMETE, Gemini, Meko) from degrading core op
 - **No Autonomous Dispatch**: AI outputs structured triage suggestions; an authorized coordinator must confirm action for high-risk incidents.
 - **No Autonomous Medical Diagnosis**: AI identifies visible conditions and potential assistance types, explicitly flagged as non-medical observations.
 - **Beneficiary Privacy**: No facial recognition, biometric analysis, or unredacted PII is exported to analytics or public stores.
-- **Server-Side Secret Isolation**: All keys (`GEMINI_API_KEY`, `MONGODB_URI`, `MEKO_API_KEY`, `IOMETE_TOKEN`) are restricted to Node.js server runtime and never shipped to client bundles.
+- **Server-Side Secret Isolation**: All keys (`GEMINI_API_KEY`, `MONGODB_URI`, `MEKO_API_KEY`) are restricted to Node.js server runtime and never shipped to client bundles.
 

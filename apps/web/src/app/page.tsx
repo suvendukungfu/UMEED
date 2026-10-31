@@ -21,12 +21,15 @@ import {
   ChevronRight,
   Compass,
   ArrowUpRight,
+  Radar,
+  Globe,
 } from "lucide-react";
 import { ContinuityLine } from "@/components/common/ContinuityLine";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { A1ExperimentModal } from "@/components/context-inspector/A1ExperimentModal";
+import { HeroIllustration, DiscoveryRadarVisual } from "@/components/illustrations/VisualIllustrations";
 
 export default function HomePage() {
   const [a1ModalOpen, setA1ModalOpen] = useState(false);
@@ -75,6 +78,14 @@ export default function HomePage() {
               <span>Launch Mission Control</span>
             </Link>
 
+            <Link
+              href="/discovery"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-sage-200 hover:bg-sage-300 text-forest-900 border border-sage-300 font-bold text-sm shadow-2xs transition-all"
+            >
+              <Radar className="h-4 w-4 text-coral-600" />
+              <span>Explore Discovery Radar</span>
+            </Link>
+
             <button
               type="button"
               onClick={() => setA1ModalOpen(true)}
@@ -83,6 +94,11 @@ export default function HomePage() {
               <Brain className="h-4 w-4 text-coral-500" />
               <span>Run A1 Live Meko Experiment</span>
             </button>
+          </div>
+
+          {/* UMEED Architecture Network Visual */}
+          <div className="mt-12 max-w-4xl mx-auto rounded-3xl overflow-hidden border border-warm-grey-300 shadow-card bg-paper-surface">
+            <HeroIllustration />
           </div>
         </div>
 
@@ -106,6 +122,68 @@ export default function HomePage() {
 
             <div className="p-4 sm:p-6 rounded-2xl bg-white border border-warm-grey-200 shadow-card">
               <ContinuityLine currentStage="HANDOFF" variant="timeline" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          SECTION 1.5: PUBLIC SIGNAL DISCOVERY & GEOSPATIAL RADAR
+          ========================================================================= */}
+      <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="p-8 sm:p-10 rounded-3xl bg-forest-950 text-white relative overflow-hidden shadow-elevated border border-forest-900">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div className="lg:col-span-6 space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-forest-900 text-coral-400 text-xs font-mono font-bold">
+                <Radar className="h-3.5 w-3.5 text-coral-400 animate-pulse" />
+                <span>Phase 11: Public Signal Discovery Radar</span>
+              </div>
+              <h2 className="font-editorial text-3xl sm:text-4xl font-bold leading-tight">
+                Find the signal. Verify the need. <br />
+                <span className="italic text-coral-400">Coordinate the response.</span>
+              </h2>
+              <p className="text-sm text-sage-200/90 leading-relaxed">
+                Before distress turns into tragedy, reports appear on public bulletin boards, NGO notices,
+                and open datasets. UMEED&apos;s compliant discovery engine scans approved public feeds, extracts
+                actionable distress signals, and maps them across Delhi revenue districts — requiring human
+                coordinator verification before active dispatch.
+              </p>
+              <div className="pt-2 flex flex-wrap gap-4 text-xs text-sage-300 font-mono">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-coral-400" />
+                  RFC 9309 Robots Compliant
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-sage-300" />
+                  SSRF Protected
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-sage-300" />
+                  Coarsened Privacy Map
+                </span>
+              </div>
+              <div className="pt-4 flex items-center gap-3">
+                <Link
+                  href="/discovery"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-xs shadow-sm transition-all"
+                >
+                  <Radar className="h-4 w-4" />
+                  <span>Launch Discovery Radar</span>
+                </Link>
+                <Link
+                  href="/discovery/sources"
+                  className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-forest-900 hover:bg-forest-800 text-sage-200 font-semibold text-xs border border-forest-800 transition-all"
+                >
+                  <Globe className="h-4 w-4" />
+                  <span>View Source Registry</span>
+                </Link>
+              </div>
+            </div>
+
+            <div className="lg:col-span-6 flex justify-center">
+              <div className="w-full max-w-lg rounded-2xl overflow-hidden border border-forest-800 shadow-card">
+                <DiscoveryRadarVisual />
+              </div>
             </div>
           </div>
         </div>

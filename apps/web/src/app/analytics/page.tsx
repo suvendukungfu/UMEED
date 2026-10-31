@@ -77,7 +77,7 @@ export default function AnalyticsPage() {
       <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-300 flex items-start gap-3">
         <Info className="h-5 w-5 text-amber-800 shrink-0 mt-0.5" />
         <div className="text-xs text-amber-900 leading-relaxed">
-          <strong>Operational Analytics Transparency Notice:</strong> Metrics displayed reflect seeded historical simulation data for HackCBS 9.0 demonstration purposes (<code>DEMO_DATA_ONLY</code>). The transactional event outbox is active; Apache Iceberg event streaming connects live when <code>IOMETE_PAT</code> is supplied in environment configuration.
+          <strong>Operational Analytics Transparency Notice:</strong> Metrics displayed reflect seeded historical simulation data for HackCBS 9.0 demonstration purposes (<code>DEMO_DATA_ONLY</code>). Aggregations are calculated from internal assistance events and case telemetry.
         </div>
       </div>
 

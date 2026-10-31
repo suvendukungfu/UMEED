@@ -5,6 +5,7 @@ import { CheckCircle2, Clock, AlertTriangle, XCircle, ShieldAlert } from "lucide
 
 export type BadgeVariant =
   | "success"
+  | "positive"
   | "warning"
   | "critical"
   | "info"
@@ -29,6 +30,7 @@ export function Badge({
 }: BadgeProps) {
   const variantStyles: Record<BadgeVariant, string> = {
     success: "bg-forest-100 text-forest-800 border-forest-300 font-medium",
+    positive: "bg-forest-100 text-forest-800 border-forest-300 font-medium",
     warning: "bg-amber-50 text-amber-900 border-amber-300 font-medium",
     critical: "bg-red-50 text-red-900 border-red-300 font-medium",
     info: "bg-sky-50 text-sky-900 border-sky-200 font-medium",

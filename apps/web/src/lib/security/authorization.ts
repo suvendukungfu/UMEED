@@ -106,7 +106,7 @@ export function extractTrackingToken(
  */
 export function verifyCoordinatorAuth(
   requestOrHeaders: Request | Headers | Record<string, string | string[] | undefined>
-): { authorized: boolean; reason?: string } {
+): { authorized: boolean; reason?: string; coordinatorId?: string } {
   const env = getServerEnv();
   const configuredKey = getEffectiveCoordinatorKey(env);
 
@@ -156,7 +156,7 @@ export function verifyCoordinatorAuth(
     return { authorized: false, reason: "Invalid coordinator credentials." };
   }
 
-  return { authorized: true };
+  return { authorized: true, coordinatorId: "coordinator_manual" };
 }
 
 export interface ResponderAuthResult {

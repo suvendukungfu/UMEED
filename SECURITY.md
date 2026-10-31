@@ -41,7 +41,7 @@ Instead, report the issue responsibly by:
 UMEED enforces strict foundational security controls across the codebase:
 
 ### 3.1 Server-Side Secret Isolation
-All database credentials (`MONGODB_URI`), model keys (`GEMINI_API_KEY`), and partner secrets (`MEKO_API_KEY`, `IOMETE_TOKEN`) are restricted to the Node.js server runtime. No sensitive environment variables are prefixed with `NEXT_PUBLIC_` or bundled into client assets.
+All database credentials (`MONGODB_URI`), model keys (`GEMINI_API_KEY`), and partner secrets (`MEKO_API_KEY`) are restricted to the Node.js server runtime. No sensitive environment variables are prefixed with `NEXT_PUBLIC_` or bundled into client assets.
 
 ### 3.2 Strict Schema Validation & Resource Exhaustion Protection
 All ingestion endpoints validate input via `@umeed/contracts` using Zod 4.6.6+. Strict `.max()` bounds are enforced on all strings, reasoning arrays (max 20 items), and URLs to prevent memory exhaustion and Denial-of-Service attacks.

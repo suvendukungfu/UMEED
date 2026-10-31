@@ -61,7 +61,7 @@ const ServerEnvSchema = z.object({
   MEKO_PRODUCT_DATAPACK_ID: emptyToUndefined,
   MEKO_BUILD_DATAPACK_ID: emptyToUndefined,
 
-  // Impact Analytics (IOMETE) - Phase 7
+  // Impact Analytics - Unused / Reserved / Out of Scope (Retained for environment compatibility)
   IOMETE_PAT: emptyToUndefined,
   IOMETE_EVENT_STREAM_URL: optionalUrl,
 
@@ -141,7 +141,7 @@ export function getServerEnv(): ServerEnv {
 
 /**
  * Helper to assert that a specific integration has its required credentials set.
- * Call this inside the integration adapter (e.g. Gemini, Meko, IOMETE) when invoked.
+ * Call this inside the integration adapter (e.g. Gemini, Meko) when invoked.
  */
 export function requireIntegrationConfig<K extends keyof ServerEnv>(
   keys: K[],

@@ -32,7 +32,7 @@ To maintain complete engineering integrity, every platform capability is audited
 | **Capability-Aware Matching Engine** | `PLANNED` | Mathematical formula defined in `ARCHITECTURE.md`; implementation scheduled for Phase 4. |
 | **Closed-Loop Case State Machine (`/cases`)** | `PARTIALLY_IMPLEMENTED` | Page placeholder exists at `apps/web/src/app/cases/page.tsx`; state transitions and responder portal are `PLANNED` (Phase 5). |
 | **Meko Coordination Memory (`/agent`)** | `PARTIALLY_IMPLEMENTED` | Page placeholder exists at `apps/web/src/app/agent/page.tsx`; MCP adapter scheduled for Phase 6. |
-| **IOMETE Historical Analytics (`/analytics`)** | `PARTIALLY_IMPLEMENTED` | Page placeholder exists at `apps/web/src/app/analytics/page.tsx`; durable outbox worker scheduled for Phase 7. |
+| **Operational Analytics Dashboard (`/analytics`)** | `IMPLEMENTED` | Operational analytics dashboard at `apps/web/src/app/analytics/page.tsx` visualizing internal response metrics and district assistance data. |
 | **Social Distress Crawler (`services/discovery`)** | `PLANNED` | Service directory established; FastAPI and FFmpeg ingestion pipeline scheduled for Phase 8. |
 
 ---
@@ -247,7 +247,7 @@ UMEED coordinates four primary user roles, each operating under distinct operati
    - Tier 1: `publicly_listed` (basic contact info, not eligible for automated dispatch).
    - Tier 2: `registration_checked` (valid government registration, eligible for low-severity cases).
    - Tier 3: `operationally_verified` (field-vetted, vetted capacity, eligible for critical medical dispatch).
-3. **Integration Telemetry**: Admin inspects health status for Core Engine, MongoDB Atlas, Gemini Quota, Meko Memory, and IOMETE Outbox sync backlog.
+3. **Integration Telemetry**: Admin inspects health status for Core Engine, MongoDB Atlas, Gemini Quota, and Meko Memory.
 4. **Audit Trail Inspection**: Admin queries immutable case event logs for any dispute or safety incident (e.g., case reassignment history, rejected dispatches).
 
 #### Permissions & Access Control
@@ -265,7 +265,7 @@ UMEED coordinates four primary user roles, each operating under distinct operati
 
 #### Critical Information Display
 
-- System outbox backlog depth (pending events queued for IOMETE analytics).
+- Operational assistance event throughput and case resolution metrics.
 - Verification status counters (Pending, Verified, Suspended).
 - Average response time and resolution rate metrics.
 

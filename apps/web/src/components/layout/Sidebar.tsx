@@ -16,11 +16,13 @@ import {
   Sparkles,
   ShieldCheck,
   Brain,
+  Radar,
 } from "lucide-react";
 import { A1ExperimentModal } from "@/components/context-inspector/A1ExperimentModal";
 
 const navigationItems = [
   { name: "Public Overview", href: "/", icon: Home },
+  { name: "Signal Discovery", href: "/discovery", icon: Radar },
   { name: "Case Mission Control", href: "/cases", icon: GitPullRequest },
   { name: "Incident Intake", href: "/incidents", icon: AlertCircle },
   { name: "Field Responder", href: "/responder", icon: Truck },

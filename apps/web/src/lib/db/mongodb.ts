@@ -152,3 +152,5 @@ export async function checkDatabaseReadiness(): Promise<DatabaseStatus> {
   }
 }
 
+
+export const getDb = getDatabase;
