@@ -45,11 +45,14 @@ npm run dev
 ```
 
 Visit [http://localhost:3000](http://localhost:3000) to view the UMEED Dashboard.
+- Citizen Report Form: [http://localhost:3000/report](http://localhost:3000/report)
+- Coordinator Triage Queue: [http://localhost:3000/incidents](http://localhost:3000/incidents)
 
-### Health Check Endpoint
-```bash
-curl http://localhost:3000/api/health
-```
+### API Endpoints (Phase 2 Operational)
+- **Health Check**: `GET /api/health`
+- **Incident Ingestion**: `POST /api/incidents/ingest` (Zod v1.0.0, idempotency, secure tracking credentials)
+- **Incident Query Feed**: `GET /api/incidents` (Filter by status, category, duplicate flags)
+- **Public Tracking Lookup**: `GET /api/incidents/:publicReference` (Redacted milestone status)
 
 ---
 

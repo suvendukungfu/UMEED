@@ -84,6 +84,16 @@ export const IncidentFreshnessSchema = z.enum([
 ]);
 export type IncidentFreshness = z.infer<typeof IncidentFreshnessSchema>;
 
+export const IncidentStatusSchema = z.enum([
+  "REPORTED",
+  "UNDER_REVIEW",
+  "APPROVED",
+  "REJECTED",
+  "DUPLICATE",
+  "UNVERIFIED",
+]);
+export type IncidentStatus = z.infer<typeof IncidentStatusSchema>;
+
 /**
  * The canonical incident ingestion schema with strict collection length limits.
  */
