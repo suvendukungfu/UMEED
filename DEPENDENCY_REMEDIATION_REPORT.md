@@ -2,11 +2,14 @@
 
 **Date**: 2026-10-31  
 **Project**: UMEED (HackCBS 9.0)  
+**Branch Status**: Unified & Integrated into `main` (`666736c`), synchronized with `parallel/product-ux-oss`  
 **Security Status**:
 - **Production Vulnerabilities**: **0 (`npm audit --omit=dev`)**
-- **Critical Vulnerabilities in Toolchain**: **0 (Tinypool completely removed)**
+- **Critical Vulnerabilities in Toolchain**: **0 (Tinypool completely eliminated)**
 - **High Vulnerabilities in Toolchain**: **0**
-- **Total Tests Passing**: **17/17**
+- **Moderate Dev-Only Vulnerabilities**: 13 (Transitive `minimatch <11.0.1` in ESLint AST parsers)
+- **Total Tests Passing**: **17/17** (Contracts & Web)
+- **Clean Installation Reproducibility**: **Verified via `rm -rf node_modules && npm ci` (Exit code: 0)**
 
 ---
 
@@ -23,56 +26,56 @@
 
 ---
 
-## 2. Dependency Audit Results
+## 2. Dependency Configuration & `.npmrc` Review
 
-### A. Production Runtime Dependencies
+### `.npmrc` Configuration:
+```ini
+legacy-peer-deps=true
+registry=https://registry.npmjs.org/
+```
+
+### Technical Evaluation of `legacy-peer-deps=true`:
+1. **Root Cause**: During initial installation across npm workspaces with Next.js 15.5.28 and React 19.3.1, transitive ESLint plugins (`eslint-plugin-react-hooks`, `eslint-plugin-import`) specify peer dependency ranges on React 18 (`react: "^18.0.0"`). Under npm 10/11's default strict Arborist resolver, this triggers an `ERESOLVE` peer dependency conflict.
+2. **Lockfile Consistency**: The `package-lock.json` was generated and validated with these exact pinned versions.
+3. **Clean Installation Verification**: Executing `rm -rf node_modules apps/web/node_modules packages/contracts/node_modules && npm ci` with `.npmrc` succeeds cleanly in **4 seconds** adding 409 packages with zero unresolved dependencies (Exit code: 0).
+
+---
+
+## 3. Dependency Audit Breakdown
+
+### A. Production Runtime Dependencies (`npm audit --omit=dev`)
 ```bash
 npm audit --omit=dev --registry=https://registry.npmjs.org/
 ```
 ```
 found 0 vulnerabilities
 ```
+- **Exit Code**: `0`
+- **Result**: Zero vulnerabilities in any production runtime dependency or transitive module.
 
-### B. Workspace Dependencies (Full Audit)
+### B. Full Development Audit (Inclusive of Build Tools)
 ```bash
 npm audit --registry=https://registry.npmjs.org/
 ```
 - **Critical Severity**: **0**
 - **High Severity**: **0**
-- **Moderate Severity**: 13 (Transitive instances of `minimatch <11.0.1` inside `eslint-plugin-import` / `@typescript-eslint` within ESLint CLI).
-- **Zero Production Exposure**: ESLint is strictly a static linting tool run during `npm run lint`.
+- **Moderate Severity**: **13**
+  - **Advisory**: `minimatch <11.0.1` (`GHSA-g3hv-75wg-m249` — potential ReDoS via globparts amplification).
+  - **Path**: Transitive dependency within `eslint-config-next` > `eslint-plugin-import` / `@typescript-eslint/typescript-estree`.
+  - **Assessment**: ESLint is strictly a local developer linter executed via `npm run lint`. It has zero presence in production bundles (`apps/web/.next`) and is not exposed at runtime. `npm audit fix --force` would downgrade ESLint to v4.0.0 (a severe breaking change). The 13 findings are safely tracked.
 
 ---
 
-## 3. Verification Commands & Results
+## 4. Reproducibility & Verification Command Log
 
-1. **Tinypool Removal Verification**:
-   ```bash
-   npm ls tinypool
-   # Result: (empty)
-   ```
-2. **Vitest Verification**:
-   ```bash
-   npm ls vitest
-   # Result: vitest@4.1.12 across @umeed/contracts and @umeed/web
-   ```
-3. **Automated Unit & Contract Tests**:
-   ```bash
-   npm run test --workspaces
-   # Result: 17/17 tests passing in 245ms
-   ```
-4. **Strict TypeScript Compilation**:
-   ```bash
-   npm run typecheck --workspaces
-   # Result: 0 errors across all workspaces
-   ```
-5. **ESLint**:
-   ```bash
-   npm run lint --workspace=apps/web
-   # Result: ✔ No ESLint warnings or errors
-   ```
-6. **Next.js Production Build**:
-   ```bash
-   npm run build --workspace=apps/web
-   # Result: Compiled successfully in 1152ms (11 static/dynamic routes)
-   ```
+All verification commands executed from a clean `node_modules` state after `npm ci`:
+
+| Step / Command | Target Subsystem | Exit Code | Observed Output / Result |
+|---|---|---|---|
+| `npm ls vitest vite` | Dev Toolchain | `0` | `vitest@4.1.12`, `vite@8.3.5` confirmed across all workspaces |
+| `npm ls tinypool` | Dev Toolchain | `1` | `(empty)` — Tinypool completely eliminated |
+| `npm audit --omit=dev` | Production Security | `0` | `found 0 vulnerabilities` |
+| `npm run test --workspaces` | Contracts & Web Tests | `0` | `17/17 passed` (6 in contracts, 11 in web) |
+| `npm run typecheck --workspaces` | TypeScript Strict Check | `0` | `0 errors` across `@umeed/contracts` and `@umeed/web` |
+| `npm run lint --workspace=apps/web` | Code Quality | `0` | `✔ No ESLint warnings or errors` |
+| `npm run build --workspace=apps/web` | Production Build | `0` | `Compiled successfully in 653ms` (11 routes generated) |

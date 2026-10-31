@@ -2,11 +2,14 @@
 
 **Date**: 2026-10-31  
 **Project**: UMEED (HackCBS 9.0)  
+**Branch**: `main` (commit `666736c`, synchronized with `parallel/product-ux-oss`)  
 **Security Status**:
 - **Production Runtime Dependencies**: **0 Vulnerabilities (`npm audit --omit=dev`)**
 - **Test Toolchain**: Vitest `4.1.12` (Tinypool completely removed; 0 Critical, 0 High vulnerabilities across workspace)
+- **Full Development Toolchain Audit**: 13 Moderate Advisories (Transitive `minimatch` in ESLint AST parsers, zero production exposure)
 - **Framework**: Next.js 15.5.28 (October 14, 2026 Security Release)
 - **Schema Validation**: Zod 4.6.7 with strict `.max()` array and string limits
+- **Reproducibility**: Clean installation verified via `rm -rf node_modules && npm ci` (Exit code: 0)
 
 ---
 
@@ -51,7 +54,7 @@ found 0 vulnerabilities
 ### A. Tinypool Removal
 - **Previous state**: `vitest@3.2.7` depended on `tinypool@1.1.1`, which was flagged by two Critical RCE advisories (`GHSA-5gmw-xhrv-c9v3`, `GHSA-85c8-ppgw-ccpr`) due to worker option prototype pollution.
 - **Remediation**: Upgraded `vitest` to **`4.1.12`**. Vitest 4 completely removed Tinypool and replaced its execution pool with native worker scheduling.
-- **Verification**: `npm ls tinypool` now outputs `(empty)`.
+- **Verification**: `npm ls tinypool` outputs `(empty)`.
 
 ### B. Vite & Esbuild Alignment
 - Vitest 4.1.12 upgraded the internal Vite test bundler to `vite@8.3.5`, resolving the previous `esbuild` and `@vitest/mocker` advisories.
@@ -63,30 +66,36 @@ found 0 vulnerabilities
 
 ---
 
-## 4. Quality & Verification Gates
+## 4. Reproducibility & Quality Verification Gates
+
+All checks executed following a fresh `rm -rf node_modules && npm ci`:
 
 ```bash
+# Clean deterministic installation
+npm ci
+# Result: added 409 packages in 4s (Exit code: 0)
+
 # Production audit
 npm audit --omit=dev
 # Result: found 0 vulnerabilities (Exit code: 0)
 
 # Full audit
 npm audit
-# Result: 0 Critical, 0 High (only 13 moderate transitive minimatch instances in ESLint)
+# Result: 0 Critical, 0 High (13 moderate dev-only transitive minimatch in ESLint)
 
 # Strict TypeScript check
 npm run typecheck --workspaces
-# Result: 0 errors across @umeed/contracts and @umeed/web
+# Result: 0 errors across @umeed/contracts and @umeed/web (Exit code: 0)
 
 # ESLint check
 npm run lint --workspace=apps/web
-# Result: ✔ No ESLint warnings or errors
+# Result: ✔ No ESLint warnings or errors (Exit code: 0)
 
 # Automated test suite
 npm run test --workspaces
-# Result: 17/17 tests passing in 245ms
+# Result: 17/17 tests passing in 283ms (Exit code: 0)
 
 # Production build
 npm run build --workspace=apps/web
-# Result: Compiled successfully in 1152ms (11 routes generated)
+# Result: Compiled successfully in 653ms (11 routes generated, Exit code: 0)
 ```
