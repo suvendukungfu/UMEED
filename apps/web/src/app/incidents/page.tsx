@@ -596,10 +596,13 @@ export default function IncidentsPage() {
                     >
                       <option value="">Keep Existing</option>
                       <option value="injured_animal">injured_animal</option>
-                      <option value="abandoned_elderly">abandoned_elderly</option>
-                      <option value="night_shelter_needed">night_shelter_needed</option>
-                      <option value="child_in_distress">child_in_distress</option>
-                      <option value="medical_emergency_triage">medical_emergency_triage</option>
+                      <option value="abandoned_animal">abandoned_animal</option>
+                      <option value="homeless_person">homeless_person</option>
+                      <option value="abandoned_elderly_person">abandoned_elderly_person</option>
+                      <option value="shelter_assistance">shelter_assistance</option>
+                      <option value="medical_assistance">medical_assistance</option>
+                      <option value="food_assistance">food_assistance</option>
+                      <option value="other">other</option>
                     </select>
                   </div>
                   <div>
@@ -610,10 +613,10 @@ export default function IncidentsPage() {
                       className="w-full text-xs p-2 rounded-lg border border-warm-grey-300 bg-white"
                     >
                       <option value="">Keep Existing</option>
-                      <option value="P1_CRITICAL">P1_CRITICAL</option>
-                      <option value="P2_HIGH">P2_HIGH</option>
-                      <option value="P3_MEDIUM">P3_MEDIUM</option>
-                      <option value="P4_LOW">P4_LOW</option>
+                      <option value="routine">routine</option>
+                      <option value="elevated">elevated</option>
+                      <option value="urgent">urgent</option>
+                      <option value="emergency_review">emergency_review</option>
                     </select>
                   </div>
                 </div>

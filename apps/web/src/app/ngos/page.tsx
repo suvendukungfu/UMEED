@@ -207,11 +207,14 @@ export default function NGOsPage() {
               className="px-3 py-2 rounded-xl bg-paper-surface border border-warm-grey-300 text-xs font-semibold text-forest-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
             >
               <option value="ALL">All Categories</option>
-              <option value="injured_animal">Injured Animals</option>
-              <option value="abandoned_elderly">Abandoned Elderly</option>
-              <option value="night_shelter_needed">Night Shelter</option>
-              <option value="medical_emergency_triage">Medical Triage</option>
-              <option value="child_in_distress">Child Welfare</option>
+              <option value="injured_animal">Injured Animal</option>
+              <option value="abandoned_animal">Abandoned Animal</option>
+              <option value="homeless_person">Homeless Person</option>
+              <option value="abandoned_elderly_person">Abandoned Elderly</option>
+              <option value="shelter_assistance">Shelter Assistance</option>
+              <option value="medical_assistance">Medical Assistance</option>
+              <option value="food_assistance">Food Assistance</option>
+              <option value="other">Other</option>
             </select>
 
             <select

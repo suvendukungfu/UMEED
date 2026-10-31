@@ -28,6 +28,7 @@ import { ContinuityLine, ContinuityStage } from "@/components/common/ContinuityL
 import { Button } from "@/components/ui/Button";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import type { IncidentType } from "@umeed/contracts";
 
 const DELHI_DISTRICTS = [
   "Central Delhi",
@@ -43,41 +44,68 @@ const DELHI_DISTRICTS = [
   "West Delhi",
 ];
 
-const INCIDENT_CATEGORIES = [
+const INCIDENT_CATEGORIES: {
+  id: IncidentType;
+  label: string;
+  subject: "animal" | "person";
+  description: string;
+  icon: string;
+}[] = [
   {
     id: "injured_animal",
-    label: "Injured or Traumatized Animal",
+    label: "Injured Street Animal",
     subject: "animal",
-    description: "Street animal with fractures, hit-and-run, wounds, or extreme distress.",
+    description: "Trauma, hit-and-run, fractures, open wounds, or severe distress.",
     icon: "🐾",
   },
   {
-    id: "abandoned_elderly",
+    id: "abandoned_animal",
+    label: "Abandoned Domestic Animal",
+    subject: "animal",
+    description: "Abandoned pet, stray litter, or animal needing protective intake.",
+    icon: "🐕",
+  },
+  {
+    id: "homeless_person",
+    label: "Homeless Person in Distress",
+    subject: "person",
+    description: "Vulnerable individuals or families exposed to hypothermia, rain, or heat.",
+    icon: "⛺",
+  },
+  {
+    id: "abandoned_elderly_person",
     label: "Abandoned Elderly Citizen",
     subject: "person",
     description: "Senior citizen in public spaces without shelter, medical attention, or family.",
     icon: "👴",
   },
   {
-    id: "night_shelter_needed",
-    label: "Night Shelter / Homeless Distress",
+    id: "shelter_assistance",
+    label: "Night Shelter / Emergency Safe Space",
     subject: "person",
-    description: "Vulnerable individuals or families exposed to hypothermia, rain, or heat.",
-    icon: "⛺",
+    description: "Immediate night shelter intake or temporary emergency sanctuary required.",
+    icon: "🏠",
   },
   {
-    id: "child_in_distress",
-    label: "Child in Vulnerable Circumstances",
+    id: "medical_assistance",
+    label: "Acute Medical Assistance",
     subject: "person",
-    description: "Unaccompanied minor, runaway, or child requiring immediate child welfare intake.",
-    icon: "🧒",
-  },
-  {
-    id: "medical_emergency_triage",
-    label: "Acute Non-Ambulance Medical Triage",
-    subject: "person",
-    description: "Severe dehydration, unaddressed infection, or chronic malnourishment.",
+    description: "Severe dehydration, unaddressed infection, trauma, or acute clinical distress.",
     icon: "🩺",
+  },
+  {
+    id: "food_assistance",
+    label: "Urgent Food Assistance",
+    subject: "person",
+    description: "Starving families, extreme malnourishment, or emergency nutrition support.",
+    icon: "🍲",
+  },
+  {
+    id: "other",
+    label: "Other Humanitarian Relief",
+    subject: "person",
+    description: "Other acute humanitarian crisis requiring NGO coordination.",
+    icon: "🤝",
   },
 ];
 
@@ -89,7 +117,7 @@ export default function ReportPage() {
 
   // Form State
   const [subjectType, setSubjectType] = useState<"animal" | "person">("animal");
-  const [incidentType, setIncidentType] = useState("injured_animal");
+  const [incidentType, setIncidentType] = useState<IncidentType>("injured_animal");
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
   const [district, setDistrict] = useState("North West Delhi");
@@ -404,7 +432,7 @@ export default function ReportPage() {
                   type="button"
                   onClick={() => {
                     setSubjectType("person");
-                    setIncidentType("abandoned_elderly");
+                    setIncidentType("homeless_person");
                   }}
                   className={`p-4 rounded-xl border text-left transition-all ${
                     subjectType === "person"
