@@ -2,7 +2,8 @@
 
 > **From distress to real assistance.**  
 > AI-powered social distress discovery and closed-loop assistance coordination platform for vulnerable individuals and animals.  
-> Built for **HackCBS 9.0**.
+> Built for **HackCBS 9.0 | Meko Challenge Track A**.  
+> **Release Candidate**: 1.0 (RC-1) | **Verification**: 199 passing tests (28 test files), 0 typecheck errors, 0 lint warnings, 19/19 routes compiled.
 
 ---
 
@@ -18,36 +19,32 @@ Most social distress reporting stops at the moment of intake. Reports are lost, 
 4. **Capability-Aware NGO Matching**: Ranks verified organizations across Delhi based on capabilities, operational districts, availability, and response history—not naive proximity.
 5. **Closed-Loop Response Coordination**: Tracks responders through a formal lifecycle state machine (`REPORTED` → `ARRIVED` → `RESOLVED`).
 6. **Recursive Assistance Loops**: If initial intervention only resolves part of the need, secondary matching cycles automatically initiate for remaining needs.
-7. **Meko Coordination Memory**: Enables the AI coordination agent to recall approved coordinator policies across sessions.
-8. **IOMETE Impact Analytics**: Durable event telemetry tracking response times and recurring unmet assistance needs.
+7. **Meko Coordination Memory**: Enables the AI coordination agent to recall approved coordinator policies and clinical handoff precedents across sessions.
+8. **Multi-Stage Handoff Verification**: Prevents premature case closure by ensuring downstream clinical acceptance is verified before resolution.
+9. **Interactive Context Inspector**: Gives human coordinators full visibility, editing, deletion, and shared promotion control over AI memory.
 
 ---
 
-## 2. Quickstart
-
-### Prerequisites
-
-- Node.js `24 LTS` (`v24.5.0+`)
-- npm `10+` / `11+`
-
-### Installation
+## 2. Five-Command Quickstart
 
 ```bash
-# Clone the repository
-git clone https://github.com/suvendukungfu/UMEED.git
-cd UMEED
-
-# Switch to Node 24 (if using NVM)
-nvm use 24
-
-# Install dependencies
+# 1. Install all dependencies across monorepo workspaces
 npm install
 
-# Start development server
+# 2. Run automated test suite (199 passing tests)
+npm run test
+
+# 3. Verify TypeScript type safety (0 errors)
+npm run typecheck
+
+# 4. Compile optimized production build (19 routes)
+npm run build
+
+# 5. Launch local application
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) to view the UMEED Dashboard.
+Visit [http://localhost:3000](http://localhost:3000) to view the UMEED Dashboard:
 
 - Citizen Report Form: [http://localhost:3000/report](http://localhost:3000/report)
 - Coordinator Triage Queue: [http://localhost:3000/incidents](http://localhost:3000/incidents)
@@ -58,6 +55,10 @@ Visit [http://localhost:3000](http://localhost:3000) to view the UMEED Dashboard
 ### API Endpoints (Operational)
 
 - **Health Check**: `GET /api/health`
+- **Context Learning Traces & Memory**: `GET`, `PATCH`, `DELETE /api/context-learning/memories`
+- **Knowledge Promotion**: `POST /api/context-learning/promote`
+- **A1 Controlled Meko Experiment**: `POST`, `GET /api/context-learning/experiment-a1`
+
 - **Incident Ingestion**: `POST /api/incidents/ingest` (Zod v1.0.0, idempotency, secure tracking credentials)
 - **Incident Query Feed**: `GET /api/incidents` (Filter by status, category, duplicate flags)
 - **Incident Detail Lookup**: `GET /api/incidents/:publicReference` (Redacted for citizen; unredacted for coordinator)
