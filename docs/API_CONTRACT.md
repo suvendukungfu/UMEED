@@ -13,6 +13,9 @@
 | `/api/incidents/ingest` | `POST` | Public (Citizen) / Bearer (Crawler) | Ingests distress reports with idempotency, rate limiting, and tracking token generation | `201`, `200`, `400`, `401`, `413`, `415`, `429`, `503` |
 | `/api/incidents` | `GET` | Coordinator / Staff | Query, filter, and paginate ingested incidents (Requires Coordinator Auth) | `200`, `401`, `500` |
 | `/api/incidents/:publicReference` | `GET` | Citizen (with token) / Coordinator | Retrieve single incident by public reference (redacted for citizen; unredacted for coordinator) | `200`, `401`, `404`, `429`, `500` |
+| `/api/incidents/:publicReference/triage` | `POST` | Coordinator / Staff | Trigger or re-run multimodal Gemini AI distress triage for an incident | `200`, `401`, `404`, `500` |
+| `/api/incidents/:publicReference/review` | `POST` | Coordinator / Staff | Record human coordinator review decision (`CONFIRM`, `OVERRIDE`, `REJECT`, `REQUEST_INFO`, `ESCALATE`) | `200`, `400`, `401`, `404`, `500` |
+| `/api/ai/evaluation` | `GET` | Coordinator / Staff | Execute 9-scenario synthetic AI triage benchmark suite and return metrics | `200`, `401`, `500` |
 | `/api/health` | `GET` | Public | System readiness and database connectivity check | `200` |
 
 ---
@@ -220,3 +223,116 @@ All error responses strictly follow the RFC 7807 problem details structure:
 | **429** | `TOO_MANY_REQUESTS` | Rate limit exceeded (30 req/min on ingest, 10 req/min on tracking) |
 | **503** | `SERVICE_UNAVAILABLE` | Database connection unavailable or timeout |
 | **500** | `INTERNAL_SERVER_ERROR` | Unhandled internal server exception |
+
+---
+
+## 6. AI Triage Trigger: `POST /api/incidents/:publicReference/triage`
+
+Coordinator-authenticated trigger to run multimodal Gemini triage on demand.
+
+### Request Headers
+- `x-coordinator-key: <key>` or `Authorization: Bearer <key>` (Required)
+- `Content-Type: application/json`
+
+### Request Body (Optional)
+```json
+{
+  "modelId": "gemini-2.5-flash"
+}
+```
+
+### Response (`200 OK`)
+```json
+{
+  "status": "success",
+  "data": {
+    "public_reference": "UMD-4DB9-473D",
+    "triage_analysis": {
+      "analysis_id": "439ea036-7c01-4475-b467-3382c4fbe59c",
+      "incident_id": "9618bf75-47d0-4bf6-9051-7f0ad08b6d37",
+      "model_id": "gemini-2.5-flash",
+      "prompt_version": "v1.0.0",
+      "category_recommendation": "injured_animal",
+      "subject_type": "animal",
+      "observable_evidence": [
+        {
+          "observation": "Canine lying on side with laceration on right hind leg",
+          "evidence_reference": "photo_0",
+          "confidence": 0.92
+        }
+      ],
+      "possible_assistance": ["veterinary_first_aid", "animal_ambulance_dispatch"],
+      "urgency": {
+        "level": "urgent",
+        "reasoning": [
+          "Visible physical trauma with active bleeding.",
+          "High risk of wound infection or vehicle collision if left on roadway."
+        ],
+        "requires_human_review": true
+      },
+      "location_candidates": ["Madhuban Chowk flyover"],
+      "missing_information": ["Current animal disposition (conscious/unconscious)"],
+      "limitations": [
+        "AI non-veterinary assessment based solely on photographic evidence.",
+        "Human review mandatory."
+      ],
+      "confidence": 0.92,
+      "analysis_status": "SUCCESS",
+      "created_at": "2026-10-31T14:10:00.000Z",
+      "human_review_status": "PENDING"
+    }
+  }
+}
+```
+
+---
+
+## 7. Human Review Decision: `POST /api/incidents/:publicReference/review`
+
+Coordinator-authenticated human verification action recording.
+
+### Request Headers
+- `x-coordinator-key: <key>` or `Authorization: Bearer <key>` (Required)
+- `Content-Type: application/json`
+
+### Request Body
+```json
+{
+  "decision": "CONFIRM", // "CONFIRM" | "OVERRIDE" | "REJECT" | "REQUEST_INFO" | "ESCALATE"
+  "reason": "Verified photo shows legitimate limb trauma. Dispatching animal rescue team.",
+  "reviewer_id": "coord_delhi_04",
+  "override_category": "medical_assistance", // Optional: used when decision is OVERRIDE
+  "override_urgency": "urgent" // Optional: used when decision is OVERRIDE
+}
+```
+
+### Response (`200 OK`)
+Returns the updated operational incident document for coordinator inspection with updated status (`APPROVED`, `REJECTED`, or `UNDER_REVIEW`).
+
+---
+
+## 8. AI Evaluation Benchmark: `GET /api/ai/evaluation`
+
+Coordinator-authenticated trigger to run the 9-scenario synthetic evaluation benchmark.
+
+### Request Headers
+- `x-coordinator-key: <key>` or `Authorization: Bearer <key>` (Required)
+
+### Response (`200 OK`)
+```json
+{
+  "status": "success",
+  "data": {
+    "total_scenarios": 9,
+    "schema_valid_rate": 1.0,
+    "category_accuracy": 0.89,
+    "false_emergency_escalation_rate": 0.0,
+    "missing_information_extraction_rate": 1.0,
+    "grounding_in_evidence_rate": 1.0,
+    "failure_handling_rate": 1.0,
+    "timestamp": "2026-10-31T14:15:00.000Z",
+    "scenario_results": [ ... ]
+  }
+}
+```
+

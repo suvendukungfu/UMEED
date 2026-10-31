@@ -55,6 +55,16 @@ export interface IIncidentRepository {
   list(filter?: IncidentFilterOptions): Promise<{ incidents: IncidentDocument[]; total: number }>;
 
   /**
+   * Update an incident by its ID or public reference.
+   */
+  update(idOrRef: string, updates: Partial<IncidentDocument>): Promise<IncidentDocument | null>;
+
+  /**
+   * Record a human review decision and audit trail.
+   */
+  recordReviewAction(action: import("../types").ReviewActionDocument): Promise<import("../types").ReviewActionDocument>;
+
+  /**
    * Initialize required database indexes idempotently.
    */
   initIndexes(): Promise<void>;

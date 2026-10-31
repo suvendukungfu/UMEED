@@ -139,3 +139,53 @@ export const CanonicalIncidentSchema = z.object({
 });
 
 export type CanonicalIncident = z.infer<typeof CanonicalIncidentSchema>;
+
+export const TriageUrgencyLevelSchema = z.enum([
+  "unconfirmed",
+  "routine",
+  "elevated",
+  "urgent",
+  "emergency_review",
+]);
+export type TriageUrgencyLevel = z.infer<typeof TriageUrgencyLevelSchema>;
+
+export const ObservableEvidenceItemSchema = z.object({
+  observation: z.string().min(1).max(500),
+  evidence_reference: z.string().max(100),
+  confidence: z.number().min(0).max(1),
+});
+export type ObservableEvidenceItem = z.infer<typeof ObservableEvidenceItemSchema>;
+
+export const TriageUrgencySchema = z.object({
+  level: TriageUrgencyLevelSchema,
+  reasoning: z.array(z.string().max(500)).max(10),
+  requires_human_review: z.literal(true).default(true),
+});
+export type TriageUrgency = z.infer<typeof TriageUrgencySchema>;
+
+export const IncidentTriageAnalysisSchema = z.object({
+  analysis_id: z.string().uuid(),
+  incident_id: z.string(),
+  model_id: z.string().max(100),
+  prompt_version: z.string().max(20),
+  category_recommendation: IncidentTypeSchema,
+  subject_type: IncidentSubjectTypeSchema,
+  observable_evidence: z.array(ObservableEvidenceItemSchema).max(20),
+  possible_assistance: z.array(z.string().max(200)).max(10),
+  urgency: TriageUrgencySchema,
+  location_candidates: z.array(z.string().max(300)).max(10),
+  missing_information: z.array(z.string().max(300)).max(10),
+  limitations: z.array(z.string().max(500)).max(10),
+  confidence: z.number().min(0).max(1),
+  analysis_status: z.enum(["SUCCESS", "MANUAL_REVIEW_REQUIRED", "FAILED_FALLBACK"]),
+  raw_response_summary: z.string().max(1000).optional(),
+  created_at: z.string().datetime(),
+  human_review_status: z
+    .enum(["PENDING", "CONFIRMED", "OVERRIDDEN", "REJECTED", "ESCALATED"])
+    .optional(),
+  human_reviewer_id: z.string().max(100).optional(),
+  human_reviewed_at: z.string().datetime().optional(),
+  human_reviewer_notes: z.string().max(1000).optional(),
+});
+export type IncidentTriageAnalysis = z.infer<typeof IncidentTriageAnalysisSchema>;
+

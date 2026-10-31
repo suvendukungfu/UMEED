@@ -5,6 +5,7 @@ import {
 import {
   IncidentDocument,
   IncidentFilterOptions,
+  ReviewActionDocument,
 } from "../types";
 import { IIncidentRepository } from "./incident.repository";
 import { calculateHaversineDistanceMeters } from "../services/duplicate.service";
@@ -21,6 +22,7 @@ export class InMemoryIncidentRepository implements IIncidentRepository {
   private sourceIndex: Map<string, string> = new Map(); // `${source_type}:::${source_reference}` -> _id
   private publicReferenceIndex: Map<string, string> = new Map(); // public_reference -> _id
   private trackingHashIndex: Map<string, string> = new Map(); // tracking_token_hash -> _id
+  private reviewActions: Map<string, ReviewActionDocument> = new Map();
 
   async create(incident: IncidentDocument): Promise<IncidentDocument> {
     const sourceKey = `${incident.source_type}:::${incident.source_reference}`;
@@ -162,6 +164,35 @@ export class InMemoryIncidentRepository implements IIncidentRepository {
     };
   }
 
+  async update(idOrRef: string, updates: Partial<IncidentDocument>): Promise<IncidentDocument | null> {
+    let targetId = idOrRef;
+    if (this.publicReferenceIndex.has(idOrRef)) {
+      targetId = this.publicReferenceIndex.get(idOrRef)!;
+    }
+
+    const existing = this.incidents.get(targetId);
+    if (!existing) {
+      return null;
+    }
+
+    const updated: IncidentDocument = {
+      ...existing,
+      ...updates,
+      _id: existing._id,
+      public_reference: existing.public_reference,
+      updated_at: new Date().toISOString(),
+    };
+
+    this.incidents.set(targetId, updated);
+    return JSON.parse(JSON.stringify(updated));
+  }
+
+  async recordReviewAction(action: ReviewActionDocument): Promise<ReviewActionDocument> {
+    const record: ReviewActionDocument = JSON.parse(JSON.stringify(action));
+    this.reviewActions.set(record._id, record);
+    return JSON.parse(JSON.stringify(record));
+  }
+
   async initIndexes(): Promise<void> {
     // In-memory indices are initialized synchronously in memory structures
     return Promise.resolve();
@@ -176,5 +207,6 @@ export class InMemoryIncidentRepository implements IIncidentRepository {
     this.sourceIndex.clear();
     this.publicReferenceIndex.clear();
     this.trackingHashIndex.clear();
+    this.reviewActions.clear();
   }
 }

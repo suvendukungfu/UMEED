@@ -8,7 +8,11 @@ import {
   IncidentLocation,
   IncidentSeverity,
   EvidenceItem,
+  IncidentTriageAnalysis,
+  TriageUrgencyLevel,
 } from "@umeed/contracts";
+
+export type { IncidentTriageAnalysis, TriageUrgencyLevel };
 
 /**
  * GeoJSON Point Representation for MongoDB 2dsphere indexing.
@@ -45,6 +49,7 @@ export interface IncidentDocument {
   suspected_duplicate_ids: string[];
   public_reference: string;
   tracking_token_hash: string | null;
+  triage_analysis?: IncidentTriageAnalysis | null;
   created_at: string;
   updated_at: string;
 }
@@ -82,6 +87,15 @@ export interface EvidenceDocument {
   created_at: string;
 }
 
+export type ReviewDecision =
+  | "APPROVE"
+  | "REJECT"
+  | "MARK_DUPLICATE"
+  | "REQUEST_INFO"
+  | "CONFIRM"
+  | "OVERRIDE"
+  | "ESCALATE";
+
 /**
  * Operational Review Action Document stored in the `review_actions` collection.
  */
@@ -89,10 +103,12 @@ export interface ReviewActionDocument {
   _id: string;
   incident_id: string;
   reviewer_id: string;
-  decision: "APPROVE" | "REJECT" | "MARK_DUPLICATE" | "REQUEST_INFO";
+  decision: ReviewDecision;
   reason: string;
   timestamp: string;
   evidence_references?: string[];
+  override_category?: IncidentType;
+  override_urgency?: TriageUrgencyLevel;
 }
 
 /**

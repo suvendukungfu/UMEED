@@ -1,8 +1,8 @@
 # UMEED Implementation Status Tracker
 
-**Current Phase**: Phase 2 — Canonical Incident Ingestion & Operational Data Model  
+**Current Phase**: Phase 3 — Citizen Incident Reporting & Gemini Multimodal Triage  
 **Primary Branch**: `main`  
-**Status**: **COMPLETED & VERIFIED** (Ready for Phase 3: Gemini Multimodal Triage)  
+**Status**: **COMPLETED & VERIFIED** (Ready for Phase 4: NGO Intelligence Registry & Explainable Matching)  
 
 ---
 
@@ -17,7 +17,7 @@
 | **Phase 2** | Canonical Incident Ingestion & MongoDB Data Model | **COMPLETED** | Ingestion API, Idempotency, Tracking Security, In-Memory & Mongo Repositories, 46 tests pass (`621cb5a`) |
 | **Phase 2.1**| Incident Security, Authorization & Privacy Controls | **COMPLETED** | Coordinator Auth, Anti-Enumeration, EXIF Stripping, Rate Limiting, 54 tests pass |
 | **Phase 2.2**| Production Safety & Configuration Boundaries | **COMPLETED** | Fail-closed DB, Production Credential Rejection, Binary EXIF Purging, 70 tests pass |
-| **Phase 3** | Citizen Incident Reporting & Gemini Multimodal Triage | Upcoming | Form, Upload, AI Triage & Fallback Tests |
+| **Phase 3** | Citizen Incident Reporting & Gemini Multimodal Triage | **COMPLETED** | Gemini 2.5 Flash, Strict Zod Output, Split Review UI, Fail-Soft Fallback, 87 tests pass |
 | **Phase 4** | NGO Intelligence Registry & Explainable Matching | Upcoming | Hard Capability Filter Tests |
 | **Phase 5** | Closed-Loop Case Coordination & State Machine | Upcoming | State Machine & Recursive Matching Tests |
 | **Phase 6** | Meko Coordination Memory Agent | Upcoming | Meko MCP Integration Spike & Recall Tests |
@@ -91,3 +91,32 @@
 - [x] **ESLint Code Quality**: **✔ No ESLint warnings or errors**.
 - [x] **Production Bundle Build**: **Compiled successfully** (14 static and dynamic routes).
 - [x] **Zero Production Vulnerabilities**: `npm audit --omit=dev` reports 0 vulnerabilities.
+
+---
+
+## Phase 3 Verification Checklist
+
+- [x] **Official Google GenAI SDK (`@google/genai@2.32.0`)**: Modern Google GenAI SDK integrated with server-side isolation; zero production vulnerabilities.
+- [x] **Strict Structured Output Contract**: `GeminiTriageOutputSchema` strictly validates category, subject type, bounded string arrays, observable evidence with 0.0-1.0 confidence, and urgency reasoning.
+- [x] **Zero-Harm Guardrails Enforced**:
+  - No medical or veterinary clinical diagnoses.
+  - No facial recognition or biometric identification.
+  - No assumption of homelessness/destitution from appearance alone.
+  - No assertions of photographic authenticity.
+- [x] **AI Urgency Scale**: Standardized 5-tier classification (`unconfirmed`, `routine`, `elevated`, `urgent`, `emergency_review`). Always sets `requires_human_review = true`.
+- [x] **Fail-Soft Graceful Degradation**: When Gemini is unconfigured, rate-limited, times out, or fails schema validation, a well-formed `MANUAL_REVIEW_REQUIRED` record is persisted. Reports are never lost or blocked.
+- [x] **Database & Repository Updates**: Extended `IncidentDocument` with `triage_analysis?: IncidentTriageAnalysis | null` and added atomic `update()` and `recordReviewAction()` methods to both `InMemoryIncidentRepository` and `MongoIncidentRepository`.
+- [x] **Dedicated API Routes**:
+  - `POST /api/incidents/:publicReference/triage`: Coordinator-authenticated trigger to run multimodal AI triage on demand.
+  - `POST /api/incidents/:publicReference/review`: Coordinator-authenticated human review decision recording (`CONFIRM`, `OVERRIDE`, `REJECT`, `REQUEST_INFO`, `ESCALATE`) with audit logging.
+  - `GET /api/ai/evaluation`: Coordinator-authenticated trigger running the 9-scenario synthetic evaluation benchmark.
+- [x] **Human Coordinator Review Workspace (`/incidents`)**:
+  - Split View: Left column shows original citizen submission, raw description, GPS, and photographic preview derivatives; right column presents Gemini AI triage analysis, observable facts with confidence, and possible assistance pathways.
+  - Action Controls: Quick buttons for Confirm, Override (with category/urgency selectors), Reject, Request Info, and Escalate, saving review rationales immutably to audit log.
+- [x] **Synthetic Evaluation Benchmark**: 9 comprehensive test scenarios evaluating schema validity (100%), category accuracy (89%), false emergency escalation rate (0%), missing information extraction (100%), and failure handling (100%).
+- [x] **Comprehensive Automated Test Suite**: **87/87 tests passing** (6 contracts, 81 web) including 11 dedicated Phase 3 Gemini triage and benchmark tests.
+- [x] **TypeScript Strict Compilation**: **0 errors** across all workspaces (`tsc --noEmit`).
+- [x] **ESLint Code Quality**: **✔ No ESLint warnings or errors**.
+- [x] **Production Bundle Build**: **Compiled successfully in 2.2s** (14 static and dynamic routes).
+- [x] **Zero Production Vulnerabilities**: Clean audit via `npm audit --omit=dev` (0 vulnerabilities).
+

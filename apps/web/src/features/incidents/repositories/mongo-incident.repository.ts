@@ -6,6 +6,7 @@ import {
 import {
   IncidentDocument,
   IncidentFilterOptions,
+  ReviewActionDocument,
 } from "../types";
 import { IIncidentRepository } from "./incident.repository";
 import { getMongoClientPromise } from "@/lib/db/mongodb";
@@ -219,6 +220,35 @@ export class MongoIncidentRepository implements IIncidentRepository {
       .toArray()) as IncidentDocument[];
 
     return { incidents, total };
+  }
+
+  async update(idOrRef: string, updates: Partial<IncidentDocument>): Promise<IncidentDocument | null> {
+    const collection = await this.getCollection();
+    const query = idOrRef.startsWith("UMD-")
+      ? { public_reference: idOrRef }
+      : { _id: idOrRef };
+
+    const result = await collection.findOneAndUpdate(
+      query as never,
+      {
+        $set: {
+          ...updates,
+          updated_at: new Date().toISOString(),
+        },
+      } as never,
+      { returnDocument: "after" }
+    );
+
+    return result as IncidentDocument | null;
+  }
+
+  async recordReviewAction(action: ReviewActionDocument): Promise<ReviewActionDocument> {
+    if (!this.db) {
+      await this.getCollection();
+    }
+    const reviewCollection = this.db!.collection<ReviewActionDocument>("review_actions");
+    await reviewCollection.insertOne(action as never);
+    return action;
   }
 
   async isHealthy(): Promise<boolean> {

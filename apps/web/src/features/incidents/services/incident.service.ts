@@ -8,6 +8,9 @@ import {
   IngestionResult,
   IncidentFilterOptions,
   DuplicateCandidate,
+  IncidentTriageAnalysis,
+  ReviewActionDocument,
+  ReviewDecision,
 } from "../types";
 import { IIncidentRepository, getIncidentRepository } from "../repositories";
 import {
@@ -20,6 +23,7 @@ import {
   evaluateDuplicateCandidate,
 } from "./duplicate.service";
 import { validateCrawlerAuthorization } from "./auth.service";
+import { GeminiTriageService, TriageOptions, isGeminiConfigured } from "@/lib/ai/gemini";
 import { ApiError } from "@/lib/errors";
 import { logger } from "@/lib/logging";
 
@@ -178,7 +182,21 @@ export class IncidentService {
       updated_at: nowIso,
     };
 
-    // 7. Atomic Persistence with Race-Condition Fallback
+    // 7. Optional Automated Multimodal AI Triage (Fail-soft, non-blocking)
+    if (isGeminiConfigured()) {
+      try {
+        const triageService = new GeminiTriageService();
+        const analysis = await triageService.triageIncident(incidentDoc);
+        incidentDoc.triage_analysis = analysis;
+      } catch (err) {
+        logger.warn("Automated triage during ingestion failed non-fatally", "INGESTION", {
+          public_reference: publicReference,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
+    // 8. Atomic Persistence with Race-Condition Fallback
     try {
       const saved = await this.repo.create(incidentDoc);
 
@@ -254,5 +272,105 @@ export class IncidentService {
     filter?: IncidentFilterOptions
   ): Promise<{ incidents: IncidentDocument[]; total: number }> {
     return this.repo.list(filter);
+  }
+
+  /**
+   * Run or re-run multimodal AI triage for an incident and persist the result.
+   */
+  async triageIncident(
+    publicReference: string,
+    options?: TriageOptions
+  ): Promise<IncidentTriageAnalysis> {
+    const incident = await this.repo.findByPublicReference(publicReference);
+    if (!incident) {
+      throw ApiError.notFound(`Incident ${publicReference} not found`);
+    }
+
+    const triageService = new GeminiTriageService(options?.client);
+    const analysis = await triageService.triageIncident(incident, options);
+
+    await this.repo.update(publicReference, {
+      triage_analysis: analysis,
+      updated_at: new Date().toISOString(),
+    });
+
+    return analysis;
+  }
+
+  /**
+   * Record a human review decision and audit trail for an incident.
+   */
+  async recordReviewDecision(
+    publicReference: string,
+    reviewerId: string,
+    action: {
+      decision: ReviewDecision;
+      reason: string;
+      override_category?: import("@umeed/contracts").IncidentType;
+      override_urgency?: import("@umeed/contracts").TriageUrgencyLevel;
+    }
+  ): Promise<IncidentDocument> {
+    const incident = await this.repo.findByPublicReference(publicReference);
+    if (!incident) {
+      throw ApiError.notFound(`Incident ${publicReference} not found`);
+    }
+
+    const nowIso = new Date().toISOString();
+    const reviewAction: ReviewActionDocument = {
+      _id: crypto.randomUUID(),
+      incident_id: incident._id,
+      reviewer_id: reviewerId,
+      decision: action.decision,
+      reason: action.reason,
+      override_category: action.override_category,
+      override_urgency: action.override_urgency,
+      timestamp: nowIso,
+    };
+
+    await this.repo.recordReviewAction(reviewAction);
+
+    const updates: Partial<IncidentDocument> = {
+      updated_at: nowIso,
+    };
+
+    if (incident.triage_analysis) {
+      const triageReviewStatus =
+        action.decision === "CONFIRM"
+          ? "CONFIRMED"
+          : action.decision === "OVERRIDE"
+          ? "OVERRIDDEN"
+          : action.decision === "REJECT"
+          ? "REJECTED"
+          : action.decision === "ESCALATE"
+          ? "ESCALATED"
+          : "PENDING";
+
+      updates.triage_analysis = {
+        ...incident.triage_analysis,
+        human_review_status: triageReviewStatus,
+        human_reviewer_id: reviewerId,
+        human_reviewer_notes: action.reason,
+        human_reviewed_at: nowIso,
+      };
+    }
+
+    if (action.decision === "CONFIRM" || action.decision === "OVERRIDE" || action.decision === "APPROVE") {
+      updates.status = "APPROVED";
+    } else if (action.decision === "REJECT") {
+      updates.status = "REJECTED";
+    } else if (action.decision === "ESCALATE" || action.decision === "REQUEST_INFO") {
+      updates.status = "UNDER_REVIEW";
+    }
+
+    if (action.override_category) {
+      updates.incident_type = action.override_category;
+    }
+
+    const updatedDoc = await this.repo.update(publicReference, updates);
+    if (!updatedDoc) {
+      throw ApiError.internal("Failed to update incident with review decision");
+    }
+
+    return updatedDoc;
   }
 }
