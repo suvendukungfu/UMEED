@@ -1,0 +1,31 @@
+{
+  "name": "umeed",
+  "version": "0.1.0",
+  "private": true,
+  "description": "UMEED — AI-powered social distress discovery and closed-loop assistance coordination platform",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "keywords": [
+    "umeed",
+    "carelink",
+    "social-distress",
+    "ai-coordination",
+    "hackcbs"
+  ],
+  "author": "UMEED Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.9.0",
+    "npm": ">=10.0.0"
+  }
+}
+

@@ -166,3 +166,4 @@ To prevent external vendor outages (IOMETE, Gemini, Meko) from degrading core op
 - **No Autonomous Medical Diagnosis**: AI identifies visible conditions and potential assistance types, explicitly flagged as non-medical observations.
 - **Beneficiary Privacy**: No facial recognition, biometric analysis, or unredacted PII is exported to analytics or public stores.
 - **Server-Side Secret Isolation**: All keys (`GEMINI_API_KEY`, `MONGODB_URI`, `MEKO_API_KEY`, `IOMETE_TOKEN`) are restricted to Node.js server runtime and never shipped to client bundles.
+

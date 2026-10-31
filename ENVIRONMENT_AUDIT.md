@@ -71,3 +71,4 @@ A secure check of environment variables was performed (inspecting presence only;
 2. **External Service Resilience**: If Gemini, Meko, or IOMETE are temporarily unreachable or unauthenticated, the core reporting, human review, and NGO dispatch workflow must remain 100% operational.
 3. **Medical & Dispatch Guardrails**: AI triage must never autonomously diagnose medical conditions or trigger dispatches. High-risk reports must mandate human verification.
 4. **Data Isolation & Beneficiary Privacy**: No Personally Identifiable Information (PII) of vulnerable individuals (names, contact numbers, exact sensitive coordinates) may be leaked to external analytics (IOMETE) or shared agent memory (Meko).
+

@@ -108,3 +108,4 @@ Every phase will conclude with:
 3. Test suite execution.
 4. Next.js production build (`npm run build`).
 5. Git commit with meaningful conventional commit message.
+
