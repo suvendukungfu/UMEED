@@ -46,3 +46,4 @@ A candidate is never automatically an active incident. The coordinator workflow:
    - Requires `requires_human_review: true` so the newly created incident enters human review gate.
    - Links the generated public reference (e.g. `UMD-FEA5-18C9`) back to the candidate record.
    - Idempotent: Subsequent calls safely return existing incident reference with `idempotent: true`.
+

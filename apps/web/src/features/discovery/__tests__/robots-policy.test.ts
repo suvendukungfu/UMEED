@@ -48,3 +48,4 @@ Allow: /admin/public-reports/
     expect(isDisallowedSecret).toBe(true);
   });
 });
+

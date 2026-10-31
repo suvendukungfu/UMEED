@@ -42,3 +42,4 @@ describe("Phase 11: Distress Signal Classification & Prompt Injection Defense", 
     expect(res.signalRelevance).toBe("low");
   });
 });
+

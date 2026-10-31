@@ -170,3 +170,4 @@ export const DiscoveryCandidateSchema = z.object({
   isSynthetic: z.boolean().default(false),
 });
 export type DiscoveryCandidate = z.infer<typeof DiscoveryCandidateSchema>;
+

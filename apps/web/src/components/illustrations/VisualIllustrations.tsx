@@ -132,3 +132,4 @@ export function DiscoveryRadarVisual({ className = "w-full h-auto" }: { classNam
     </svg>
   );
 }
+

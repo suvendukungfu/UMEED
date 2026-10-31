@@ -10,18 +10,10 @@ import {
   EvidenceItem,
   IncidentTriageAnalysis,
   TriageUrgencyLevel,
+  GeoJsonPoint,
 } from "@umeed/contracts";
 
-export type { IncidentTriageAnalysis, TriageUrgencyLevel };
-
-/**
- * GeoJSON Point Representation for MongoDB 2dsphere indexing.
- * MongoDB strictly mandates coordinates in [longitude, latitude] order.
- */
-export interface GeoJsonPoint {
-  type: "Point";
-  coordinates: [number, number]; // [longitude, latitude]
-}
+export type { IncidentTriageAnalysis, TriageUrgencyLevel, GeoJsonPoint };
 
 /**
  * Operational Incident Document stored in the `incidents` collection.

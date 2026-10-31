@@ -111,3 +111,4 @@ describe("Phase 11: Candidate Review Lifecycle & Ingestion Integration", () => {
     ).rejects.toThrow(/has not been approved by an authorized coordinator/);
   });
 });
+

@@ -44,3 +44,4 @@ All visual assets in Phase 11 are original, custom-crafted SVG illustrations des
 - **Restrained Transitions**: Standard interactive transitions are bounded to 150ms–200ms (`cubic-bezier(0.16, 1, 0.3, 1)`).
 - **Reduced Motion Support**: All radar pulses and ping animations gracefully honor `prefers-reduced-motion: reduce`.
 - **Contrast Ratios**: All text elements exceed WCAG 2.1 AA requirements (minimum 4.5:1 on light paper backgrounds, and > 7:1 on dark forest panels).
+

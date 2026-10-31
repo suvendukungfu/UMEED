@@ -115,3 +115,4 @@ The UMEED Discovery Crawler is an ethical, bounded, RFC 9309-compliant public-so
 - Bounded batch execution per run (default max 10 pages).
 - Atomic run state tracking: `runId`, `pagesDiscovered`, `pagesFetched`, `candidatesExtracted`, `duplicatesFound`, `errorsCount`, and chronologically bounded execution logs.
 - Safe dry-run mode (`isDryRun: true`) allowing operators to simulate discovery without persisting candidate records.
+

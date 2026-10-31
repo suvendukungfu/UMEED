@@ -147,3 +147,4 @@ export async function validateCrawlerUrl(targetUrl: string): Promise<ValidationR
     return { valid: false, reason: `DNS resolution failed: ${(err as Error).message}` };
   }
 }
+

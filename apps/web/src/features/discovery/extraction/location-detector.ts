@@ -133,3 +133,4 @@ export function detectLocationFromText(text: string): DetectedLocation {
     extractedText: null,
   };
 }
+

@@ -113,3 +113,4 @@ describe("Discovery Intelligence Contracts", () => {
     expect(parsed.signalScore).toBe(82);
   });
 });
+

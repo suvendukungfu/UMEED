@@ -39,3 +39,4 @@ Every new source undergoes an 8-step compliance lifecycle:
 6. **Coordinator Approval**: Requires authorized coordinator credential (`x-coordinator-key` or session) to activate.
 7. **Health Tracking**: Automatically tracks `lastCrawledAt`, `lastSuccessAt`, `lastErrorAt`, and `consecutiveFailures`.
 8. **Pause / Resume**: Operators can instantly pause any source encountering upstream issues without losing registry history.
+

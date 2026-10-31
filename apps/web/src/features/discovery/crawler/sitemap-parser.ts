@@ -32,3 +32,4 @@ export function parseSitemap(sitemapText: string): SitemapUrl[] {
 
   return urls;
 }
+
