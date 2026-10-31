@@ -19,6 +19,7 @@ import {
   History,
   Info,
 } from "lucide-react";
+import { ContextInspector } from "@/components/context-inspector";
 
 interface CaseDetail {
   case_id: string;
@@ -373,6 +374,14 @@ export default function CaseDetailPage() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Meko Context Inspector */}
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <ContextInspector
+              caseReference={caseRecord.public_case_reference}
+              incidentReference={caseRecord.incident_reference}
+            />
           </div>
 
           {/* Final Resolution Details (if resolved) */}
