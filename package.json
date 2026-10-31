@@ -8,11 +8,15 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=apps/web",
-    "build": "npm run build --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "dev:umeed": "npm run dev --workspace=apps/web",
+    "build:umeed": "npm run build --workspaces --if-present",
+    "lint:umeed": "npm run lint --workspaces --if-present",
+    "typecheck:umeed": "npm run typecheck --workspaces --if-present",
+    "test:umeed": "npm run test --workspaces --if-present",
     "seed:demo": "npx tsx --tsconfig=apps/web/tsconfig.json --env-file=apps/web/.env.local scripts/seed-demo.ts",
     "reset:demo": "npx tsx --tsconfig=apps/web/tsconfig.json --env-file=apps/web/.env.local scripts/reset-demo.ts"
   },
