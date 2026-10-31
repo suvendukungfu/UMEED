@@ -14,11 +14,12 @@ interface LogPayload {
 }
 
 /**
- * Redacts known sensitive strings like MongoDB URIs and bearer tokens from logs.
+ * Redacts known sensitive strings like MongoDB URIs, tracking tokens, and bearer tokens from logs.
  */
 function sanitizeMessage(str: string): string {
   return str
     .replace(/mongodb(\+srv)?:\/\/[^@]+@/gi, "mongodb$1://***:***@")
+    .replace(/trk_[A-Za-z0-9_-]+/gi, "trk_***")
     .replace(/Bearer\s+[A-Za-z0-9-_.]+/gi, "Bearer ***")
     .replace(/(api[_-]?key|secret|token|password)=[^&\s]+/gi, "$1=***");
 }

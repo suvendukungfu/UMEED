@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { IncidentService } from "@/features/incidents/services/incident.service";
 import { ApiError } from "@/lib/errors";
 import { logger } from "@/lib/logging";
+import { extractClientIp } from "@/lib/security/authorization";
+import { ingestionRateLimiter } from "@/lib/security/rate-limit";
 
 const MAX_BODY_BYTES = 1024 * 1024; // 1 MB limit
 
@@ -9,6 +11,28 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
+    // 0. Rate Limiting Protection (Intake Flooding Defense)
+    const clientIp = extractClientIp(request);
+    const rateCheck = ingestionRateLimiter.check(clientIp);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "TOO_MANY_REQUESTS",
+            message: "Too many ingestion requests. Please retry shortly.",
+            status: 429,
+            timestamp: new Date().toISOString(),
+          },
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": Math.ceil(rateCheck.resetTimeMs / 1000).toString(),
+          },
+        }
+      );
+    }
+
     // 1. Enforce Content-Type
     const contentType = request.headers.get("content-type") || "";
     if (!contentType.includes("application/json")) {

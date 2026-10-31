@@ -10,9 +10,9 @@
 
 | Endpoint | Method | Role / Auth | Description | Status Codes |
 |---|---|---|---|---|
-| `/api/incidents/ingest` | `POST` | Public (Citizen) / Bearer (Crawler) | Ingests distress reports with idempotency and tracking token generation | `201`, `200`, `400`, `401`, `413`, `415`, `503` |
-| `/api/incidents` | `GET` | Coordinator / Staff | Query, filter, and paginate ingested incidents | `200`, `500` |
-| `/api/incidents/:publicReference` | `GET` | Public / Coordinator | Retrieve single incident by public reference (redacted) | `200`, `404`, `500` |
+| `/api/incidents/ingest` | `POST` | Public (Citizen) / Bearer (Crawler) | Ingests distress reports with idempotency, rate limiting, and tracking token generation | `201`, `200`, `400`, `401`, `413`, `415`, `429`, `503` |
+| `/api/incidents` | `GET` | Coordinator / Staff | Query, filter, and paginate ingested incidents (Requires Coordinator Auth) | `200`, `401`, `500` |
+| `/api/incidents/:publicReference` | `GET` | Citizen (with token) / Coordinator | Retrieve single incident by public reference (redacted for citizen; unredacted for coordinator) | `200`, `401`, `404`, `429`, `500` |
 | `/api/health` | `GET` | Public | System readiness and database connectivity check | `200` |
 
 ---
@@ -146,14 +146,60 @@ Returned when a new incident is within 500 meters and 24 hours of an existing in
 
 ---
 
-## 3. Error Responses
+## 3. Incident Triage Queue: `GET /api/incidents`
+
+### Authentication & Authorization
+- **Role Required**: Coordinator / Staff
+- **Accepted Headers**:
+  - `x-coordinator-key: <COORDINATOR_API_KEY>` OR
+  - `Authorization: Bearer <COORDINATOR_API_KEY>`
+- Unauthenticated requests fail closed with `401 Unauthorized`.
+
+### Query Parameters
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `status` | string | - | Filter by status (`REPORTED`, `UNDER_REVIEW`, `VERIFIED`, `REJECTED`, `CONVERTED_TO_CASE`) |
+| `source_type` | string | - | Filter by source (`citizen_report`, `social_media_discovery`) |
+| `is_suspected_duplicate` | boolean | - | Filter suspected duplicates (`true` / `false`) |
+| `limit` | integer | `50` | Maximum results to return (max 100) |
+| `offset` | integer | `0` | Offset for pagination |
+
+### Success Response (`200 OK`)
+Returns full operational incident records with unredacted coordinates and triage metadata for review.
+
+---
+
+## 4. Citizen Tracking Retrieval: `GET /api/incidents/:publicReference`
+
+### Authentication & Authorization
+- **Role**: Citizen Reporter OR Coordinator
+- **Accepted Headers**:
+  - Citizen: `x-tracking-token: trk_...` OR `Authorization: Bearer trk_...`
+  - Coordinator: `x-coordinator-key: ...` OR `Authorization: Bearer <COORDINATOR_KEY>`
+- **Security Invariant**: Tokens in query parameters (`?token=...`) are explicitly **rejected** and ignored.
+- **Anti-Enumeration Defense**: If the public reference is not found OR the tracking token is invalid/missing, the endpoint returns an identical generic `404 Not Found` response (`"Incident not found or invalid tracking token"`).
+
+### Redaction Behavior
+- **Citizen View**:
+  - `location.latitude`: `null`
+  - `location.longitude`: `null`
+  - `location.address`: Generalized (District/City only)
+  - `evidence[].url`: Proxied through sanitized preview route
+  - Description: PII patterns (phone numbers, email addresses) redacted
+  - Internal metadata (`tracking_token_hash`, `_id`) omitted
+- **Coordinator View**:
+  - Full unredacted operational record including exact GPS, full description, and raw evidence.
+
+---
+
+## 5. Error Responses
 
 All error responses strictly follow the RFC 7807 problem details structure:
 
 ```json
 {
   "error": {
-    "code": "BAD_REQUEST | UNAUTHORIZED | PAYLOAD_TOO_LARGE | UNSUPPORTED_MEDIA_TYPE | SERVICE_UNAVAILABLE | INTERNAL_SERVER_ERROR",
+    "code": "BAD_REQUEST | UNAUTHORIZED | NOT_FOUND | PAYLOAD_TOO_LARGE | UNSUPPORTED_MEDIA_TYPE | TOO_MANY_REQUESTS | SERVICE_UNAVAILABLE | INTERNAL_SERVER_ERROR",
     "message": "Human-readable description of error",
     "status": 400,
     "details": [
@@ -167,8 +213,10 @@ All error responses strictly follow the RFC 7807 problem details structure:
 | HTTP Status | Error Code | Condition |
 |---|---|---|
 | **400** | `BAD_REQUEST` | Validation error against `CanonicalIncidentSchema` or malformed JSON |
-| **401** | `UNAUTHORIZED` | Missing or invalid `X-Crawler-API-Key` for `social_media_discovery` |
+| **401** | `UNAUTHORIZED` | Missing or invalid authentication (Crawler API key, Coordinator key, or Tracking token) |
+| **404** | `NOT_FOUND` | Incident not found or invalid tracking token (anti-enumeration response) |
 | **413** | `PAYLOAD_TOO_LARGE` | Request payload exceeds 1MB |
 | **415** | `UNSUPPORTED_MEDIA_TYPE` | Content-Type is not `application/json` |
+| **429** | `TOO_MANY_REQUESTS` | Rate limit exceeded (30 req/min on ingest, 10 req/min on tracking) |
 | **503** | `SERVICE_UNAVAILABLE` | Database connection unavailable or timeout |
 | **500** | `INTERNAL_SERVER_ERROR` | Unhandled internal server exception |

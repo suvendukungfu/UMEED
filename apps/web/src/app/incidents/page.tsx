@@ -32,7 +32,11 @@ export default function IncidentsPage() {
       if (sourceFilter !== "ALL") params.append("source_type", sourceFilter);
       if (duplicatesOnly) params.append("is_suspected_duplicate", "true");
 
-      const res = await fetch(`/api/incidents?${params.toString()}`);
+      const res = await fetch(`/api/incidents?${params.toString()}`, {
+        headers: {
+          "x-coordinator-key": "umeed-coordinator-dev-key",
+        },
+      });
       const json = await res.json();
       if (json.status === "success") {
         setIncidents(json.data.incidents || []);

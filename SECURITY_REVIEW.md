@@ -93,9 +93,32 @@ npm run lint --workspace=apps/web
 
 # Automated test suite
 npm run test --workspaces
-# Result: 17/17 tests passing in 283ms (Exit code: 0)
+# Result: 54/54 tests passing (6 contracts, 48 web) (Exit code: 0)
 
 # Production build
 npm run build --workspace=apps/web
-# Result: Compiled successfully in 653ms (11 routes generated, Exit code: 0)
+# Result: Compiled successfully in 1534ms (13 routes generated, Exit code: 0)
 ```
+
+---
+
+## 5. Phase 2 & 2.1 Incident Security & Authorization Controls
+
+### A. Authorization & Credential Hygiene
+- **Coordinator Feed Access Control**: `GET /api/incidents` enforces strict server-side coordinator authorization via `x-coordinator-key` or `Authorization: Bearer <key>`. Fails closed (`401 Unauthorized`) when unauthenticated.
+- **Citizen Tracking Secret Boundary**: Public reference alone (`UMD-XXXX-YYYY`) does not authorize incident inspection. Retrieval requires matching high-entropy tracking token (`trk_...`) in headers. Tokens in query strings (`?token=...`) are rejected.
+- **Anti-Enumeration Protection**: Invalid tracking tokens or missing records return a generic `404 Not Found` response with identical error payload to prevent incident existence enumeration.
+- **Constant-Time Verification**: Verification of API keys and tracking token hashes utilizes `crypto.timingSafeEqual()` to mitigate timing side-channel attacks.
+- **Token Entropy & Storage**: Generated using `crypto.randomBytes(24)` (>192 bits entropy); only SHA-256 hash is persisted; tokens are redacted from all application logs (`trk_***`).
+
+### B. Privacy & Evidence Redaction
+- **Coordinate Privacy**: Citizen-facing endpoints nullify `location.latitude` and `location.longitude` to prevent public tracking of vulnerable individuals.
+- **Evidence Vault Separation**: Internal cloud storage keys (`s3://...`) are withheld; public endpoints proxy media through `/api/evidence/preview/...`.
+- **EXIF Stripping**: Device camera, GPS coordinates, and hardware tags are removed from public media derivatives.
+- **PII Masking**: Indian mobile numbers, email addresses, and ID numbers in public descriptions are masked with replacement tokens.
+
+### C. Rate Limiting Defense
+- **Intake Protection**: Ingestion endpoint (`POST /api/incidents/ingest`) is protected by a sliding-window limiter (30 req/min/IP).
+- **Tracking Enumeration Defense**: Tracking lookup endpoint is limited to 10 req/min/IP.
+- **Production Disclosure**: Current limiter is in-memory (`MemoryRateLimiter`). Multi-instance horizontal scaling requires Redis or edge-gateway state sharing.
+

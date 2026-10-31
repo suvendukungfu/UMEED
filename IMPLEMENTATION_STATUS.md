@@ -14,7 +14,8 @@
 | **Phase 1** | Production-Grade Project Foundation | **COMPLETED** | 15 tests pass, lint passes, build succeeds (`2be0220`) |
 | **Phase 1.1**| Security Patch & Dependency Hardening | **COMPLETED** | Upgraded to Next.js 15.5.28 (`5ecc142`) |
 | **Phase 1.2**| Dev Toolchain Security & Branch Integration | **COMPLETED** | Vitest 4.1.12, Tinypool removed, 0 Prod vulnerabilities, integrated into `main` (`5876a66`) |
-| **Phase 2** | Canonical Incident Ingestion & MongoDB Data Model | **COMPLETED** | Ingestion API, Idempotency, Tracking Security, In-Memory & Mongo Repositories, 46 tests pass |
+| **Phase 2** | Canonical Incident Ingestion & MongoDB Data Model | **COMPLETED** | Ingestion API, Idempotency, Tracking Security, In-Memory & Mongo Repositories, 46 tests pass (`621cb5a`) |
+| **Phase 2.1**| Incident Security, Authorization & Privacy Controls | **COMPLETED** | Coordinator Auth, Anti-Enumeration, EXIF Stripping, Rate Limiting, 54 tests pass |
 | **Phase 3** | Citizen Incident Reporting & Gemini Multimodal Triage | Upcoming | Form, Upload, AI Triage & Fallback Tests |
 | **Phase 4** | NGO Intelligence Registry & Explainable Matching | Upcoming | Hard Capability Filter Tests |
 | **Phase 5** | Closed-Loop Case Coordination & State Machine | Upcoming | State Machine & Recursive Matching Tests |
@@ -53,3 +54,22 @@
 - [x] **ESLint Code Quality**: **✔ No ESLint warnings or errors**.
 - [x] **Production Bundle Build**: **Compiled successfully in 653ms** (11 static/dynamic routes).
 - [x] **Database Integration Notice**: Atlas cloud integration is ready via `MongoIncidentRepository` once `MONGODB_URI` credentials are supplied in `.env.local`. Deterministic tests verified via `InMemoryIncidentRepository`.
+
+---
+
+## Phase 2.1 Verification Checklist
+
+- [x] **Coordinator Authentication**: Server-side validation of coordinator privileges on `GET /api/incidents` via `x-coordinator-key` or `Authorization: Bearer <key>`. Fails closed (401 Unauthorized) when unauthenticated.
+- [x] **Citizen Secret Tracking Retrieval**: `GET /api/incidents/:publicReference` requires both public reference AND secret tracking token in headers. Public reference alone is not treated as an access credential.
+- [x] **Query String Rejection**: Tracking tokens passed in query string (`?token=...`) are explicitly rejected to prevent leakage in URLs, browser history, and proxy logs.
+- [x] **Anti-Enumeration Protection**: Invalid tracking tokens or missing records return a generic 404 response with identical payloads to thwart identifier enumeration.
+- [x] **Constant-Time Verification**: Verification of API keys and token digests uses `crypto.timingSafeEqual` against timing side-channel attacks.
+- [x] **Privacy Redaction & Location Blurring**: Public responses nullify `location.latitude` and `location.longitude`, mask PII in descriptions, and proxy media through `/api/evidence/preview/...`.
+- [x] **EXIF Stripping**: Strips GPS coordinates, camera models, and hardware tags from public media derivatives.
+- [x] **Rate Limiting**: Sliding-window rate limiting on ingestion (30 req/min) and tracking lookup (10 req/min). Distributed rate limiting requirements documented.
+- [x] **Logging Sanitization**: Tracking tokens (`trk_...`) are automatically redacted to `trk_***` in all structured logs.
+- [x] **Automated Test Suite**: **54/54 tests passing** (6 contracts, 48 web) including 8 dedicated Phase 2.1 security tests.
+- [x] **Zero Production Vulnerabilities**: Clean audit via `npm audit --omit=dev`.
+- [x] **TypeScript Strict Compilation**: **0 errors** across workspaces.
+- [x] **ESLint Code Quality**: **✔ No ESLint warnings or errors**.
+- [x] **Production Bundle Build**: **Compiled successfully in 1534ms** (13 routes generated).

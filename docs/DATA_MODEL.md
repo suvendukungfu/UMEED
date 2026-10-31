@@ -158,3 +158,37 @@ MongoDB strictly mandates that 2dsphere coordinates be stored in **[longitude, l
 }
 ```
 *Valid bounds*: Longitude between `-180` and `180`; Latitude between `-90` and `90`.
+
+---
+
+## 4. Privacy Boundaries & Public Redacted DTO
+
+The raw operational MongoDB document (`IncidentDocument`) contains high-privilege information that must never be exposed publicly.
+
+### Redacted Public View (`SanitizedPublicIncident`)
+```typescript
+interface SanitizedPublicIncident {
+  public_reference: string;                   // UMD-XXXX-YYYY
+  reported_at: string;                        // ISO 8601
+  incident_type: IncidentType;
+  subject_type: "person" | "animal";
+  description: string;                        // PII patterns masked ([REDACTED_PHONE], etc.)
+  status: IncidentStatus;
+  location: {
+    latitude: null;                           // Nullified for public privacy
+    longitude: null;                          // Nullified for public privacy
+    address: string | null;                   // District/City only
+    district: string | null;
+    confidence: 0;
+  };
+  evidence: Array<{
+    type: string;
+    url: string;                              // Proxied preview URL (/api/evidence/preview/...)
+    metadata: Record<string, unknown>;        // EXIF & hardware tags stripped
+  }>;
+  is_suspected_duplicate: boolean;
+  created_at: string;
+  // OMITTED: _id, tracking_token_hash, internal notes, coordinator review history
+}
+```
+

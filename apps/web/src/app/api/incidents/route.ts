@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { IncidentService } from "@/features/incidents/services/incident.service";
 import { IncidentStatus, IncidentType, IncidentSourceType } from "@umeed/contracts";
+import { verifyCoordinatorAuth } from "@/lib/security/authorization";
+import { sanitizeIncidentForCoordinator } from "@/features/incidents/services/privacy.service";
 
 export async function GET(request: NextRequest) {
   try {
+    // 1. Enforce Coordinator Privileges
+    const auth = verifyCoordinatorAuth(request);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "UNAUTHORIZED",
+            message: auth.reason || "Coordinator privileges required to access the triage queue.",
+            status: 401,
+            timestamp: new Date().toISOString(),
+          },
+        },
+        { status: 401 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
 
     const status = searchParams.get("status") as IncidentStatus | undefined;
@@ -29,11 +47,8 @@ export async function GET(request: NextRequest) {
       offset,
     });
 
-    // Sanitize response: never expose tracking_token_hash or raw internal IDs
-    const sanitizedIncidents = result.incidents.map((inc) => {
-      const { tracking_token_hash: _, ...safeDoc } = inc;
-      return safeDoc;
-    });
+    // Sanitize for Coordinator View: retains location for field coordination, redacts secret token hash
+    const sanitizedIncidents = result.incidents.map(sanitizeIncidentForCoordinator);
 
     return NextResponse.json({
       status: "success",

@@ -27,6 +27,9 @@ const ServerEnvSchema = z.object({
   // Discovery Crawler Service - Phase 8
   DISCOVERY_SERVICE_URL: z.string().url().optional(),
   CRAWLER_API_KEY: z.string().optional().default("umeed-crawler-dev-key"),
+
+  // Coordinator Authentication & Authorization - Phase 2.1
+  COORDINATOR_API_KEY: z.string().optional().default("umeed-coordinator-dev-key"),
 });
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;
