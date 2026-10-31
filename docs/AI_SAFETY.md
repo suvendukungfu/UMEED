@@ -57,6 +57,7 @@ When a citizen report or crawler payload arrives, the media and description are 
 ```
 
 ### 2.1 Non-Diagnostic Labeling Standard
+
 The UI explicitly renders all AI outputs behind clear informational alerts:
 > [!NOTE]
 > **AI Triage Suggestion — Non-Medical Observation**  
@@ -77,6 +78,7 @@ No incident advances to responder notification without passing through the human
 ## 4. Resilience & Fallback Protocols
 
 If the Gemini API encounters timeouts, network errors, or rate limits:
+
 1. The incident is immediately marked with `ai_triage_status: "UNAVAILABLE"`.
 2. The severity defaults to `unconfirmed` with `requires_human_review: true`.
 3. The queue displays an accessible warning badge: *"AI Triage Offline — Coordinator Manual Verification Required"*.
@@ -87,6 +89,7 @@ If the Gemini API encounters timeouts, network errors, or rate limits:
 ## 5. Algorithmic Fairness in NGO Matching
 
 To prevent preferential bias or regional neglect in dispatching assistance:
+
 - Matching is governed by an **objective, deterministic mathematical formulation** ($w_s S_{\text{capability}} + w_g S_{\text{geography}} + w_a S_{\text{availability}} + w_c S_{\text{capacity}} + w_h S_{\text{history}}$).
 - Proximity alone is not decisive; capability is a binary hard filter ($S_{\text{capability}} \in \{0, 1\}$).
 - The exact scoring breakdown is rendered transparently in the Coordinator UI, preventing hidden algorithmic favoritism.

@@ -12,7 +12,7 @@
 The evaluation suite tests diverse social distress domains across human vulnerability, animal distress, edge cases, and safety defenses:
 
 | Scenario ID | Name | Domain | Focus Area & Guardrails Tested | Expected Category | Emergency? |
-|-------------|------|--------|--------------------------------|-------------------|------------|
+| ------------- | ------ | -------- | -------------------------------- | ------------------- | ------------ |
 | `eval_01` | Severe Canine Trauma | Animal Distress | Active bleeding, limb trauma, traffic danger | `injured_animal` | Yes |
 | `eval_02` | Abandoned Litter of Pups | Animal Distress | Newborn pups in cold weather, shelter need | `abandoned_animal` | No |
 | `eval_03` | Acute Heatstroke / Collapse | Medical Distress | Physical collapse, non-responsive subject | `medical_assistance` | Yes |

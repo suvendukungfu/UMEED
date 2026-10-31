@@ -10,6 +10,7 @@
 In disaster response and distress assistance, assuming that an organisation is operationally capable simply because it holds an official government registration (such as an NGO-DARPAN ID from NITI Aayog) is hazardous. Many registered entities are administrative holding trusts, educational endowments, or dormant charities without field teams or active intake facilities.
 
 UMEED establishes a strict separation between **statutory registration** and **operational readiness**:
+
 - Statutory registration confirms legal existence and corporate standing.
 - Operational verification confirms live physical facilities, response staff, working helplines, and dispatch capacity.
 
@@ -50,7 +51,7 @@ UMEED establishes a strict separation between **statutory registration** and **o
 ### Tier Descriptions & Permissions
 
 | Tier | Matching Eligibility | Multiplier ($M_{\text{tier}}$) | Public Directory | Coordinator Dispatch | Audit Requirement |
-|---|:---:|:---:|:---:|:---:|---|
+| --- | :---: | :---: | :---: | :---: | --- |
 | **`OPERATIONALLY_VERIFIED`** | Yes (Primary) | `1.00` | Shown with badge | Immediate | Physical or video check of facility within 90 days; verified direct phone |
 | **`REGISTRATION_CHECKED`** | Yes (Secondary) | `0.90` | Shown | Requires phone confirmation | Valid NGO-DARPAN ID, Society/Trust registration number confirmed in registrar database |
 | **`PUBLICLY_LISTED`** | Yes (Tertiary) | `0.75` | Shown | Manual verification required | Verified listing in government disaster plan, hospital referral list, or official municipal directory |
@@ -75,6 +76,7 @@ interface NGOPrivateEvidence {
 ```
 
 ### Audit Invariants
+
 1. `verified_by` must refer to an authorized coordinator identity or verified ingestion harness.
 2. `verified_at` cannot be post-dated into the future.
 3. If `darpan_id` is supplied, it must conform to the standard alphanumeric format (e.g., `^[A-Z]{2}/[0-9]{4}/[0-9]{7}$`).

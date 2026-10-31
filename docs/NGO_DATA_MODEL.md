@@ -142,7 +142,7 @@ UMEED implements privacy by design. Public visitors can view active, legitimate 
 ### 4.1 Field Visibility Matrix
 
 | Field | Public Directory (`SanitizedPublicNGO`) | Coordinator Workspace (`NGO`) |
-|---|:---:|:---:|
+| --- | :---: | :---: |
 | `ngo_id`, `organisation_name`, `alternate_names` | Visible | Visible |
 | `organisation_type` | Visible | Visible |
 | `service_categories`, `supported_subject_types` | Visible | Visible |

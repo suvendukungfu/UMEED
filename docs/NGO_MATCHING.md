@@ -32,6 +32,7 @@ flowchart TD
 ```
 
 ### Ineligibility Reasons Flagged
+
 - `"Organisation does not service {incident_type} incidents"`
 - `"Organisation does not handle {subject_type} distress cases"`
 - `"Organisation verification is currently suspended"`
@@ -46,8 +47,9 @@ Once an organisation passes the hard capability pre-filter, its composite score 
 $$S = \Big( (w_{\text{cap}} \cdot S_{\text{cap}}) + (w_{\text{cov}} \cdot S_{\text{cov}}) + (w_{\text{dist}} \cdot S_{\text{dist}}) + (w_{\text{avail}} \cdot S_{\text{avail}}) + (w_{\text{capa}} \cdot S_{\text{capa}}) \Big) \times M_{\text{tier}}$$
 
 ### Default Weight Configuration
+
 | Factor | Weight ($w_i$) | Purpose |
-|---|:---:|---|
+| --- | :---: | --- |
 | **Capability** | `0.40` | Depth of alignment with specific distress needs |
 | **Geographic Coverage** | `0.25` | Mandated operational presence in target district |
 | **Physical Distance** | `0.15` | Geodesic Haversine distance from incident GPS to HQ |
@@ -61,20 +63,24 @@ $$\sum w_i = 0.40 + 0.25 + 0.15 + 0.10 + 0.10 = 1.00$$
 ### Component Score Formulas ($S_i \in [0.0, 1.0]$)
 
 #### 1. Capability Score ($S_{\text{cap}}$)
+
 - **Base Score**: `0.70` for passing the category match.
 - **Granular Capability Bonus**: Up to `+0.30` if specific capabilities (e.g. `"animal_ambulance"`, `"medical_ward"`) match keywords in the incident description or triage requirements.
 
 #### 2. Geographic Coverage Score ($S_{\text{cov}}$)
+
 - `1.00`: Target incident district is explicitly in the organisation's `operational_districts`.
 - `0.30`: Incident district is not in `operational_districts`, but matches the headquarters district.
 - `0.00`: Neither district matches (relies entirely on broad travel capability).
 
 #### 3. Distance Score ($S_{\text{dist}}$)
+
 Calculated via the **Haversine Geodesic Formula** measuring great-circle distance $d$ in kilometers:
 
 $$d = 2r \arcsin \left( \sqrt{ \sin^2\left(\frac{\Delta \phi}{2}\right) + \cos(\phi_1)\cos(\phi_2)\sin^2\left(\frac{\Delta \lambda}{2}\right) } \right)$$
 
 Where $r = 6371\text{ km}$. The distance is mapped to a stepped piecewise function:
+
 - $d \le 5\text{ km}$: `1.00` (Immediate vicinity)
 - $5 < d \le 15\text{ km}$: `0.80` (Fast response range)
 - $15 < d \le 30\text{ km}$: `0.60` (Moderate transit range)
@@ -82,6 +88,7 @@ Where $r = 6371\text{ km}$. The distance is mapped to a stepped piecewise functi
 - $d > 50\text{ km}$: `0.10` (Edge of service territory)
 
 #### 4. Availability Score ($S_{\text{avail}}$)
+
 - `AVAILABLE_24_7`: `1.00`
 - `OPERATIONAL_HOURS`: `0.85`
 - `ON_CALL`: `0.70`
@@ -89,6 +96,7 @@ Where $r = 6371\text{ km}$. The distance is mapped to a stepped piecewise functi
 - `TEMPORARILY_UNAVAILABLE`: `0.00`
 
 #### 5. Capacity Score ($S_{\text{capa}}$)
+
 - `HIGH`: `1.00` (Significant resource headroom)
 - `MEDIUM`: `0.80` (Standard operational capacity)
 - `LOW`: `0.50` (Constrained resources)
@@ -96,6 +104,7 @@ Where $r = 6371\text{ km}$. The distance is mapped to a stepped piecewise functi
 - `AT_CAPACITY`: `0.00` (No intake capacity)
 
 #### 6. Verification Status Tier Multipliers ($M_{\text{tier}}$)
+
 - `OPERATIONALLY_VERIFIED`: $\times 1.00$
 - `REGISTRATION_CHECKED`: $\times 0.90$
 - `PUBLICLY_LISTED`: $\times 0.75$
@@ -107,18 +116,21 @@ Where $r = 6371\text{ km}$. The distance is mapped to a stepped piecewise functi
 ## 4. Edge Cases & Safeguard Policies
 
 ### 4.1 Missing or Low-Confidence Location
+
 - If an incident has `latitude: null`, `longitude: null`, or `confidence < 0.50`, distance cannot be calculated reliably.
 - **Handling**: `distance_km` is set to `null`, and `distance_score` is assigned a neutral baseline of `0.50` without penalizing the candidate.
 - **Auditing**: A prominent notice is appended to `missing_information`:
   `"Incident coordinates missing or low-confidence; distance score set to neutral baseline (0.50)"`.
 
 ### 4.2 Historical Response Safeguard
+
 - An organisation with 1 completed dispatch and 0 failures should not appear superior to an organisation with 90 completed dispatches out of 100 due to small-sample skew.
 - **Handling**: Historical metrics are **completely excluded** from scoring whenever `sample_size < 5`.
 - **Auditing**: A notice is added to `missing_information`:
   `"Historical metrics excluded (sample size < 5)"`.
 
 ### 4.3 Unknown Availability or Capacity
+
 - Newly registered or imported NGOs may not have real-time availability telemetries.
 - **Handling**: Rather than penalizing with 0 or assuming 24/7 readiness, a neutral score of `0.50` is assigned.
 - **Auditing**: Flagged in `missing_information` for coordinator awareness.

@@ -23,6 +23,7 @@ UMEED MongoDB Database (`umeed_db`)
 ## 2. Collection Schemas
 
 ### 2.1 `incidents` Collection
+
 Stores raw submitted distress observations and automated crawler discoveries.
 
 ```typescript
@@ -74,6 +75,7 @@ interface IncidentDocument {
 ---
 
 ### 2.2 `cases` Collection
+
 Stores approved operational assistance workflows.  
 > [!IMPORTANT]
 > **Architectural Invariant**: A record in `cases` is **NEVER** created automatically upon ingestion. A Case exists only after an authorized coordinator verifies an incident and transitions it to `APPROVED`.
@@ -95,6 +97,7 @@ interface CaseDocument {
 ---
 
 ### 2.3 `evidence` Collection
+
 Stores media provenance and extraction metadata.
 
 ```typescript
@@ -116,6 +119,7 @@ interface EvidenceDocument {
 ---
 
 ### 2.4 `review_actions` Collection
+
 Stores human coordinator triage decisions.
 
 ```typescript
@@ -137,16 +141,18 @@ interface ReviewActionDocument {
 All indexes are created idempotently via `MongoIncidentRepository.initIndexes()`:
 
 | Collection | Index Name | Key Definition | Type | Invariant & Operational Purpose |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `incidents` | `idx_source_idempotency` | `{ source_type: 1, source_reference: 1 }` | **Unique** | Prevents duplicate ingestions across network retries and webhook resends. |
-| `incidents` | `idx_location_geo_2dsphere`| `{ "location.geo": "2dsphere" }` | **2dsphere (Sparse)** | Geospatial proximity queries ($near, $geoWithin) for duplicate candidate detection. |
+| `incidents` | `idx_location_geo_2dsphere` | `{ "location.geo": "2dsphere" }` | **2dsphere (Sparse)** | Geospatial proximity queries ($near, $geoWithin) for duplicate candidate detection. |
 | `incidents` | `idx_status_created` | `{ status: 1, created_at: -1 }` | Compound | Fast filtering of new `REPORTED` incidents in coordinator queue sorted by arrival. |
 | `incidents` | `idx_type_reported` | `{ incident_type: 1, reported_at: -1 }` | Compound | Filtering by assistance category. |
 | `incidents` | `idx_public_reference_unique` | `{ public_reference: 1 }` | **Unique** | O(1) lookup for public tracking codes (`UMD-XXXX-YYYY`). |
-| `incidents` | `idx_tracking_token_hash`| `{ tracking_token_hash: 1 }` | Sparse | Secure credential verification using SHA-256 hash. |
+| `incidents` | `idx_tracking_token_hash` | `{ tracking_token_hash: 1 }` | Sparse | Secure credential verification using SHA-256 hash. |
 
 ### GeoJSON [Longitude, Latitude] Coordinate Rule
+
 MongoDB strictly mandates that 2dsphere coordinates be stored in **[longitude, latitude]** order:
+
 ```json
 {
   "location": {
@@ -157,6 +163,7 @@ MongoDB strictly mandates that 2dsphere coordinates be stored in **[longitude, l
   }
 }
 ```
+
 *Valid bounds*: Longitude between `-180` and `180`; Latitude between `-90` and `90`.
 
 ---
@@ -166,6 +173,7 @@ MongoDB strictly mandates that 2dsphere coordinates be stored in **[longitude, l
 The raw operational MongoDB document (`IncidentDocument`) contains high-privilege information that must never be exposed publicly.
 
 ### Redacted Public View (`SanitizedPublicIncident`)
+
 ```typescript
 interface SanitizedPublicIncident {
   public_reference: string;                   // UMD-XXXX-YYYY
@@ -191,4 +199,3 @@ interface SanitizedPublicIncident {
   // OMITTED: _id, tracking_token_hash, internal notes, coordinator review history
 }
 ```
-

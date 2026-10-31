@@ -82,3 +82,4 @@ export interface ImportValidationReport {
   }>;
   created_ngo_ids: string[];
 }
+

@@ -10,6 +10,7 @@
 ## 1. Prioritization Framework
 
 To maximize hackathon impact while maintaining strict engineering rigor, every UX enhancement and product capability is categorized:
+
 - **`P0` (Hackathon MVP Core)**: Essential for the end-to-end evaluation journey (Intake → Triage → Verification → Matching → First-Aid → Recursive Secondary Match → Resolved).
 - **`P1` (Post-Core Enhancements)**: Enhances field usability, bilingual reach, and operational depth; activated immediately after core workflow stability.
 - **`P2` (Long-Term Roadmap)**: Enterprise scalability, advanced audio ingestion, and broad automated crawler discovery.
@@ -19,7 +20,7 @@ To maximize hackathon impact while maintaining strict engineering rigor, every U
 ## 2. Comprehensive UX Gap Analysis & Prioritization Matrix
 
 | Feature / UX Component | Target Persona | Priority | Complexity | Upstream Dependencies | Operational Impact |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | **Stateful Citizen Report Form (`/report`)** | Citizen | **P0** | Medium | Canonical Incident Schema (`packages/contracts`) | Replaces static placeholder with interactive photo upload, GPS resolution, and distress categories. |
 | **Reference Code Generator & Receipt (`UMD-XXXX-YYYY`)** | Citizen | **P0** | Low | Ingestion API (`POST /api/incidents/ingest`) | Provides the reporting bystander with an immediate, shareable tracking token. |
 | **Citizen Milestone Tracking Screen (`/track/[code]`)** | Citizen | **P0** | Medium | Case State Machine & Tracking Query API | Allows citizens to see progress without exposing responder or beneficiary PII. |
@@ -92,17 +93,21 @@ flowchart TD
 ## 4. Key UX Gaps & Recommended Solutions
 
 ### Gap 1: Citizen Form Missing Real-Time Geolocation Feedback
+
 - **Problem**: Bystanders on the street do not know their precise street address; manual typing causes drop-off.
 - **Solution**: Implement one-touch "Detect My Location" using `navigator.geolocation`, with instant reverse-geocoding into human-readable landmarks and district name, while retaining an editable fallback.
 
 ### Gap 2: Missing Reassurance During Upload & AI Triage
+
 - **Problem**: Multimodal AI processing and image uploads take 2–4 seconds; users may re-click or assume failure.
 - **Solution**: Render an accessible, multi-phase progress indicator: *"Uploading photo (1/2) → Verifying coordinates (2/2) → Submitting to UMEED coordination network..."* with `aria-live="polite"`.
 
 ### Gap 3: Coordinator Cognitive Overload During Multi-Incident Spikes
+
 - **Problem**: Reviewing 20+ distress reports sequentially leads to decision fatigue.
 - **Solution**: Highlight extracted key evidence (trauma flags, vulnerable subject status, traffic danger) in high-contrast visual chips, allowing coordinators to triage critical life-safety incidents in under 15 seconds.
 
 ### Gap 4: Disconnected Post-Intervention Care
+
 - **Problem**: In existing NGO dispatch systems, once a responder visits, the case is marked closed even if the subject still requires surgery or ongoing shelter.
 - **Solution**: Mandate an outcome gate on the responder portal (`Intervention Outcome: [Fully Resolved] vs [Follow-up Required]`). If follow-up is checked, the system automatically opens a secondary assistance cycle.

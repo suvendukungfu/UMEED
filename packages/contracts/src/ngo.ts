@@ -180,3 +180,4 @@ export const SanitizedPublicNGOSchema = NGOSchema.omit({
   verification_badge: VerificationStatusSchema,
 });
 export type SanitizedPublicNGO = z.infer<typeof SanitizedPublicNGOSchema>;
+

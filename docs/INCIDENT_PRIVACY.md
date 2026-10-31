@@ -11,6 +11,7 @@
 Distress reports submitted to UMEED frequently involve vulnerable persons (e.g., homeless individuals, abandoned elderly, victims of neglect) or sensitive locations (e.g., animal distress in residential or private properties). Exposing raw telemetry, unredacted location coordinates, original media metadata, or private internal storage paths presents severe personal safety and privacy risks.
 
 UMEED enforces an asymmetric privacy and evidence preservation model:
+
 1. **Private Original Evidence Retention**: Raw evidence, full GPS coordinates, and investigator notes are retained in restricted, access-controlled storage for authenticated, background-checked coordinators and verified NGO responders.
 2. **Sanitized Public Derivatives**: Public tracking endpoints and unauthenticated consumers receive sanitized data structures where exact coordinates are nullified, addresses are generalized, PII is scrubbed, and media URLs are routed through token-mediated preview endpoints with EXIF metadata stripped.
 
@@ -53,7 +54,9 @@ UMEED enforces an asymmetric privacy and evidence preservation model:
 ## 3. Location Blurring & Scrubbing Rules
 
 ### 3.1 Public Endpoint Nullification
+
 When an incident is queried via `GET /api/incidents/:publicReference`:
+
 - `location.latitude` is set to `null`.
 - `location.longitude` is set to `null`.
 - `location.confidence` is set to `0.0`.
@@ -62,7 +65,7 @@ When an incident is queried via `GET /api/incidents/:publicReference`:
 ### 3.2 Coordinate Privacy Matrix
 
 | Field | Citizen / Public View | Coordinator / Dispatch View |
-|---|---|---|
+| --- | --- | --- |
 | `location.latitude` | `null` | Exact (e.g. `28.697200`) |
 | `location.longitude` | `null` | Exact (e.g. `77.135000`) |
 | `location.address` | District / Area only | Exact Street Address & Landmark |
@@ -74,6 +77,7 @@ When an incident is queried via `GET /api/incidents/:publicReference`:
 ## 4. Media Evidence Preservation & Binary EXIF Stripping
 
 ### 4.1 Storage Architecture
+
 1. **Original Evidence Ingestion**:
    - Media uploaded during report intake is stored in private cloud storage buckets (e.g., S3 / GCS with private ACLs).
    - Raw storage keys (e.g., `s3://umeed-private-evidence/incidents/raw/848b61.../photo.jpg`) are **never** returned in API responses.
@@ -84,9 +88,11 @@ When an incident is queried via `GET /api/incidents/:publicReference`:
    - All GPS tags, hardware serials, timestamps, and device make/model identifiers are completely purged from the resulting derivative file.
 3. **Evidence Preview Derivative Route**:
    - Public responses route media requests through:
+
      ```
      /api/evidence/preview/:publicReference/:index
      ```
+
    - Serves the binary derivative with strict privacy headers:
      - `Content-Type: image/jpeg`
      - `Cache-Control: private, no-transform, max-age=86400`
@@ -98,6 +104,7 @@ When an incident is queried via `GET /api/incidents/:publicReference`:
 ## 5. PII Scrubbing in Free-Text Descriptions
 
 Citizens often submit phone numbers, email addresses, or personal identity numbers in report descriptions. The UMEED privacy service automatically redacts common PII patterns in public responses:
+
 - Indian mobile phone numbers (`+91` / `0` followed by 10 digits) are masked as `[REDACTED_PHONE]`.
 - Email addresses are masked as `[REDACTED_EMAIL]`.
 - Aadhaar / 12-digit national ID patterns are masked as `[REDACTED_ID]`.

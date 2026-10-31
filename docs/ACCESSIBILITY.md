@@ -11,6 +11,7 @@
 ## 1. Accessibility Philosophy & Field Context
 
 Social distress reporting takes place under stressful, chaotic conditions:
+
 - **Citizens** may be in poor lighting, emotionally distressed, using cracked mobile screens, or have varying levels of digital and linguistic literacy.
 - **NGO Responders** operate in glaring sunlight or darkness on high-mobility field smartphones, frequently with one hand free.
 - **Coordinators** require dense, clear data displays that minimize cognitive fatigue during prolonged operations.
@@ -24,7 +25,7 @@ Accessibility in UMEED is not an afterthought or compliance checklist; it is an 
 ### 2.1 Principle 1: Perceivable
 
 | Criterion | Level | UMEED Implementation Standard | Status |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **1.1.1 Non-text Content** | A | All images (distress photos, status icons) must include descriptive `alt` text. Informational photos display: `alt="Distress observation: [subject] at [location]"`. Decorative icons use `aria-hidden="true"`. | Implemented in Shell / Enforced in Form Components |
 | **1.3.1 Info and Relationships** | A | Semantic HTML5 (`<header>`, `<main>`, `<nav>`, `<section>`, `<article>`). Forms use `<fieldset>` and `<legend>` for radio chip groups. Input elements have explicit `<label htmlFor="...">`. | Verified in Shell & Layout Components |
 | **1.3.5 Identify Input Purpose** | AA | Auto-complete attributes applied where appropriate (`autocomplete="street-address"`). | Specified for Phase 3 |
@@ -38,7 +39,7 @@ Accessibility in UMEED is not an afterthought or compliance checklist; it is an 
 ### 2.2 Principle 2: Operable
 
 | Criterion | Level | UMEED Implementation Standard | Status |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **2.1.1 Keyboard** | A | Every interactive control (buttons, toggles, form fields, tabs, modal dialogs) is fully navigable and operable via standard keyboard (`Tab`, `Shift+Tab`, `Enter`, `Space`, `Escape`, Arrow keys). | Enforced in Core Components |
 | **2.1.2 No Keyboard Trap** | A | Focus can always be moved away from any component using standard keyboard keys. Modals release focus on `Escape` or backdrop click. | Standardized in Modal/Sheet Patterns |
 | **2.4.1 Bypass Blocks** | A | Skip navigation link (`<a href="#main-content" className="sr-only focus:not-sr-only ...">Skip to main content</a>`) is rendered at the top of the root layout. | Implemented in `apps/web/src/app/layout.tsx` |
@@ -51,7 +52,7 @@ Accessibility in UMEED is not an afterthought or compliance checklist; it is an 
 ### 2.3 Principle 3: Understandable
 
 | Criterion | Level | UMEED Implementation Standard | Status |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **3.1.1 Language of Page** | A | Root `<html>` element specifies dynamic `lang="en"` or `lang="hi"` based on selected locale. | Implemented in `RootLayout` |
 | **3.2.1 On Focus** | A | Receiving focus does not trigger an unexpected context change, navigation, or form submission. | Enforced across all forms |
 | **3.3.1 Error Identification** | A | Form errors are detected immediately upon field blur or submission attempt. The error message explicitly states the problem in plain text (e.g., *"Photo upload is required to verify assistance needs"*). | Standardized in Form Validation |
@@ -63,7 +64,7 @@ Accessibility in UMEED is not an afterthought or compliance checklist; it is an 
 ### 2.4 Principle 4: Robust
 
 | Criterion | Level | UMEED Implementation Standard | Status |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **4.1.2 Name, Role, Value** | A | All custom UI widgets (drawers, chips, collapsible cards) utilize appropriate ARIA roles (`role="radiogroup"`, `role="tablist"`, `aria-expanded`, `aria-checked`). | Standardized in Design System |
 | **4.1.3 Status Messages** | AA | Dynamic content updates (submission confirmation, triage progress, live GPS detection) use `aria-live="polite"` to alert screen readers without interrupting current speech. | Standardized in Toast & Status Banners |
 
@@ -104,6 +105,7 @@ Assistive technologies receive structured announcements via dedicated ARIA live 
 
 1. **No Horizontal Scroll**: All viewports down to 320px CSS width reflow cleanly without clipping or horizontal overflow (`overflow-x: hidden`).
 2. **Motion Sensitivity (`prefers-reduced-motion`)**:
+
    ```css
    @media (prefers-reduced-motion: reduce) {
      *, ::before, ::after {
@@ -114,6 +116,7 @@ Assistive technologies receive structured announcements via dedicated ARIA live 
      }
    }
    ```
+
 3. **High-Contrast Dark Mode Compatibility**: Interfaces maintain WCAG AA contrast in both light and dark operational modes.
 
 ---

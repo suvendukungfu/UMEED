@@ -25,3 +25,4 @@ export function sanitizeNGOForPublic(ngo: NGODocument): SanitizedPublicNGO {
 export function sanitizeNGOForCoordinator(ngo: NGODocument): NGODocument {
   return ngo;
 }
+

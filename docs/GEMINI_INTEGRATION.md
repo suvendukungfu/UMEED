@@ -76,7 +76,7 @@ The UMEED AI Triage Engine utilizes Google Gemini Multimodal models (`gemini-2.5
 ## 3. Module Structure (`apps/web/src/lib/ai/gemini/`)
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | `models.ts` | Supported Gemini models (`gemini-2.5-flash`, `gemini-1.5-flash`, `gemini-2.5-pro`) and default configuration. |
 | `schemas.ts` | Strict Zod structured output schema (`GeminiTriageOutputSchema`), bounding enum types, array sizes, and confidence numbers. |
 | `prompts.ts` | System prompt instruction with explicit ethical guardrails, allowed categories, and prompt injection defenses. |
@@ -123,10 +123,12 @@ export interface GeminiTriageOutput {
 ## 5. API Endpoints
 
 ### 5.1 POST `/api/incidents/:publicReference/triage`
+
 Coordinator-authenticated on-demand trigger to execute or re-run multimodal AI triage for an incident.
 
 - **Headers**: `x-coordinator-key: <key>`
 - **Response**:
+
 ```json
 {
   "status": "success",
@@ -138,10 +140,12 @@ Coordinator-authenticated on-demand trigger to execute or re-run multimodal AI t
 ```
 
 ### 5.2 POST `/api/incidents/:publicReference/review`
+
 Coordinator-authenticated human review decision recording.
 
 - **Headers**: `x-coordinator-key: <key>`
 - **Request Body**:
+
 ```json
 {
   "decision": "CONFIRM", // "CONFIRM" | "OVERRIDE" | "REJECT" | "REQUEST_INFO" | "ESCALATE"
@@ -151,13 +155,16 @@ Coordinator-authenticated human review decision recording.
   "override_urgency": "urgent" // Optional
 }
 ```
+
 - **Response**: Sanitized coordinator incident record with updated status and audit trail.
 
 ### 5.3 GET `/api/ai/evaluation`
+
 Coordinator-authenticated benchmark evaluation runner executing the 9 synthetic validation scenarios.
 
 - **Headers**: `x-coordinator-key: <key>`
 - **Response**:
+
 ```json
 {
   "status": "success",

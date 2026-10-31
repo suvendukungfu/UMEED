@@ -9,7 +9,7 @@
 ## 1. Endpoints Overview
 
 | Endpoint | Method | Role / Auth | Description | Status Codes |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `/api/incidents/ingest` | `POST` | Public (Citizen) / Bearer (Crawler) | Ingests distress reports with idempotency, rate limiting, and tracking token generation | `201`, `200`, `400`, `401`, `413`, `415`, `429`, `503` |
 | `/api/incidents` | `GET` | Coordinator / Staff | Query, filter, and paginate ingested incidents (Requires Coordinator Auth) | `200`, `401`, `500` |
 | `/api/incidents/:publicReference` | `GET` | Citizen (with token) / Coordinator | Retrieve single incident by public reference (redacted for citizen; unredacted for coordinator) | `200`, `401`, `404`, `429`, `500` |
@@ -28,11 +28,13 @@
 
 ## 2. Ingestion Endpoint: `POST /api/incidents/ingest`
 
-### Request Headers
+### Ingestion Request Headers
+
 - `Content-Type`: `application/json` (Required)
 - `X-Crawler-API-Key` or `Authorization: Bearer <key>`: Required **only** if `source_type === "social_media_discovery"`.
 
-### Request Body Schema (`CanonicalIncidentSchema v1.0.0`)
+### Ingestion Request Body Schema (`CanonicalIncidentSchema v1.0.0`)
+
 ```json
 {
   "schema_version": "1.0.0",
@@ -71,8 +73,10 @@
 
 ---
 
-### Response 1: New Incident Ingested (`201 Created`)
+### Ingestion Response 1: New Incident Ingested (`201 Created`)
+
 Returned when an incident is newly created and persisted.
+
 ```json
 {
   "status": "success",
@@ -94,13 +98,17 @@ Returned when an incident is newly created and persisted.
   }
 }
 ```
+
 **Headers**:
+
 - `Location`: `/api/incidents/UMD-7B29-4K12`
 
 ---
 
-### Response 2: Idempotent Replay (`200 OK`)
+### Ingestion Response 2: Idempotent Replay (`200 OK`)
+
 Returned when a submission with an identical `{ source_type, source_reference }` pair has already been stored.
+
 ```json
 {
   "status": "success",
@@ -120,13 +128,16 @@ Returned when a submission with an identical `{ source_type, source_reference }`
   }
 }
 ```
+
 > [!IMPORTANT]
 > **Security Invariant**: Notice that `tracking_token` is **omitted** from idempotent replay responses because only the SHA-256 hash is persisted in the database.
 
 ---
 
-### Response 3: Suspected Proximity Duplicate Flagged (`201 Created`)
+### Ingestion Response 3: Suspected Proximity Duplicate Flagged (`201 Created`)
+
 Returned when a new incident is within 500 meters and 24 hours of an existing incident of the same subject type.
+
 ```json
 {
   "status": "success",
@@ -157,30 +168,34 @@ Returned when a new incident is within 500 meters and 24 hours of an existing in
 
 ## 3. Incident Triage Queue: `GET /api/incidents`
 
-### Authentication & Authorization
+### Incident Queue Authentication & Authorization
+
 - **Role Required**: Coordinator / Staff
 - **Accepted Headers**:
   - `x-coordinator-key: <COORDINATOR_API_KEY>` OR
   - `Authorization: Bearer <COORDINATOR_API_KEY>`
 - Unauthenticated requests fail closed with `401 Unauthorized`.
 
-### Query Parameters
+### Incident Queue Query Parameters
+
 | Parameter | Type | Default | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `status` | string | - | Filter by status (`REPORTED`, `UNDER_REVIEW`, `VERIFIED`, `REJECTED`, `CONVERTED_TO_CASE`) |
 | `source_type` | string | - | Filter by source (`citizen_report`, `social_media_discovery`) |
 | `is_suspected_duplicate` | boolean | - | Filter suspected duplicates (`true` / `false`) |
 | `limit` | integer | `50` | Maximum results to return (max 100) |
 | `offset` | integer | `0` | Offset for pagination |
 
-### Success Response (`200 OK`)
+### Incident Queue Success Response (`200 OK`)
+
 Returns full operational incident records with unredacted coordinates and triage metadata for review.
 
 ---
 
 ## 4. Citizen Tracking Retrieval: `GET /api/incidents/:publicReference`
 
-### Authentication & Authorization
+### Citizen Tracking Authentication & Authorization
+
 - **Role**: Citizen Reporter OR Coordinator
 - **Accepted Headers**:
   - Citizen: `x-tracking-token: trk_...` OR `Authorization: Bearer trk_...`
@@ -188,7 +203,8 @@ Returns full operational incident records with unredacted coordinates and triage
 - **Security Invariant**: Tokens in query parameters (`?token=...`) are explicitly **rejected** and ignored.
 - **Anti-Enumeration Defense**: If the public reference is not found OR the tracking token is invalid/missing, the endpoint returns an identical generic `404 Not Found` response (`"Incident not found or invalid tracking token"`).
 
-### Redaction Behavior
+### Citizen Tracking Redaction Behavior
+
 - **Citizen View**:
   - `location.latitude`: `null`
   - `location.longitude`: `null`
@@ -220,7 +236,7 @@ All error responses strictly follow the RFC 7807 problem details structure:
 ```
 
 | HTTP Status | Error Code | Condition |
-|---|---|---|
+| --- | --- | --- |
 | **400** | `BAD_REQUEST` | Validation error against `CanonicalIncidentSchema` or malformed JSON |
 | **401** | `UNAUTHORIZED` | Missing or invalid authentication (Crawler API key, Coordinator key, or Tracking token) |
 | **404** | `NOT_FOUND` | Incident not found or invalid tracking token (anti-enumeration response) |
@@ -236,18 +252,21 @@ All error responses strictly follow the RFC 7807 problem details structure:
 
 Coordinator-authenticated trigger to run multimodal Gemini triage on demand.
 
-### Request Headers
+### AI Triage Request Headers
+
 - `x-coordinator-key: <key>` or `Authorization: Bearer <key>` (Required)
 - `Content-Type: application/json`
 
-### Request Body (Optional)
+### AI Triage Request Body (Optional)
+
 ```json
 {
   "modelId": "gemini-2.5-flash"
 }
 ```
 
-### Response (`200 OK`)
+### AI Triage Response (`200 OK`)
+
 ```json
 {
   "status": "success",
@@ -297,11 +316,13 @@ Coordinator-authenticated trigger to run multimodal Gemini triage on demand.
 
 Coordinator-authenticated human verification action recording.
 
-### Request Headers
+### Review Decision Request Headers
+
 - `x-coordinator-key: <key>` or `Authorization: Bearer <key>` (Required)
 - `Content-Type: application/json`
 
-### Request Body
+### Review Decision Request Body
+
 ```json
 {
   "decision": "CONFIRM", // "CONFIRM" | "OVERRIDE" | "REJECT" | "REQUEST_INFO" | "ESCALATE"
@@ -312,7 +333,8 @@ Coordinator-authenticated human verification action recording.
 }
 ```
 
-### Response (`200 OK`)
+### Review Decision Response (`200 OK`)
+
 Returns the updated operational incident document for coordinator inspection with updated status (`APPROVED`, `REJECTED`, or `UNDER_REVIEW`).
 
 ---
@@ -321,10 +343,12 @@ Returns the updated operational incident document for coordinator inspection wit
 
 Coordinator-authenticated trigger to run the 9-scenario synthetic evaluation benchmark.
 
-### Request Headers
+### Benchmark Request Headers
+
 - `x-coordinator-key: <key>` or `Authorization: Bearer <key>` (Required)
 
-### Response (`200 OK`)
+### Benchmark Response (`200 OK`)
+
 ```json
 {
   "status": "success",
@@ -348,16 +372,19 @@ Coordinator-authenticated trigger to run the 9-scenario synthetic evaluation ben
 
 Lists and filters NGOs. Public callers receive sanitized profiles (private coordinator contact, direct emergency numbers, and internal audit evidence stripped). Authenticated coordinators receive full operational profiles.
 
-### Query Parameters
+### Registry Query Parameters
+
 - `service_category`: Filter by `IncidentType` (e.g. `injured_animal`, `homeless_person`)
 - `district`: Filter by operational district (e.g. `South Delhi`)
 - `verification_status`: Filter by status (`OPERATIONALLY_VERIFIED`, `REGISTRATION_CHECKED`, etc.)
 - `search`: Case-insensitive text search across name, alternate names, and capabilities
 
-### Headers
+### Registry Request Headers
+
 - `x-coordinator-key` or `Authorization: Bearer <key>`: Optional. Enables coordinator-privileged view.
 
-### Response (`200 OK`)
+### Registry Response (`200 OK`)
+
 ```json
 {
   "status": "success",
@@ -375,27 +402,33 @@ Lists and filters NGOs. Public callers receive sanitized profiles (private coord
 
 Allows coordinators to manually register an NGO.
 
-### Request Headers
+### NGO Registration Request Headers
+
 - `x-coordinator-key: <key>` or `Authorization: Bearer <key>` (Required)
 - `Content-Type: application/json`
 
-### Request Body (`NGOSchema`)
+### NGO Registration Request Body (`NGOSchema`)
+
 Requires valid `organisation_name`, `organisation_type`, `service_categories`, `supported_subject_types`, `operational_districts`, and `headquarters_location` with coordinates.
 
-### Response (`201 Created` or `409 Conflict`)
+### NGO Registration Response (`201 Created` or `409 Conflict`)
+
 Returns the created NGO document. Returns `409 Conflict` if the registration number or business ID already exists.
 
 ---
 
 ## 11. Single NGO Operations: `GET /api/ngos/:ngoId` & `PATCH /api/ngos/:ngoId`
 
-### `GET /api/ngos/:ngoId`
+### Single NGO Lookup: `GET /api/ngos/:ngoId`
+
 Returns a single organisation's profile. Sanitized if public caller; complete if authenticated coordinator.
 
-### `PATCH /api/ngos/:ngoId`
+### Single NGO Update: `PATCH /api/ngos/:ngoId`
+
 Coordinator-only endpoint to update availability, capacity, verification tier, or contact details.
 
-#### Request Headers
+#### Single NGO Update Request Headers
+
 - `x-coordinator-key: <key>` or `Authorization: Bearer <key>` (Required)
 
 ---
@@ -404,11 +437,13 @@ Coordinator-only endpoint to update availability, capacity, verification tier, o
 
 Imports NGO rosters from RFC 4180 CSV with automatic duplicate detection and row validation.
 
-### Request Headers
+### CSV Import Request Headers
+
 - `x-coordinator-key: <key>` or `Authorization: Bearer <key>` (Required)
 - `Content-Type: text/csv` or `application/json` with `{ "csv_content": "..." }`
 
-### Response (`200 OK`)
+### CSV Import Response (`200 OK`)
+
 ```json
 {
   "status": "success",
@@ -435,10 +470,12 @@ Imports NGO rosters from RFC 4180 CSV with automatic duplicate detection and row
 
 Computes ranked, explainable organization recommendations for an incident using multi-criteria weighted scoring.
 
-### Request Headers
+### Matching Engine Request Headers
+
 - `x-coordinator-key: <key>` or `Authorization: Bearer <key>` (Required)
 
-### Response (`200 OK`)
+### Matching Engine Response (`200 OK`)
+
 ```json
 {
   "status": "success",
@@ -478,5 +515,3 @@ Computes ranked, explainable organization recommendations for an incident using 
   }
 }
 ```
-
-

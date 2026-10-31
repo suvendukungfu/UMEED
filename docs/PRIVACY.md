@@ -9,7 +9,7 @@
 
 ## 1. Core Privacy Philosophy: Protection of the Vulnerable
 
-UMEED handles reports of individuals and animals in acute distress. In many cases, reporting subjects include abandoned children, unhoused families, elderly persons experiencing memory impairment, or injured community animals. 
+UMEED handles reports of individuals and animals in acute distress. In many cases, reporting subjects include abandoned children, unhoused families, elderly persons experiencing memory impairment, or injured community animals.
 
 A careless disclosure of exact locations, identities, or medical conditions could expose vulnerable subjects to exploitation, eviction, harassment, or retaliation. Therefore, UMEED operates under a strict **Zero-Harm Data Privacy Framework**.
 
@@ -40,6 +40,7 @@ A careless disclosure of exact locations, identities, or medical conditions coul
 ## 3. The Public Redaction Boundary
 
 Public tracking screens (`/track/[referenceCode]`) and public analytical widgets **must never disclose**:
+
 1. **Precise Coordinates**: Latitude and longitude are stripped from public responses and rounded to the operational district or major administrative division (e.g., *"North West Delhi"*).
 2. **Doorstep Landmarks**: Specific apartment numbers, alleyway landmarks, or building names are restricted to the assigned responder's dispatch view.
 3. **Contact Identifiers**: Neither the bystander who submitted the report nor the personal phone numbers of field volunteers are publicly accessible.
@@ -58,6 +59,7 @@ Public tracking screens (`/track/[referenceCode]`) and public analytical widgets
 ## 5. Automated Log Sanitization & Ingestion Scrubbing
 
 All log events pass through `apps/web/src/lib/security`, which intercepts and masks:
+
 - Indian mobile phone numbers (`+91` / 10-digit series) replaced with `[REDACTED_PHONE]`
 - Email addresses replaced with `[REDACTED_EMAIL]`
 - Bearer tokens, authorization headers, and MongoDB connection URIs replaced with `[REDACTED_SECRET]`

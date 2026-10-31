@@ -574,3 +574,4 @@ export async function seedDemoNGOs(repo: INGORepository): Promise<number> {
   }
   return seeded;
 }
+

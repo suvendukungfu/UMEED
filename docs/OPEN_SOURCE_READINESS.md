@@ -14,7 +14,7 @@ An open-source repository addressing sensitive social distress coordination requ
 An exhaustive audit of the workspace reveals the following baseline status:
 
 | Repository Dimension | Current Status | Remediation Required |
-|---|---|---|
+| --- | --- | --- |
 | **License** | **Preserved (MIT License)** | The root `LICENSE` file is intact and grants open permissive access. |
 | **Community Guidelines** | Missing | Need `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1). |
 | **Security Policy** | Missing | Need `SECURITY.md` establishing vulnerability disclosure and PII handling policies. |
@@ -30,9 +30,11 @@ An exhaustive audit of the workspace reveals the following baseline status:
 ## 2. Open-Source Governance Principles
 
 ### 2.1 Contributor Code of Conduct
+
 UMEED adopts the **Contributor Covenant (v2.1)**. Because the platform deals with vulnerable human beings and animals in acute distress, contributors are expected to uphold the highest standard of empathy, dignity, and respectful communication.
 
 ### 2.2 Ethical & Truth-in-Documentation Standard
+
 - **No Fabricated Contributors**: We do not invent fictional committers or project champions.
 - **No Fabricated Adoption Statistics**: Synthetic test fixtures are explicitly marked as synthetic; no false rescue claims or artificial partnership claims are made.
 - **Strict Privacy Safeguards**: Open-source contributors may never commit real beneficiary PII, unredacted distress photographs, or private operational keys.
@@ -56,6 +58,7 @@ UMEED adopts the **Contributor Covenant (v2.1)**. Because the platform deals wit
 ## 4. Remediation Plan
 
 The following open-source artifacts have been architected and created as part of this parallel workstream:
+
 1. `CONTRIBUTING.md`
 2. `CODE_OF_CONDUCT.md`
 3. `SECURITY.md`

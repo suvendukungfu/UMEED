@@ -49,4 +49,3 @@ This document records the foundational engineering decisions established for UME
 - **Zero Client-Side Secret Exposure**: No private vendor tokens or MongoDB connection URIs use the `NEXT_PUBLIC_` prefix.
 - **Beneficiary PII Sanitization**: `src/lib/security` provides telephone and email scrubbing to prevent vulnerable individuals' sensitive details from leaking into shared agent memories or analytics.
 - **No Autonomous Dispatch**: AI analysis is categorized as recommendations, preserving mandatory human coordinator approval for responder dispatches.
-

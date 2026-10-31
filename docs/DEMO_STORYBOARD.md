@@ -35,6 +35,7 @@ The HackCBS 9.0 demonstration showcases why UMEED is fundamentally different fro
 ## 2. Three Canonical Synthetic Fixtures
 
 ### Fixture 1: Injured Animal Report (Stray Canine Trauma)
+
 - **Fixture ID**: `SYNTH-INCIDENT-2026-001`
 - **Subject**: Canine (Stray Dog)
 - **Observed Distress**: Compound hind leg fracture, bleeding, unable to move out of oncoming traffic near road divider.
@@ -89,6 +90,7 @@ The HackCBS 9.0 demonstration showcases why UMEED is fundamentally different fro
 ---
 
 ### Fixture 2: Abandoned Elderly Person Needing Urgent Assistance
+
 - **Fixture ID**: `SYNTH-INCIDENT-2026-002`
 - **Subject**: Vulnerable Senior Citizen (~75 years old)
 - **Observed Distress**: Severe dehydration, disorientation, hypothermia symptoms in open bus shelter, unable to recall home address.
@@ -142,6 +144,7 @@ The HackCBS 9.0 demonstration showcases why UMEED is fundamentally different fro
 ---
 
 ### Fixture 3: Homeless-Person Welfare & Medical Request
+
 - **Fixture ID**: `SYNTH-INCIDENT-2026-003`
 - **Subject**: Unhoused Individual
 - **Observed Distress**: Severe diabetic foot ulceration requiring medical dressing and clean clothing.
@@ -198,6 +201,7 @@ The HackCBS 9.0 demonstration showcases why UMEED is fundamentally different fro
 Here is the complete step-by-step evaluator walkthrough illustrating UMEED's hallmark capability: **Recursive Assistance Loops**.
 
 ### Cycle 1: First-Aid Triage & On-Scene Stabilization
+
 1. **Intake**: Bystander submits Fixture 1 (Canine compound fracture in Pitampura). Tracking code `UMD-CAN-7101` issued.
 2. **Coordinator Verification**: Coordinator reviews Gemini triage output (`critical`, bleeding, traffic hazard). Approves case.
 3. **Capability-Aware Matching**:
@@ -217,20 +221,21 @@ Here is the complete step-by-step evaluator walkthrough illustrating UMEED's hal
    - Submits record. State transitions to: `FOLLOW_UP_REQUIRED`.
 
 ### Cycle 2: Secondary Matching & Specialized Hospitalization
+
 6. **Recursive Loop Initiation**:
    - The UMEED engine detects `FOLLOW_UP_REQUIRED` and automatically generates Secondary Assistance Cycle #2.
    - The matching criteria dynamically adjust:
      - **Disqualified**: First-aid responders and field ambulances (already completed).
      - **Required Capability**: `veterinary_surgery` + `inpatient_shelter`.
      - **Excluded**: NGO 1 (to free their ambulance for new field emergencies).
-7. **Secondary NGO Matching**:
+2. **Secondary NGO Matching**:
    - **NGO 2**: *"Delhi Veterinary Surgical Trust & Shelter [Synthetic]"* (Capabilities: `veterinary_surgery`, `inpatient_rehabilitation`; Distance: 4.2 km; Operating Theatre: `Available`). Match Score: **0.91**.
    - Coordinator confirms secondary dispatch. State advances to: `MATCHING` → `RESPONDERS_CONTACTED` (Cycle 2).
-8. **Surgery & Final Resolution**:
+3. **Surgery & Final Resolution**:
    - NGO 2 accepts and dispatches hospital transport.
    - Canine is admitted to animal hospital, receives surgical pinning, and enters recovery kennel.
    - NGO 2 uploads post-op verification photo and marks: `[x] Case Fully Resolved`.
-9. **Closed-Loop Audit**:
+4. **Closed-Loop Audit**:
    - Case advances to `RESOLVED`.
    - Immutable audit trail records both cycles:
      - Cycle 1: Citizen Report → Coordinator → NGO 1 (First Aid) → Follow-up Triggered.

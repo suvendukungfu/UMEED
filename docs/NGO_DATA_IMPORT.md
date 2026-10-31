@@ -25,7 +25,7 @@ The UMEED NGO Data Ingestion pipeline allows verified coordinators to import org
 ### 3.1 Column Definitions
 
 | Column Name | Type | Required | Description / Example |
-|---|---|:---:|---|
+| --- | --- | :---: | --- |
 | `organisation_name` | String | **Yes** | Official name (e.g. `Delhi Animal Welfare Society Trust Regd`) |
 | `alternate_names` | String | No | Semicolon-separated aliases (e.g. `DAWST; Animal Care Delhi`) |
 | `registration_number` | String | No | Unique registration or DARPAN ID (e.g. `DL/2018/0184920`) |

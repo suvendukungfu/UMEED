@@ -9,9 +9,11 @@ This guide walks through configuring and running UMEED locally.
 - **Node.js**: `v24 LTS` (v24.5.0+ installed).
 - **npm**: `v10+` / `v11+`
 - **NVM** (recommended for version switching):
+
   ```bash
   nvm use 24
   ```
+
 - **FFmpeg**: Required later for video frame extraction in Phase 8 (`brew install ffmpeg`).
 
 ---
@@ -19,9 +21,11 @@ This guide walks through configuring and running UMEED locally.
 ## 2. Environment Variables & Production Safety Boundaries
 
 1. Copy `.env.example` to `apps/web/.env.local`:
+
    ```bash
    cp .env.example apps/web/.env.local
    ```
+
 2. **Development vs Production Safety Rules**:
    - **Development (`NODE_ENV=development`)**:
      - `MONGODB_URI` may be left blank. The system safely falls back to the built-in `InMemoryIncidentRepository`.
@@ -43,6 +47,7 @@ This guide walks through configuring and running UMEED locally.
 ## 3. Dependency Installation
 
 Install dependencies from the repository root:
+
 ```bash
 npm install
 ```
@@ -52,6 +57,7 @@ npm install
 ## 4. Running the Development Server
 
 Start the Next.js development server:
+
 ```bash
 npm run dev
 ```
@@ -83,11 +89,13 @@ npm run build
 ## 6. Health Check Verification
 
 Test the running application's liveness:
+
 ```bash
 curl http://localhost:3000/api/health
 ```
 
 Expected response format:
+
 ```json
 {
   "status": "healthy",
@@ -108,4 +116,3 @@ Expected response format:
   }
 }
 ```
-

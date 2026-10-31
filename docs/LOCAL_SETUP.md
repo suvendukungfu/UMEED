@@ -12,7 +12,7 @@
 Ensure your local development machine satisfies these minimum toolchain requirements:
 
 | Tool | Required Version | Verification Command | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **Node.js** | `>=20.9.0` (`v24.5.0+` recommended) | `node -v` | Node 24 LTS recommended. Enforced via `.nvmrc`. |
 | **npm** | `10.x` or `11.x` | `npm -v` | Native npm workspaces are utilized. |
 | **Git** | `2.30+` | `git --version` | Standard git client. |
@@ -25,26 +25,33 @@ Ensure your local development machine satisfies these minimum toolchain requirem
 ## 2. Step-by-Step Installation
 
 ### Step 1: Clone the Repository
+
 ```bash
 git clone https://github.com/suvendukungfu/UMEED.git
 cd UMEED
 ```
 
 ### Step 2: Enforce Node.js 24 Runtime
+
 If you use Node Version Manager (`nvm`):
+
 ```bash
 nvm use 24
 ```
+
 If Node 24 is not installed:
+
 ```bash
 nvm install 24
 nvm use 24
 ```
 
 ### Step 3: Install Workspace Dependencies
+
 ```bash
 npm install
 ```
+
 > [!NOTE]
 > Do NOT use `pnpm` or `yarn` directly; the repository uses root npm workspaces (`workspaces: ["packages/*", "apps/*"]`) and is pinned via `package-lock.json`.
 
@@ -53,11 +60,13 @@ npm install
 ## 3. Environment Configuration
 
 Copy the template configuration into `apps/web`:
+
 ```bash
 cp .env.example .env.local
 ```
 
-### Key Environment Variables (`.env.local`):
+### Key Environment Variables (`.env.local`)
+
 ```bash
 # Application Configuration
 NODE_ENV=development
@@ -94,17 +103,23 @@ DISCOVERY_SERVICE_URL=http://localhost:8000
 ## 4. Running the Application
 
 ### Development Server
+
 ```bash
 npm run dev
 ```
+
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Verify Health Check
+
 In a separate terminal:
+
 ```bash
 curl http://localhost:3000/api/health
 ```
+
 Expected output:
+
 ```json
 {
   "status": "healthy",
@@ -143,23 +158,29 @@ npm run build
 ## 6. Troubleshooting Common Issues
 
 ### Issue 1: Port 3000 Already in Use
+
 **Symptom**: `Error: listen EADDRINUSE: address already in use :::3000`  
 **Fix**: Next.js will automatically fall back to port 3001, or you can specify a custom port:
+
 ```bash
 npm run dev -- -p 3005
 ```
 
 ### Issue 2: Node.js Version Mismatch
+
 **Symptom**: `TypeError: crypto.randomUUID is not a function` or Vitest worker failure.  
 **Fix**: Ensure your shell is running Node 24:
+
 ```bash
 node -v  # Must report v20.9.0+ or v24.x
 nvm use 24
 ```
 
 ### Issue 3: Trailing Whitespace in Workspace Path
+
 **Symptom**: File not found when accessing workspace paths.  
 **Fix**: Quote shell arguments if your parent folder contains trailing spaces:
+
 ```bash
 cd "$PWD"
 ```

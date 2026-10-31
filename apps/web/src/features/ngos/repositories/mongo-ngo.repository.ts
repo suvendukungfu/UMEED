@@ -242,3 +242,4 @@ export class MongoNGORepository implements INGORepository {
     await col.deleteMany({});
   }
 }
+
