@@ -151,7 +151,7 @@ describe("Phase 6.0: Meko MCP Client & Protocol Architecture", () => {
           method: "POST",
           headers: expect.objectContaining({
             Authorization: `Bearer ${dummyApiKey}`,
-            "User-Agent": "umeed-mcp-client/1.0",
+            "User-Agent": "umeed/1.0",
           }),
         })
       );

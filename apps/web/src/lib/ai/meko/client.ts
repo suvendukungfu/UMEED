@@ -56,11 +56,12 @@ export class MekoHttpClient {
   public readonly buildDatapackId?: string;
   private readonly endpoint: string;
   private readonly timeoutMs: number;
+  private readonly userAgent: string;
   private readonly fetchFn: typeof fetch;
   private readonly interactionLogs: MekoInteractionLogEntry[] = [];
   private sessionId?: string;
 
-  constructor(config: MekoClientConfig = {}) {
+  constructor(config: MekoClientConfig & { userAgent?: string } = {}) {
     let envApiKey: string | undefined;
     let envProductDp: string | undefined;
     let envBuildDp: string | undefined;
@@ -80,6 +81,7 @@ export class MekoHttpClient {
     this.buildDatapackId = config.buildDatapackId || envBuildDp;
     this.endpoint = config.endpoint || "https://mcp.mekodata.ai/mcp";
     this.timeoutMs = config.timeoutMs ?? 15000;
+    this.userAgent = config.userAgent || "umeed/1.0";
     this.fetchFn = config.fetchFn ?? fetch;
   }
 
@@ -120,7 +122,7 @@ export class MekoHttpClient {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.apiKey}`,
-          "User-Agent": "umeed-mcp-client/1.0",
+          "User-Agent": this.userAgent,
         },
         body: JSON.stringify(requestPayload),
         signal: controller.signal,
@@ -152,7 +154,7 @@ export class MekoHttpClient {
       const notifHeaders: Record<string, string> = {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
-        "User-Agent": "umeed-mcp-client/1.0",
+        "User-Agent": this.userAgent,
       };
       if (this.sessionId) {
         notifHeaders["Mcp-Session-Id"] = this.sessionId;
@@ -186,7 +188,7 @@ export class MekoHttpClient {
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
-        "User-Agent": "umeed-mcp-client/1.0",
+        "User-Agent": this.userAgent,
       };
       if (this.sessionId) {
         headers["Mcp-Session-Id"] = this.sessionId;
@@ -234,7 +236,7 @@ export class MekoHttpClient {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           "Mcp-Session-Id": this.sessionId,
-          "User-Agent": "umeed-mcp-client/1.0",
+          "User-Agent": this.userAgent,
         },
       });
       this.sessionId = undefined;
@@ -274,7 +276,7 @@ export class MekoHttpClient {
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
-        "User-Agent": "umeed-mcp-client/1.0",
+        "User-Agent": this.userAgent,
       };
       if (this.sessionId) {
         headers["Mcp-Session-Id"] = this.sessionId;
