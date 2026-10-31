@@ -78,3 +78,4 @@ export function sanitizeMekoMessage(msg: string): string {
     .replace(/AIzaSy[a-zA-Z0-9_-]+/g, "AIzaSy***")
     .replace(/trk_[a-zA-Z0-9]+/g, "trk_***");
 }
+

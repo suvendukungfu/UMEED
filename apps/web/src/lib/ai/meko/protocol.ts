@@ -56,6 +56,35 @@ export function buildMekoInitializeRequest(
 }
 
 /**
+ * Builds an initialized notification following successful initialization.
+ */
+export function buildMekoInitializedNotification(): {
+  jsonrpc: "2.0";
+  method: "notifications/initialized";
+  params: Record<string, unknown>;
+} {
+  return {
+    jsonrpc: "2.0",
+    method: "notifications/initialized",
+    params: {},
+  };
+}
+
+/**
+ * Builds a tools/list JSON-RPC 2.0 request.
+ */
+export function buildMekoToolsListRequest(
+  correlationId?: string
+): MekoJsonRpcRequest {
+  return {
+    jsonrpc: "2.0",
+    id: correlationId ?? `tools_${crypto.randomUUID()}`,
+    method: "tools/list",
+    params: {},
+  };
+}
+
+/**
  * Parses and maps server response or error into typed UMEED error.
  */
 export function extractMekoRpcError(response: MekoJsonRpcResponse): MekoError | null {
@@ -121,3 +150,4 @@ export function parseMekoToolResult<T>(result: unknown): T {
 
   return result as T;
 }
+

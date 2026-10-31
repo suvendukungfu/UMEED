@@ -8,6 +8,8 @@ import {
   MekoInteractionLogEntry,
   CanaryResult,
   MekoJsonRpcResponse,
+  MekoInitializeResult,
+  MekoToolDefinition,
 } from "./types";
 import {
   MekoError,
@@ -32,6 +34,8 @@ import { assertToolAllowed, sanitizeToolArguments } from "./tools";
 import {
   buildMekoToolCallRequest,
   buildMekoInitializeRequest,
+  buildMekoInitializedNotification,
+  buildMekoToolsListRequest,
   extractMekoRpcError,
   parseMekoToolResult,
 } from "./protocol";
@@ -54,6 +58,7 @@ export class MekoHttpClient {
   private readonly timeoutMs: number;
   private readonly fetchFn: typeof fetch;
   private readonly interactionLogs: MekoInteractionLogEntry[] = [];
+  private sessionId?: string;
 
   constructor(config: MekoClientConfig = {}) {
     let envApiKey: string | undefined;
@@ -82,12 +87,162 @@ export class MekoHttpClient {
     return Boolean(this.apiKey && this.apiKey.trim().length > 0 && !this.apiKey.includes("<"));
   }
 
+  public getSessionId(): string | undefined {
+    return this.sessionId;
+  }
+
   public getInteractionLogs(): MekoInteractionLogEntry[] {
     return [...this.interactionLogs];
   }
 
   public clearInteractionLogs(): void {
     this.interactionLogs.length = 0;
+  }
+
+  // ===========================================================================
+  // MCP Streamable HTTP Lifecycle
+  // ===========================================================================
+
+  public async initializeSession(): Promise<MekoInitializeResult> {
+    if (!this.isConfigured()) {
+      throw new MekoAuthError("Meko API key is unconfigured. Set MEKO_API_KEY in .env.local.");
+    }
+
+    const correlationId = `init_${crypto.randomUUID()}`;
+    const requestPayload = buildMekoInitializeRequest(correlationId);
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const response = await this.fetchFn(this.endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
+          "User-Agent": "umeed-mcp-client/1.0",
+        },
+        body: JSON.stringify(requestPayload),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timer);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        if (response.status === 401) {
+          throw new MekoAuthError(`HTTP 401 Unauthorized: ${errorText}`);
+        }
+        throw new MekoError(`HTTP ${response.status}: ${errorText}`, "MEKO_HTTP_ERROR", response.status);
+      }
+
+      const returnedSessionId = response.headers && typeof response.headers.get === "function"
+        ? response.headers.get("mcp-session-id")
+        : undefined;
+      if (returnedSessionId) {
+        this.sessionId = returnedSessionId;
+      }
+
+      const json = (await response.json()) as MekoJsonRpcResponse;
+      const rpcError = extractMekoRpcError(json);
+      if (rpcError) throw rpcError;
+
+      // Send notifications/initialized per Streamable HTTP MCP spec
+      const initNotification = buildMekoInitializedNotification();
+      const notifHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+        "User-Agent": "umeed-mcp-client/1.0",
+      };
+      if (this.sessionId) {
+        notifHeaders["Mcp-Session-Id"] = this.sessionId;
+      }
+      await this.fetchFn(this.endpoint, {
+        method: "POST",
+        headers: notifHeaders,
+        body: JSON.stringify(initNotification),
+      }).catch(() => {});
+
+      return json.result as MekoInitializeResult;
+    } catch (err) {
+      clearTimeout(timer);
+      if (err instanceof MekoError) throw err;
+      throw new MekoNetworkError(sanitizeMekoMessage((err as Error)?.message ?? "Initialize failed"), err);
+    }
+  }
+
+  public async listTools(): Promise<MekoToolDefinition[]> {
+    if (!this.isConfigured()) {
+      throw new MekoAuthError("Meko API key is unconfigured. Set MEKO_API_KEY in .env.local.");
+    }
+
+    const correlationId = `tools_${crypto.randomUUID()}`;
+    const requestPayload = buildMekoToolsListRequest(correlationId);
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+        "User-Agent": "umeed-mcp-client/1.0",
+      };
+      if (this.sessionId) {
+        headers["Mcp-Session-Id"] = this.sessionId;
+      }
+
+      const response = await this.fetchFn(this.endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestPayload),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timer);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        if (response.status === 401) {
+          throw new MekoAuthError(`HTTP 401 Unauthorized: ${errorText}`);
+        }
+        throw new MekoError(`HTTP ${response.status}: ${errorText}`, "MEKO_HTTP_ERROR", response.status);
+      }
+
+      const json = (await response.json()) as MekoJsonRpcResponse;
+      const rpcError = extractMekoRpcError(json);
+      if (rpcError) throw rpcError;
+
+      const resObj = json.result as { tools?: MekoToolDefinition[] };
+      return resObj?.tools ?? [];
+    } catch (err) {
+      clearTimeout(timer);
+      if (err instanceof MekoError) throw err;
+      throw new MekoNetworkError(sanitizeMekoMessage((err as Error)?.message ?? "Tools list failed"), err);
+    }
+  }
+
+  public async closeSession(): Promise<boolean> {
+    if (!this.sessionId || !this.isConfigured()) {
+      this.sessionId = undefined;
+      return false;
+    }
+
+    try {
+      await this.fetchFn(this.endpoint, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Mcp-Session-Id": this.sessionId,
+          "User-Agent": "umeed-mcp-client/1.0",
+        },
+      });
+      this.sessionId = undefined;
+      return true;
+    } catch {
+      this.sessionId = undefined;
+      return false;
+    }
   }
 
   /**
@@ -116,13 +271,18 @@ export class MekoHttpClient {
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
     try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+        "User-Agent": "umeed-mcp-client/1.0",
+      };
+      if (this.sessionId) {
+        headers["Mcp-Session-Id"] = this.sessionId;
+      }
+
       const response = await this.fetchFn(this.endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
-          "User-Agent": "umeed-mcp-client/1.0",
-        },
+        headers,
         body: JSON.stringify(requestPayload),
         signal: controller.signal,
       });
@@ -141,6 +301,13 @@ export class MekoHttpClient {
           throw new MekoError(`HTTP 429 Rate Limit: ${errorText}`, "MEKO_RATE_LIMITED", 429);
         }
         throw new MekoError(`HTTP ${response.status}: ${errorText}`, "MEKO_HTTP_ERROR", response.status);
+      }
+
+      const returnedSessionId = response.headers && typeof response.headers.get === "function"
+        ? response.headers.get("mcp-session-id")
+        : undefined;
+      if (returnedSessionId) {
+        this.sessionId = returnedSessionId;
       }
 
       const json = (await response.json()) as MekoJsonRpcResponse;
@@ -456,8 +623,17 @@ export class MekoHttpClient {
     }
 
     try {
-      // Step 1: memory_add
-      const canaryText = `Meko connection test: umeed-canary @ 1.0.0 — ${new Date().toISOString()}. Safe to delete.`;
+      // Step 0: initialize session
+      try {
+        await this.initializeSession();
+      } catch {
+        // Some servers or proxy bridges accept direct tool calls without explicit initialize
+      }
+
+      // Step 1: memory_add with specified harmless technical canary text
+      const canaryText =
+        "UMEED Phase 6.1 canary: memory persistence and retrieval verification. This is synthetic technical test data, not operational knowledge.";
+
       const addRes = await this.addMemory(canaryText, {
         agentId,
         conversationId,
@@ -498,6 +674,9 @@ export class MekoHttpClient {
         datapackId: this.productDatapackId,
       });
 
+      // Step 4: close session
+      await this.closeSession().catch(() => {});
+
       return {
         success: true,
         canary_id: canaryId,
@@ -507,6 +686,7 @@ export class MekoHttpClient {
         step_reached: "COMPLETE",
       };
     } catch (err: unknown) {
+      await this.closeSession().catch(() => {});
       return {
         success: false,
         canary_id: canaryId,

@@ -114,3 +114,4 @@ export interface IKnowledgeCurator {
     confirmationNotes: string
   ): Promise<{ status: "PROMOTED"; promoted_ids: string[] }>;
 }
+

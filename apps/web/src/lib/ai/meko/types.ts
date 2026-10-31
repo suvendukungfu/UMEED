@@ -99,6 +99,21 @@ export interface MekoInteractionLogEntry {
   correlation_id: string;
 }
 
+export interface MekoToolDefinition {
+  name: string;
+  description?: string;
+  inputSchema?: Record<string, unknown>;
+}
+
+export interface MekoInitializeResult {
+  protocolVersion: string;
+  capabilities: Record<string, unknown>;
+  serverInfo: {
+    name: string;
+    version?: string;
+  };
+}
+
 export interface CanaryResult {
   success: boolean;
   canary_id?: string;
@@ -108,3 +123,4 @@ export interface CanaryResult {
   error?: string;
   step_reached: "INITIALIZE" | "MEMORY_ADD" | "GET_BY_ID" | "CLEANUP" | "COMPLETE";
 }
+

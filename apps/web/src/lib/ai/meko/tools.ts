@@ -48,3 +48,4 @@ export function sanitizeToolArguments(args: Record<string, unknown>): Record<str
   }
   return cleaned;
 }
+

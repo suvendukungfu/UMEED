@@ -126,3 +126,4 @@ export const KnowledgebaseSearchArgsSchema = z.object({
   agent_id: z.string().optional(),
   limit: z.number().int().min(1).max(25).optional().default(10),
 });
+

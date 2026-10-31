@@ -335,18 +335,155 @@ describe("Phase 6.0: Meko MCP Client & Protocol Architecture", () => {
     });
   });
 
+  describe("MCP Streamable HTTP Protocol Lifecycle (Section 5)", () => {
+    it("initializes session, captures Mcp-Session-Id header, and sends notifications/initialized", async () => {
+      let initNotifSent = false;
+      const dummySessionId = "sess_mock_uuid_12345";
+
+      const mockFetch = vi.fn().mockImplementation(async (_, opts) => {
+        const body = JSON.parse(opts.body);
+
+        if (body.method === "initialize") {
+          return {
+            ok: true,
+            headers: {
+              get: (header: string) => (header.toLowerCase() === "mcp-session-id" ? dummySessionId : null),
+            },
+            json: async () => ({
+              jsonrpc: "2.0",
+              id: body.id,
+              result: {
+                protocolVersion: "2024-11-05",
+                capabilities: {},
+                serverInfo: { name: "meko-server", version: "3.5.0" },
+              },
+            }),
+          };
+        }
+
+        if (body.method === "notifications/initialized") {
+          initNotifSent = true;
+          return { ok: true, text: async () => "" };
+        }
+
+        throw new Error(`Unexpected request: ${body.method}`);
+      });
+
+      const client = new MekoHttpClient({
+        apiKey: dummyApiKey,
+        fetchFn: mockFetch,
+      });
+
+      const initRes = await client.initializeSession();
+      expect(initRes.protocolVersion).toBe("2024-11-05");
+      expect(initRes.serverInfo.name).toBe("meko-server");
+      expect(client.getSessionId()).toBe(dummySessionId);
+      expect(initNotifSent).toBe(true);
+    });
+
+    it("discovers tools using tools/list", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => null },
+        json: async () => ({
+          jsonrpc: "2.0",
+          id: "req_tools",
+          result: {
+            tools: [
+              { name: "memory_add", description: "Store a memory" },
+              { name: "memory_search", description: "Search memories" },
+            ],
+          },
+        }),
+      });
+
+      const client = new MekoHttpClient({
+        apiKey: dummyApiKey,
+        fetchFn: mockFetch,
+      });
+
+      const tools = await client.listTools();
+      expect(tools).toHaveLength(2);
+      expect(tools[0].name).toBe("memory_add");
+    });
+
+    it("terminates active session via DELETE request on closeSession", async () => {
+      let deleteCalledWithSession = false;
+      const dummySessionId = "sess_active_delete_999";
+
+      const mockFetch = vi.fn().mockImplementation(async (_, opts) => {
+        if (opts.method === "DELETE") {
+          if (opts.headers["Mcp-Session-Id"] === dummySessionId) {
+            deleteCalledWithSession = true;
+          }
+          return { ok: true };
+        }
+        if (opts.method === "POST") {
+          return {
+            ok: true,
+            headers: {
+              get: (header: string) => (header.toLowerCase() === "mcp-session-id" ? dummySessionId : null),
+            },
+            json: async () => ({
+              jsonrpc: "2.0",
+              id: 1,
+              result: { protocolVersion: "2024-11-05", capabilities: {}, serverInfo: { name: "test" } },
+            }),
+          };
+        }
+        throw new Error("Unexpected call");
+      });
+
+      const client = new MekoHttpClient({
+        apiKey: dummyApiKey,
+        fetchFn: mockFetch,
+      });
+
+      await client.initializeSession();
+      expect(client.getSessionId()).toBe(dummySessionId);
+
+      const closed = await client.closeSession();
+      expect(closed).toBe(true);
+      expect(deleteCalledWithSession).toBe(true);
+      expect(client.getSessionId()).toBeUndefined();
+    });
+  });
+
   describe("Isolated Canary Verification Roundtrip", () => {
     it("successfully completes Canary lifecycle (add -> get_by_id -> delete)", async () => {
       const canaryId = "canary_mem_999";
       let isMemoryDeleted = false;
 
       const mockFetch = vi.fn().mockImplementation(async (_, opts) => {
+        if (opts.method === "DELETE") {
+          return { ok: true };
+        }
+
         const body = JSON.parse(opts.body);
-        const toolName = body.params.name;
+        const method = body.method;
+
+        if (method === "initialize") {
+          return {
+            ok: true,
+            headers: { get: () => "sess_canary_123" },
+            json: async () => ({
+              jsonrpc: "2.0",
+              id: body.id,
+              result: { protocolVersion: "2024-11-05", capabilities: {}, serverInfo: { name: "meko" } },
+            }),
+          };
+        }
+
+        if (method === "notifications/initialized") {
+          return { ok: true, text: async () => "" };
+        }
+
+        const toolName = body.params?.name;
 
         if (toolName === "memory_add") {
           return {
             ok: true,
+            headers: { get: () => null },
             json: async () => ({
               jsonrpc: "2.0",
               id: body.id,
@@ -358,6 +495,7 @@ describe("Phase 6.0: Meko MCP Client & Protocol Architecture", () => {
         if (toolName === "memory_get_by_id") {
           return {
             ok: true,
+            headers: { get: () => null },
             json: async () => ({
               jsonrpc: "2.0",
               id: body.id,
@@ -367,7 +505,8 @@ describe("Phase 6.0: Meko MCP Client & Protocol Architecture", () => {
                     type: "text",
                     text: JSON.stringify({
                       id: canaryId,
-                      memory: "Meko connection test: umeed-canary @ 1.0.0",
+                      memory:
+                        "UMEED Phase 6.1 canary: memory persistence and retrieval verification. This is synthetic technical test data, not operational knowledge.",
                     }),
                   },
                 ],
@@ -380,6 +519,7 @@ describe("Phase 6.0: Meko MCP Client & Protocol Architecture", () => {
           isMemoryDeleted = true;
           return {
             ok: true,
+            headers: { get: () => null },
             json: async () => ({
               jsonrpc: "2.0",
               id: body.id,
