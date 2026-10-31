@@ -1,25 +1,25 @@
 # UMEED Implementation Status Tracker
 
-**Current Phase**: Phase 4 — NGO Intelligence Registry & Explainable Matching Engine  
+**Current Phase**: Phase 5 — Closed-Loop NGO Response Coordination & Recursive Assistance Engine  
 **Primary Branch**: `main`  
-**Status**: **COMPLETED & VERIFIED** (Ready for Phase 5: Closed-Loop Case Coordination & State Machine)  
+**Status**: **COMPLETED & VERIFIED** (Ready for Phase 6: Meko Coordination Memory Agent)  
 
 ---
 
 ## Phase Breakdown
 
 | Phase | Description | Status | Verification Gate |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **Phase 0** | Repository Inspection & Architecture Planning | **COMPLETED** | Audit docs created & committed (`61d12e7`) |
 | **Phase 1** | Production-Grade Project Foundation | **COMPLETED** | 15 tests pass, lint passes, build succeeds (`2be0220`) |
-| **Phase 1.1**| Security Patch & Dependency Hardening | **COMPLETED** | Upgraded to Next.js 15.5.28 (`5ecc142`) |
-| **Phase 1.2**| Dev Toolchain Security & Branch Integration | **COMPLETED** | Vitest 4.1.12, Tinypool removed, 0 Prod vulnerabilities, integrated into `main` (`5876a66`) |
+| **Phase 1.1** | Security Patch & Dependency Hardening | **COMPLETED** | Upgraded to Next.js 15.5.28 (`5ecc142`) |
+| **Phase 1.2** | Dev Toolchain Security & Branch Integration | **COMPLETED** | Vitest 4.1.12, Tinypool removed, 0 Prod vulnerabilities, integrated into `main` (`5876a66`) |
 | **Phase 2** | Canonical Incident Ingestion & MongoDB Data Model | **COMPLETED** | Ingestion API, Idempotency, Tracking Security, In-Memory & Mongo Repositories, 46 tests pass (`621cb5a`) |
-| **Phase 2.1**| Incident Security, Authorization & Privacy Controls | **COMPLETED** | Coordinator Auth, Anti-Enumeration, EXIF Stripping, Rate Limiting, 54 tests pass |
-| **Phase 2.2**| Production Safety & Configuration Boundaries | **COMPLETED** | Fail-closed DB, Production Credential Rejection, Binary EXIF Purging, 70 tests pass |
+| **Phase 2.1** | Incident Security, Authorization & Privacy Controls | **COMPLETED** | Coordinator Auth, Anti-Enumeration, EXIF Stripping, Rate Limiting, 54 tests pass |
+| **Phase 2.2** | Production Safety & Configuration Boundaries | **COMPLETED** | Fail-closed DB, Production Credential Rejection, Binary EXIF Purging, 70 tests pass |
 | **Phase 3** | Citizen Incident Reporting & Gemini Multimodal Triage | **COMPLETED** | Gemini 2.5 Flash, Strict Zod Output, Split Review UI, Fail-Soft Fallback, 87 tests pass |
 | **Phase 4** | NGO Intelligence Registry & Explainable Matching | **COMPLETED** | 117 tests pass, 2dsphere indexes, hard capability filters, 0 vulnerabilities |
-| **Phase 5** | Closed-Loop Case Coordination & State Machine | Upcoming | State Machine & Recursive Matching Tests |
+| **Phase 5** | Closed-Loop Case Coordination & State Machine | **COMPLETED** | 142 tests pass, 15 assignment states, recursive follow-up engine, 0 errors |
 | **Phase 6** | Meko Coordination Memory Agent | Upcoming | Meko MCP Integration Spike & Recall Tests |
 | **Phase 7** | IOMETE Impact Analytics & Integration Outbox | Upcoming | Outbox & Event Stream Telemetry Tests |
 | **Phase 8** | Independent Social Distress Discovery Service | Upcoming | Frame Extraction & Contract Serializer Tests |
@@ -163,4 +163,55 @@
 - [x] **Production Bundle Build**: **Compiled successfully** (17 static and dynamic routes).
 - [x] **Zero Production Vulnerabilities**: Clean audit via `npm audit --omit=dev` (0 vulnerabilities).
 
+---
 
+## Phase 5 Verification Checklist
+
+- [x] **Canonical Case Data Model & Contracts**:
+  - `CaseSchema`, `CaseAssignmentSchema`, `InterventionRecordSchema`, `CaseEventSchema`, `CaseResolutionDecisionSchema`, and `SanitizedCaseSchema` in `@umeed/contracts`.
+  - Input DTOs with Zod v4 validation (`CreateCaseInput`, `AssignNGOsInput`, `InterventionInput`, `CaseResolutionInput`).
+- [x] **Deterministic State Machines**:
+  - 12 Case lifecycle states (`APPROVED`, `MATCHING`, `RESPONDERS_CONTACTED`, `ACCEPTED`, `RESPONDER_ARRIVED`, `INTERVENTION_PROVIDED`, `FOLLOW_UP_REQUIRED`, `ESCALATED`, `RESOLVED`, `CANCELLED`, `REJECTED`, `REOPENED`).
+  - 15 Assignment statuses (`PROPOSED`, `CONTACT_READY`, `CONTACT_QUEUED`, `CONTACTED`, `CONTACT_FAILED`, `ACKNOWLEDGED`, `REQUESTED_INFORMATION`, `ACCEPTED`, `REJECTED`, `EXPIRED`, `EN_ROUTE`, `ARRIVED`, `INTERVENTION_RECORDED`, `COMPLETED`, `CANCELLED`).
+  - Strict pure functional transition validators (`assertValidCaseTransition`, `assertValidAssignmentTransition`).
+- [x] **Database & Event Audit Ledger**:
+  - `ICaseRepository` interface standardizing persistence.
+  - `MongoCaseRepository` implementing production MongoDB Atlas collection `cases` and append-only `case_events` with unique and compound indexes.
+  - `InMemoryCaseRepository` providing deterministic high-fidelity simulation for automated testing.
+  - Factory `getCaseRepository()` enforcing production fail-closed boundaries (no silent in-memory fallback in production).
+- [x] **Case Creation & Incident Gate**:
+  - `createCaseFromApprovedIncident`: strictly enforces that only verified `APPROVED` incidents can become operational cases; unapproved incidents fail with 400 Bad Request.
+  - Idempotent replay: duplicate case creation attempts return the existing case without state corruption.
+- [x] **Multi-NGO Response Coordination**:
+  - Assigns multiple organisations to distinct assistance needs on the same case.
+  - Concurrency collision guard: blocks conflicting responders for the same active requirement.
+  - Structured rejections and information requests recorded with audit provenance.
+- [x] **Truthful Notification Architecture**:
+  - `INotificationAdapter` with decoupled `MockNotificationAdapter`.
+  - Truthful simulation: explicitly reports `SIMULATED_MOCK` with `is_mock: true`; never claims external telecommunications carrier delivery.
+  - Decoupled transactional resilience: notification failure does not roll back or corrupt case database state.
+- [x] **NGO Responder Workspace (`/responder`)**:
+  - Persona switcher supporting 6 synthetic Delhi NCR NGO organisations.
+  - Assignment incoming inbox with status filters and detailed distress context.
+  - Full responder lifecycle actions (Accept, Reject, Request Information, En Route, Confirm Arrival, Record Intervention).
+  - Tenancy isolation: organisations cannot mutate or inspect assignments belonging to other tenants.
+  - Privacy guarantee: citizen tracking tokens are never exposed to responders.
+- [x] **Recursive Assistance Engine**:
+  - Dynamically calculates unmet requirements following intervention submission.
+  - Advances matching cycles ($N+1$) using `ExplainableMatchingService` scored against remaining needs.
+  - Loop prevention: automatically excludes previously failed or declined organisations for the same case.
+  - Preserves prior intervention records and full chronological case event audit trail.
+  - Deterministic stopping conditions: auto-escalates to human coordinators when maximum cycles are reached or 0 eligible NGOs remain.
+- [x] **Authorized Final Resolution**:
+  - Cases cannot resolve automatically merely because an NGO recorded an intervention.
+  - Requires documented evidence URLs, unfulfilled requirements check, and authorized coordinator review.
+  - Reopening capability restoring an active workflow if distress recurs.
+- [x] **Frontend Interfaces**:
+  - Coordinator Case Workspace (`/cases`): metrics, status filters, keyword search, create case modal, follow-up controls, and resolution modal.
+  - Case Detail Workspace (`/cases/[caseReference]`): visual lifecycle timeline, requirements tracking, multi-NGO assignment cards with contact attempt provenance, and assign modal.
+  - NGO Responder Workspace (`/responder`): field terminal with persona switcher, incoming assignments, and intervention logging.
+- [x] **Automated Test Suite**: **142/142 tests passing** (12 contracts, 130 web), including all 25 enumerated Phase 5 scenarios across `case-lifecycle.test.ts`, `assignment-coordination.test.ts`, `recursive-engine.test.ts`, and `case-api.test.ts`.
+- [x] **TypeScript Strict Compilation**: **0 errors** across all workspaces (`tsc --noEmit`).
+- [x] **ESLint Code Quality**: **✔ No ESLint warnings or errors**.
+- [x] **Production Bundle Build**: **Compiled successfully** (36 static and dynamic routes).
+- [x] **Zero Production Vulnerabilities**: Clean audit via `npm audit --omit=dev` (0 vulnerabilities).

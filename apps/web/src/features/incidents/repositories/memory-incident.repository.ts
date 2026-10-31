@@ -47,6 +47,9 @@ export class InMemoryIncidentRepository implements IIncidentRepository {
 
     // Deep clone to prevent external mutation
     const record: IncidentDocument = JSON.parse(JSON.stringify(incident));
+    if (!record._id) {
+      record._id = (incident as unknown as { id?: string }).id || `inc_${Math.random().toString(36).substring(2, 9)}`;
+    }
     this.incidents.set(record._id, record);
     this.sourceIndex.set(sourceKey, record._id);
     this.publicReferenceIndex.set(record.public_reference, record._id);

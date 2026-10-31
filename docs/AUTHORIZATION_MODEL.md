@@ -69,3 +69,23 @@ Endpoints enforce sliding-window rate limiting (`apps/web/src/lib/security/rate-
   - `extractClientIp` validates that extracted strings match strict IPv4 or IPv6 syntax, preventing header injection.
   - Priority order: `cf-connecting-ip` (Cloudflare) $\to$ `x-real-ip` (ALB/Nginx) $\to$ `x-forwarded-for` (proxy chain).
   - **Security Warning**: If the application is exposed directly to the public Internet without a trusted reverse proxy, clients can forge `X-Forwarded-For` headers. Production infrastructure **MUST** be deployed behind an edge proxy configured to strip or overwrite incoming client forwarding headers.
+
+---
+
+## 5. Responder Authorization & Multi-Tenant Isolation (Phase 5)
+
+Phase 5 introduces field responder actors and multi-tenant organisation isolation.
+
+### 5.1 Actor Identity Headers
+
+| Header | Format | Role | Description |
+| --- | --- | --- | --- |
+| `x-ngo-id` | `ngo_...` / `DEMO-NGO-...` | Organisation Tenant | Scopes all queries and mutations to the organisation's assigned domain. |
+| `x-responder-id` | `resp_...` | Individual Responder | Tracks individual accountability for acceptances, arrivals, and interventions. |
+
+### 5.2 Tenancy Isolation Rules
+
+1. **Assignment Mutation Gate**: Responders can only mutate assignments belonging strictly to their authenticated `x-ngo-id`. Calling `POST /api/assignments/:id/accept`, `en-route`, `arrived`, or `interventions` on an assignment assigned to a different organisation fails closed with `403 Forbidden`.
+2. **Case List Filtering**: When authenticated as a responder, `GET /api/cases` automatically filters cases to those having at least one assignment belonging to that organisation tenant.
+3. **Citizen Token Redaction**: Responders never receive citizen tracking tokens (`trk_...`) in API payloads or UI views.
+4. **Coordinator Precedence**: An authorized coordinator key (`x-coordinator-key`) grants elevated operational oversight across all organisations, permitting reassignments, emergency cancellations, and final case resolutions.

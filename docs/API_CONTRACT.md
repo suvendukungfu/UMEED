@@ -515,3 +515,165 @@ Computes ranked, explainable organization recommendations for an incident using 
   }
 }
 ```
+
+---
+
+## 9. Phase 5: Case Coordination & Multi-NGO Response API
+
+### 9.1 `POST /api/cases`
+
+Creates an operational assistance case from a verified, `APPROVED` incident.
+
+**Authentication**: Coordinator Key (`x-coordinator-key` or `Authorization: Bearer <key>`)
+
+**Request Body**:
+
+```json
+{
+  "incident_public_reference": "UMD-7B29-4K12",
+  "assistance_requirements": ["animal_ambulance", "veterinary_first_aid"],
+  "max_matching_cycles": 3,
+  "coordinator_notes": "High urgency field trauma approved for dispatch."
+}
+```
+
+**Responses**:
+
+- `201 Created`: Case created successfully (`Location: /api/cases/CASE-7B29-4K12`).
+- `200 OK`: Idempotent replay; returns existing linked case.
+- `400 Bad Request`: Incident not found or incident status is not `APPROVED`.
+- `401 Unauthorized`: Missing or invalid coordinator credentials.
+
+---
+
+### 9.2 `GET /api/cases`
+
+Lists operational cases with multi-tenant filtering.
+
+**Authentication**: Optional. Coordinators view full records; Responders view tenant-scoped records (`x-ngo-id`); unauthenticated callers view privacy-sanitized projections.
+
+**Query Parameters**:
+
+- `status`: Optional filter (`APPROVED`, `MATCHING`, `ACCEPTED`, `RESOLVED`, etc.)
+- `search`: Keyword search over references, requirements, and organisation names
+- `limit`: Integer (default 50, max 100)
+- `offset`: Integer (default 0)
+
+---
+
+### 9.3 `POST /api/cases/:caseReference/assignments`
+
+Assigns one or more organisations to specific assistance requirements.
+
+**Authentication**: Coordinator Key
+
+**Request Body**:
+
+```json
+{
+  "assignments": [
+    {
+      "organisation_id": "ngo_del_001",
+      "requirement": "animal_ambulance",
+      "response_deadline_hours": 2
+    }
+  ]
+}
+```
+
+**Responses**:
+
+- `200 OK`: Assignments created; notifications dispatched via transactional adapter.
+- `400 Bad Request`: Organisation not found or suspended.
+- `409 Conflict`: Requirement already has an active committed responder.
+
+---
+
+### 9.4 `POST /api/assignments/:assignmentId/accept`
+
+NGO responder officially commits to the assigned requirement.
+
+**Authentication**: Responder (`x-ngo-id`, `x-responder-id`)
+
+**Responses**:
+
+- `200 OK`: Assignment transitioned to `ACCEPTED`; case transitioned to `ACCEPTED`.
+- `403 Forbidden`: Authenticated NGO does not own this assignment.
+- `409 Conflict`: Requirement already accepted by another organisation.
+
+---
+
+### 9.5 `POST /api/assignments/:assignmentId/en-route` & `POST /api/assignments/:assignmentId/arrived`
+
+Signals field deployment progression:
+
+- `/en-route`: Assignment status $\to$ `EN_ROUTE`.
+- `/arrived`: Assignment status $\to$ `ARRIVED`; Case status $\to$ `RESPONDER_ARRIVED`.
+
+---
+
+### 9.6 `POST /api/assignments/:assignmentId/interventions`
+
+Records on-scene assistance delivered, evidence documentation, and newly discovered requirements.
+
+**Authentication**: Responder (`x-ngo-id`, `x-responder-id`)
+
+**Request Body**:
+
+```json
+{
+  "intervention_type": "veterinary_assessment",
+  "description": "Stabilized canine and administered analgesia. Compound fracture requires orthopedic surgery.",
+  "assistance_provided": ["animal_ambulance", "veterinary_first_aid"],
+  "evidence_references": [
+    {
+      "type": "image",
+      "url": "https://storage.umeed.internal/evidence/stabilized_limb.jpg"
+    }
+  ],
+  "additional_needs": ["orthopedic_surgery"]
+}
+```
+
+**Responses**:
+
+- `201 Created`: Intervention recorded; remaining requirements evaluated; case status updated to `FOLLOW_UP_REQUIRED` or `INTERVENTION_PROVIDED`.
+
+---
+
+### 9.7 `POST /api/cases/:caseReference/follow-up`
+
+Advances to the next recursive matching cycle for remaining assistance requirements.
+
+**Authentication**: Coordinator Key
+
+**Responses**:
+
+- `200 OK`: Matching cycle incremented ($N+1$); candidate list computed excluding prior failed/declined NGOs.
+- `200 OK (Escalated)`: Stopping condition triggered (maximum cycles exceeded or 0 eligible NGOs available); case transitioned to `ESCALATED`.
+
+---
+
+### 9.8 `POST /api/cases/:caseReference/resolve`
+
+Formally marks a case resolved with authorized human review and evidence proof.
+
+**Authentication**: Coordinator Key
+
+**Request Body**:
+
+```json
+{
+  "decision": "RESOLVED",
+  "rationale": "Canine underwent successful orthopedic plating at hospital; admitted to post-op shelter ward.",
+  "evidence_urls": [
+    "https://storage.umeed.internal/evidence/discharge_summary.pdf"
+  ],
+  "override_unresolved": false
+}
+```
+
+**Responses**:
+
+- `200 OK`: Case transitioned to `RESOLVED` with resolution decision audit stamp.
+- `400 Bad Request`: Attempting to resolve without evidence or with unresolved requirements without explicit override justification.

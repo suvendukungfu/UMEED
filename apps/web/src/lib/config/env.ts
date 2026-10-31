@@ -58,6 +58,7 @@ const ServerEnvSchema = z.object({
   // Coordination Memory (Meko) - Phase 6
   MEKO_API_KEY: emptyToUndefined,
   MEKO_DATAPACK_ID: emptyToUndefined,
+  MEKO_PRODUCT_DATAPACK_ID: emptyToUndefined,
 
   // Impact Analytics (IOMETE) - Phase 7
   IOMETE_PAT: emptyToUndefined,

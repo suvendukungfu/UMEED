@@ -115,7 +115,7 @@ export default function DashboardPage() {
           Core navigation to platform features being activated across milestones.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <Link
             href="/incidents"
             className="p-4 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50/30 transition group flex flex-col justify-between"
@@ -158,14 +158,32 @@ export default function DashboardPage() {
           >
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-blue-600">Phase 5</span>
-                <ArrowRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition" />
+                <span className="text-xs font-semibold text-indigo-600">Phase 5</span>
+                <ArrowRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition" />
               </div>
               <h4 className="text-sm font-semibold text-slate-900 mb-1">
                 Case Coordination
               </h4>
               <p className="text-xs text-slate-500">
-                Active responder dispatch, arrival check-in, and intervention logging.
+                Closed-loop response, multi-agency dispatch & recursive assistance.
+              </p>
+            </div>
+          </Link>
+
+          <Link
+            href="/responder"
+            className="p-4 rounded-lg border border-slate-200 hover:border-teal-300 hover:bg-teal-50/30 transition group flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-teal-600">Phase 5</span>
+                <ArrowRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition" />
+              </div>
+              <h4 className="text-sm font-semibold text-slate-900 mb-1">
+                Responder Terminal
+              </h4>
+              <p className="text-xs text-slate-500">
+                NGO field workspace for task acceptance, check-in, and intervention logging.
               </p>
             </div>
           </Link>

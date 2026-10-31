@@ -19,6 +19,9 @@ export class InMemoryNGORepository implements INGORepository {
     }
 
     const doc: NGODocument = JSON.parse(JSON.stringify(ngo));
+    if (!doc._id) {
+      doc._id = doc.ngo_id || `ngo_${Math.random().toString(36).substring(2, 9)}`;
+    }
     this.ngos.set(doc._id, doc);
     return JSON.parse(JSON.stringify(doc));
   }

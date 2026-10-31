@@ -134,11 +134,57 @@ interface ReviewActionDocument {
 }
 ```
 
+### 2.2 `cases` Collection (Phase 5)
+
+Stores active operational assistance cases created exclusively from verified and `APPROVED` incidents.
+
+```typescript
+interface Case {
+  case_id: string;                            // Unique case identifier (case_...)
+  incident_id: string;                        // Foreign key to underlying incident
+  incident_reference: string;                 // Public reference of incident (UMD-XXXX-YYYY)
+  public_case_reference: string;              // Case reference (CASE-XXXX-YYYY)
+  case_status: CaseStatus;                    // APPROVED, MATCHING, ACCEPTED, RESOLVED, etc.
+  assistance_requirements: string[];          // Derived or coordinator-specified needs
+  unresolved_requirements: string[];        // Remaining unmet requirements
+  assignments: CaseAssignment[];              // Multi-NGO assignments
+  interventions: InterventionRecord[];        // Evidence-backed field assistance records
+  current_matching_cycle: number;             // Matching cycle counter (1, 2, 3...)
+  max_matching_cycles: number;                // Automated stopping threshold (default: 3)
+  created_by: string;                         // Coordinator identifier
+  approved_at: string;                        // ISO 8601
+  created_at: string;                         // ISO 8601
+  updated_at: string;                         // ISO 8601
+  resolved_at: string | null;                 // ISO 8601
+  resolution_evidence: string[];              // Documented resolution URLs
+  resolution_decision: CaseResolutionDecision | null;
+}
+```
+
+### 2.3 `case_events` Collection (Phase 5)
+
+Append-only immutable audit trail recording every state machine transition, coordinator dispatch, responder acceptance, and field arrival.
+
+```typescript
+interface CaseEvent {
+  event_id: string;                           // evt_...
+  case_id: string;                            // Associated case identifier
+  event_type: string;                         // CASE_CREATED, ASSIGNMENTS_CREATED, etc.
+  previous_state: string | null;              // Prior lifecycle state
+  new_state: string;                          // Destination lifecycle state
+  actor: string;                              // Coordinator or responder ID
+  actor_role: "coordinator" | "responder" | "system";
+  rationale: string;                          // Human-readable transition explanation
+  metadata?: Record<string, unknown>;         // Structured details
+  timestamp: string;                          // ISO 8601
+}
+```
+
 ---
 
 ## 3. Index Design & Specifications
 
-All indexes are created idempotently via `MongoIncidentRepository.initIndexes()`:
+All indexes are created idempotently via `MongoIncidentRepository.initIndexes()` and `MongoCaseRepository.initIndexes()`:
 
 | Collection | Index Name | Key Definition | Type | Invariant & Operational Purpose |
 | --- | --- | --- | --- | --- |
@@ -148,6 +194,12 @@ All indexes are created idempotently via `MongoIncidentRepository.initIndexes()`
 | `incidents` | `idx_type_reported` | `{ incident_type: 1, reported_at: -1 }` | Compound | Filtering by assistance category. |
 | `incidents` | `idx_public_reference_unique` | `{ public_reference: 1 }` | **Unique** | O(1) lookup for public tracking codes (`UMD-XXXX-YYYY`). |
 | `incidents` | `idx_tracking_token_hash` | `{ tracking_token_hash: 1 }` | Sparse | Secure credential verification using SHA-256 hash. |
+| `cases` | `idx_case_id_unique` | `{ case_id: 1 }` | **Unique** | Primary case lookup index. |
+| `cases` | `idx_case_incident_unique` | `{ incident_id: 1 }` | **Unique** | Enforces 1:1 invariant between an incident and its assistance case. |
+| `cases` | `idx_case_ref_unique` | `{ public_case_reference: 1 }` | **Unique** | Public reference lookup index (`CASE-XXXX-YYYY`). |
+| `cases` | `idx_case_status_updated` | `{ case_status: 1, updated_at: -1 }` | Compound | Fast sorting and filtering by active status in coordinator workspace. |
+| `cases` | `idx_case_assignments_org` | `{ "assignments.organisation_id": 1 }` | Multikey | High performance lookup of cases assigned to a given NGO tenant. |
+| `case_events` | `idx_case_events_case_time` | `{ case_id: 1, timestamp: 1 }` | Compound | Chronological audit trail replay per case. |
 
 ### GeoJSON [Longitude, Latitude] Coordinate Rule
 

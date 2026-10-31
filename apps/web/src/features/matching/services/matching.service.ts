@@ -36,7 +36,8 @@ export class ExplainableMatchingService {
    */
   async matchIncident(
     publicReference: string,
-    customWeights?: Partial<MatchWeights>
+    customWeights?: Partial<MatchWeights>,
+    overrideRequirements?: string[]
   ): Promise<MatchResult> {
     const incident = await this.incidentRepo.findByPublicReference(publicReference);
     if (!incident) {
@@ -56,7 +57,7 @@ export class ExplainableMatchingService {
     let eligibleCount = 0;
 
     for (const ngo of allNgos) {
-      const candidate = this.evaluateCandidate(incident, ngo, weights);
+      const candidate = this.evaluateCandidate(incident, ngo, weights, overrideRequirements);
       candidates.push(candidate);
       if (candidate.eligible) {
         eligibleCount++;
@@ -99,7 +100,8 @@ export class ExplainableMatchingService {
   evaluateCandidate(
     incident: IncidentDocument,
     ngo: NGODocument,
-    weights: MatchWeights
+    weights: MatchWeights,
+    overrideRequirements?: string[]
   ): MatchCandidate {
     const missingInfo: string[] = [];
 
@@ -136,15 +138,24 @@ export class ExplainableMatchingService {
     }
 
     // Determine matched assistance capabilities
-    const requiredAssistance = incident.triage_analysis?.possible_assistance || [];
+    const requiredAssistance =
+      overrideRequirements && overrideRequirements.length > 0
+        ? overrideRequirements
+        : incident.triage_analysis?.possible_assistance || [];
     const matchedCaps = ngo.assistance_capabilities.filter((cap) =>
-      requiredAssistance.some((req) => req.toLowerCase().includes(cap.toLowerCase()) || cap.toLowerCase().includes(req.toLowerCase()))
+      requiredAssistance.some(
+        (req) =>
+          req.toLowerCase().includes(cap.toLowerCase()) ||
+          cap.toLowerCase().includes(req.toLowerCase())
+      )
     );
 
-    // Capability Score: Base 0.8 for category match + 0.2 for specific assistance capability matches
-    let capabilityScore = 0.8;
-    if (matchedCaps.length > 0) {
-      capabilityScore = Math.min(1.0, 0.8 + 0.1 * matchedCaps.length);
+    // Capability Score: Base 0.5 for category match + up to 0.5 for specific assistance capability matches
+    let capabilityScore = 0.5;
+    if (requiredAssistance.length === 0) {
+      capabilityScore = 0.85;
+    } else if (matchedCaps.length > 0) {
+      capabilityScore = Math.min(1.0, 0.7 + 0.15 * matchedCaps.length);
     }
 
     // 3. Geographic Coverage Scoring (25%)

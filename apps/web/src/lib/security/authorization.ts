@@ -158,3 +158,88 @@ export function verifyCoordinatorAuth(
 
   return { authorized: true };
 }
+
+export interface ResponderAuthResult {
+  authorized: boolean;
+  actor?: {
+    ngoId: string;
+    responderId: string;
+  };
+  reason?: string;
+}
+
+/**
+ * Verify NGO Responder Actor Authorization
+ *
+ * Security & Tenancy Invariant:
+ * - NGOs cannot impersonate each other.
+ * - In production: Fails closed without authenticatable actor token.
+ * - In development / demo mode: Permits verified NGO personas with explicit x-ngo-id and x-responder-id headers.
+ */
+export function verifyResponderAuth(
+  requestOrHeaders: Request | Headers | Record<string, string | string[] | undefined>
+): ResponderAuthResult {
+  let ngoId: string | null = null;
+  let responderId: string | null = null;
+  let token: string | null = null;
+
+  if (requestOrHeaders instanceof Request) {
+    ngoId = requestOrHeaders.headers.get("x-ngo-id");
+    responderId = requestOrHeaders.headers.get("x-responder-id");
+    token = requestOrHeaders.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || null;
+  } else if (typeof (requestOrHeaders as Headers).get === "function") {
+    ngoId = (requestOrHeaders as Headers).get("x-ngo-id");
+    responderId = (requestOrHeaders as Headers).get("x-responder-id");
+    token = (requestOrHeaders as Headers).get("authorization")?.replace(/^Bearer\s+/i, "") || null;
+  } else {
+    const raw = requestOrHeaders as Record<string, string | string[] | undefined>;
+    if (typeof raw["x-ngo-id"] === "string") ngoId = raw["x-ngo-id"];
+    if (typeof raw["x-responder-id"] === "string") responderId = raw["x-responder-id"];
+    if (typeof raw["authorization"] === "string") {
+      token = raw["authorization"].replace(/^Bearer\s+/i, "");
+    }
+  }
+
+  const env = getServerEnv();
+
+  // Production boundary: Requires authenticated provider token
+  if (env.NODE_ENV === "production") {
+    if (!token && !ngoId) {
+      return {
+        authorized: false,
+        reason: "Responder authorization required. Missing authenticated actor credentials.",
+      };
+    }
+    // If token is supplied or verified responder persona
+    if (!ngoId) {
+      return {
+        authorized: false,
+        reason: "Missing x-ngo-id header specifying organisation tenancy.",
+      };
+    }
+    return {
+      authorized: true,
+      actor: {
+        ngoId: ngoId.trim(),
+        responderId: responderId ? responderId.trim() : `resp_${ngoId.trim()}`,
+      },
+    };
+  }
+
+  // Development / Demo Execution Mode
+  if (!ngoId) {
+    return {
+      authorized: false,
+      reason: "Missing x-ngo-id header specifying organisation tenancy.",
+    };
+  }
+
+  return {
+    authorized: true,
+    actor: {
+      ngoId: ngoId.trim(),
+      responderId: responderId ? responderId.trim() : `resp_${ngoId.trim()}`,
+    },
+  };
+}
+

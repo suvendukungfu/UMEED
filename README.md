@@ -11,6 +11,7 @@
 Most social distress reporting stops at the moment of intake. Reports are lost, duplicate requests overwhelm volunteers, or initial first aid is provided while underlying shelter and medical needs remain unresolved.
 
 **UMEED** changes that by establishing a closed-loop assistance operating system:
+
 1. **Multi-Channel Intake**: Accepts citizen reports (photos, GPS, description) and authorized social media distress discoveries.
 2. **AI Multimodal Triage**: Gemini extracts structured condition, urgency, and candidate location information with evidence references—without making autonomous medical diagnoses or dispatching responders.
 3. **Human Coordinator Verification**: High-risk cases require coordinator verification before any dispatch occurs.
@@ -25,10 +26,12 @@ Most social distress reporting stops at the moment of intake. Reports are lost, 
 ## 2. Quickstart
 
 ### Prerequisites
+
 - Node.js `24 LTS` (`v24.5.0+`)
 - npm `10+` / `11+`
 
 ### Installation
+
 ```bash
 # Clone the repository
 git clone https://github.com/suvendukungfu/UMEED.git
@@ -45,11 +48,15 @@ npm run dev
 ```
 
 Visit [http://localhost:3000](http://localhost:3000) to view the UMEED Dashboard.
+
 - Citizen Report Form: [http://localhost:3000/report](http://localhost:3000/report)
 - Coordinator Triage Queue: [http://localhost:3000/incidents](http://localhost:3000/incidents)
 - NGO Intelligence Directory: [http://localhost:3000/ngos](http://localhost:3000/ngos)
+- Coordinator Case Workspace: [http://localhost:3000/cases](http://localhost:3000/cases)
+- Frontline NGO Responder Terminal: [http://localhost:3000/responder](http://localhost:3000/responder)
 
 ### API Endpoints (Operational)
+
 - **Health Check**: `GET /api/health`
 - **Incident Ingestion**: `POST /api/incidents/ingest` (Zod v1.0.0, idempotency, secure tracking credentials)
 - **Incident Query Feed**: `GET /api/incidents` (Filter by status, category, duplicate flags)
@@ -61,6 +68,14 @@ Visit [http://localhost:3000](http://localhost:3000) to view the UMEED Dashboard
 - **NGO Creation & Updates**: `POST /api/ngos`, `PATCH /api/ngos/:ngoId`
 - **NGO Bulk CSV Import**: `POST /api/ngos/import` (RFC 4180 parser, duplicate detection, validation report)
 - **Explainable Matching**: `GET /api/ngos/matches/:incidentReference` (Multi-factor scoring, hard capability filter)
+- **Case Lifecycle & Feed**: `POST /api/cases`, `GET /api/cases`, `GET /api/cases/:caseReference`
+- **Case Multi-NGO Assignment**: `POST /api/cases/:caseReference/assignments`
+- **Requirement Matching**: `POST /api/cases/:caseReference/match`
+- **Recursive Follow-Up Engine**: `POST /api/cases/:caseReference/follow-up`
+- **Case Resolution & Reopening**: `POST /api/cases/:caseReference/resolve`, `POST /api/cases/:caseReference/reopen`
+- **Frontline Responder Actions**: `POST /api/assignments/:assignmentId/accept`, `/reject`, `/request-info`, `/en-route`, `/arrived`
+- **Intervention Recording**: `POST /api/assignments/:assignmentId/interventions`
+- **Notification Outbox Processor**: `POST /api/notifications/process`
 
 ---
 
@@ -99,6 +114,7 @@ npm run build
 ---
 
 ## 5. Security & Ethical Standards
+
 - **No Autonomous Dispatch**: AI models provide recommendations; coordinators make dispatch decisions.
 - **No Autonomous Diagnosis**: Triage flags visible conditions as non-medical observations.
 - **Privacy Protection**: Beneficiary phone numbers and emails are scrubbed before reaching external memory or analytics.
@@ -107,5 +123,5 @@ npm run build
 ---
 
 ## 6. License
-MIT License. See [LICENSE](LICENSE) for details.
 
+MIT License. See [LICENSE](LICENSE) for details.

@@ -185,6 +185,40 @@ export default function IncidentsPage() {
     }
   };
 
+  const handleConvertToCase = async () => {
+    if (!selectedIncident) return;
+    try {
+      const res = await fetch("/api/cases", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-coordinator-key": "umeed-coordinator-dev-key",
+        },
+        body: JSON.stringify({
+          incident_public_reference: selectedIncident.public_reference,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setActionMessage({
+          type: "success",
+          text: `Case ${data.data.public_case_reference} created! Redirecting to case coordination...`,
+        });
+        window.location.href = `/cases/${data.data.public_case_reference}`;
+      } else {
+        setActionMessage({
+          type: "error",
+          text: data.error?.message || "Failed to create case",
+        });
+      }
+    } catch {
+      setActionMessage({
+        type: "error",
+        text: "Network error converting incident to case",
+      });
+    }
+  };
+
   const getUrgencyBadge = (urgency?: string) => {
     switch (urgency) {
       case "emergency_review":
@@ -775,6 +809,24 @@ export default function IncidentsPage() {
                   >
                     {reviewLoading ? "Saving Decision..." : `Submit Decision (${reviewDecision})`}
                   </button>
+
+                  {selectedIncident.status === "APPROVED" && (
+                    <div className="pt-3 border-t border-slate-200">
+                      <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <div className="font-bold text-indigo-900 text-xs">Incident Approved for Coordination</div>
+                          <p className="text-[11px] text-indigo-700">Open an active assistance case to begin closed-loop response.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleConvertToCase}
+                          className="px-3 py-1.5 bg-indigo-600 text-white rounded-md text-xs font-semibold hover:bg-indigo-700 transition shrink-0"
+                        >
+                          Open Assistance Case →
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
