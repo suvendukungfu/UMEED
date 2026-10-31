@@ -44,6 +44,13 @@ In accordance with HackCBS 9.0 challenge rules and Phase 6.2A acceptance criteri
 
 - Guaranteed zero secret leakage into Git commits or pull requests.
 
+### 2.3 Strict Schema & Obsolete Argument Enforcement
+- All Meko tool schemas (`MemoryAddArgsSchema`, `MemorySearchArgsSchema`, `MemoryGetByIdArgsSchema`, `MemoryGetAllArgsSchema`, `MemoryUpdateArgsSchema`, `MemoryDeleteByIdArgsSchema`, `MemoryPromoteArgsSchema`, `DatapackSearchArgsSchema`, `DatapackListArgsSchema`, `KnowledgebaseSearchArgsSchema`) enforce strict validation (`.strict()`).
+- Any unrecognized parameters or obsolete attributes (specifically `scope`) are rejected with `MekoValidationError`.
+- Grep audits across `apps/web/src` confirmed zero occurrences of obsolete `scope`.
+- Bounded retry logic handles transient HTTP 502/503/504 and network errors with backoff while immediately rejecting non-retryable 4xx / RPC errors.
+- Vitest suite covers 26 unit and mocked protocol tests (100% pass rate).
+
 ---
 
 ## 3. Truthful Evidence Matrix

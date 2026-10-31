@@ -107,6 +107,17 @@ describe("Phase 6.0: Meko MCP Client & Protocol Architecture", () => {
         client.executeToolCall("unrestricted_shell_exec", { command: "ls" })
       ).rejects.toThrow(MekoValidationError);
     });
+
+    it("rejects tool execution when obsolete 'scope' or unrecognized argument is passed", async () => {
+      const client = new MekoHttpClient({ apiKey: dummyApiKey });
+      await expect(
+        client.executeToolCall("memory_search", {
+          query: "animal rescue",
+          conversation_id: "conv_test",
+          scope: "global", // obsolete parameter!
+        })
+      ).rejects.toThrow(MekoValidationError);
+    });
   });
 
   describe("Mocked Protocol & Tool Operations", () => {
@@ -332,6 +343,48 @@ describe("Phase 6.0: Meko MCP Client & Protocol Architecture", () => {
       });
 
       await expect(client.searchMemories("test query")).rejects.toThrow(MekoRateLimitError);
+    });
+
+    it("retries once on transient 503 HTTP error and succeeds on second attempt", async () => {
+      let callCount = 0;
+      const mockFetch = vi.fn().mockImplementation(async () => {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            ok: false,
+            status: 503,
+            text: async () => "Service Unavailable",
+          };
+        }
+        return {
+          ok: true,
+          json: async () => ({
+            jsonrpc: "2.0",
+            id: "req_retry",
+            result: {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({
+                    results: [{ id: "mem_retry_1", memory: "Success on retry" }],
+                  }),
+                },
+              ],
+            },
+          }),
+        };
+      });
+
+      const client = new MekoHttpClient({
+        apiKey: dummyApiKey,
+        productDatapackId: dummyProductDatapack,
+        fetchFn: mockFetch,
+      });
+
+      const res = await client.searchMemories("retry test");
+      expect(callCount).toBe(2);
+      expect(res).toHaveLength(1);
+      expect(res[0].id).toBe("mem_retry_1");
     });
   });
 

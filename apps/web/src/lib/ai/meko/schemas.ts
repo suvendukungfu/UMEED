@@ -58,6 +58,7 @@ export function assertValidOperationalMemory(text: string): void {
 
 /**
  * Zod Schemas for Meko MCP Tool Arguments
+ * All schemas are strict() to reject unrecognized or obsolete parameters (e.g. 'scope').
  */
 
 export const MemoryAddArgsSchema = z.object({
@@ -67,7 +68,7 @@ export const MemoryAddArgsSchema = z.object({
   datapack_id: z.string().optional(),
   run_id: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
-});
+}).strict();
 
 export const MemorySearchArgsSchema = z.object({
   query: z.string().min(1).max(500),
@@ -76,14 +77,21 @@ export const MemorySearchArgsSchema = z.object({
   datapack_id: z.string().optional(),
   limit: z.number().int().min(1).max(25).optional().default(10),
   run_id: z.string().optional(),
-});
+}).strict();
 
 export const MemoryGetByIdArgsSchema = z.object({
   memory_id: z.string().min(1),
   conversation_id: z.string().min(1),
   agent_id: z.string().optional(),
   datapack_id: z.string().optional(),
-});
+}).strict();
+
+export const MemoryGetAllArgsSchema = z.object({
+  conversation_id: z.string().min(1),
+  agent_id: z.string().optional(),
+  datapack_id: z.string().optional(),
+  limit: z.number().int().min(1).max(100).optional().default(20),
+}).strict();
 
 export const MemoryUpdateArgsSchema = z.object({
   memory_id: z.string().min(1),
@@ -91,33 +99,33 @@ export const MemoryUpdateArgsSchema = z.object({
   conversation_id: z.string().min(1),
   agent_id: z.string().optional(),
   datapack_id: z.string().optional(),
-});
+}).strict();
 
 export const MemoryDeleteByIdArgsSchema = z.object({
   memory_id: z.string().min(1),
   conversation_id: z.string().min(1),
   agent_id: z.string().optional(),
   datapack_id: z.string().optional(),
-});
+}).strict();
 
 export const MemoryPromoteArgsSchema = z.object({
   memory_ids: z.array(z.string().min(1)).min(1).max(50),
   conversation_id: z.string().min(1),
   agent_id: z.string().optional(),
   datapack_id: z.string().optional(),
-});
+}).strict();
 
 export const DatapackSearchArgsSchema = z.object({
   conversation_id: z.string().min(1),
   query: z.string().optional().default(""),
   limit: z.number().int().min(1).max(100).optional().default(20),
-});
+}).strict();
 
 export const DatapackListArgsSchema = z.object({
   conversation_id: z.string().min(1),
   query: z.string().optional().default(""),
   limit: z.number().int().min(0).max(100).optional().default(20),
-});
+}).strict();
 
 export const KnowledgebaseSearchArgsSchema = z.object({
   query: z.string().min(1).max(500),
@@ -125,5 +133,47 @@ export const KnowledgebaseSearchArgsSchema = z.object({
   datapack_id: z.string().min(1, "datapack_id is required for knowledgebase_search"),
   agent_id: z.string().optional(),
   limit: z.number().int().min(1).max(25).optional().default(10),
-});
+}).strict();
+
+/**
+ * Validates tool arguments against strict schema for the given tool,
+ * rejecting unrecognised, obsolete, or malformed inputs.
+ */
+export function validateToolArguments(
+  toolName: string,
+  args: Record<string, unknown>
+): Record<string, unknown> {
+  try {
+    switch (toolName) {
+      case "memory_add":
+        return MemoryAddArgsSchema.parse(args);
+      case "memory_search":
+        return MemorySearchArgsSchema.parse(args);
+      case "memory_get_by_id":
+        return MemoryGetByIdArgsSchema.parse(args);
+      case "memory_get_all":
+        return MemoryGetAllArgsSchema.parse(args);
+      case "memory_update":
+        return MemoryUpdateArgsSchema.parse(args);
+      case "memory_delete_by_id":
+        return MemoryDeleteByIdArgsSchema.parse(args);
+      case "memory_promote":
+        return MemoryPromoteArgsSchema.parse(args);
+      case "datapack_search":
+        return DatapackSearchArgsSchema.parse(args);
+      case "datapack_list":
+        return DatapackListArgsSchema.parse(args);
+      case "knowledgebase_search":
+        return KnowledgebaseSearchArgsSchema.parse(args);
+      default:
+        return args;
+    }
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      const issueDetails = err.issues.map((i) => `${i.path.join(".") || "root"}: ${i.message}`).join("; ");
+      throw new MekoValidationError(`Validation failed for tool '${toolName}': ${issueDetails}`, err);
+    }
+    throw err;
+  }
+}
 

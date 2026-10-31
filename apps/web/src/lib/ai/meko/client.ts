@@ -20,6 +20,7 @@ import {
 } from "./errors";
 import {
   assertValidOperationalMemory,
+  validateToolArguments,
   MemoryAddArgsSchema,
   MemorySearchArgsSchema,
   MemoryGetByIdArgsSchema,
@@ -70,8 +71,7 @@ export class MekoHttpClient {
       const env = getServerEnv();
       envApiKey = env.MEKO_API_KEY;
       envProductDp = env.MEKO_PRODUCT_DATAPACK_ID || env.MEKO_DATAPACK_ID;
-      // MEKO_BUILD_DATAPACK_ID can be retrieved from process.env if set
-      envBuildDp = process.env.MEKO_BUILD_DATAPACK_ID;
+      envBuildDp = env.MEKO_BUILD_DATAPACK_ID || process.env.MEKO_BUILD_DATAPACK_ID;
     } catch {
       // In isolated tests without full environment
     }
@@ -267,96 +267,122 @@ export class MekoHttpClient {
     const effectiveAgentId = options?.agentId || (args.agent_id as string) || "umeed_agent";
 
     const sanitizedArgs = sanitizeToolArguments(args);
-    const requestPayload = buildMekoToolCallRequest(toolName, sanitizedArgs, correlationId);
+    const validatedArgs = validateToolArguments(toolName, sanitizedArgs);
+    const requestPayload = buildMekoToolCallRequest(toolName, validatedArgs, correlationId);
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    const maxRetries = 1;
+    let attempt = 0;
+    let lastError: unknown;
 
-    try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.apiKey}`,
-        "User-Agent": this.userAgent,
-      };
-      if (this.sessionId) {
-        headers["Mcp-Session-Id"] = this.sessionId;
-      }
+    while (attempt <= maxRetries) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
-      const response = await this.fetchFn(this.endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(requestPayload),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timer);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        if (response.status === 401) {
-          throw new MekoAuthError(`HTTP 401 Unauthorized: ${errorText}`);
+      try {
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
+          "User-Agent": this.userAgent,
+        };
+        if (this.sessionId) {
+          headers["Mcp-Session-Id"] = this.sessionId;
         }
-        if (response.status === 403) {
-          throw new MekoError(`HTTP 403 Forbidden: ${errorText}`, "MEKO_FORBIDDEN", 403);
+
+        const response = await this.fetchFn(this.endpoint, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(requestPayload),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timer);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          if (response.status === 401) {
+            throw new MekoAuthError(`HTTP 401 Unauthorized: ${errorText}`);
+          }
+          if (response.status === 403) {
+            throw new MekoError(`HTTP 403 Forbidden: ${errorText}`, "MEKO_FORBIDDEN", 403);
+          }
+          if (response.status === 429) {
+            throw new MekoError(`HTTP 429 Rate Limit: ${errorText}`, "MEKO_RATE_LIMITED", 429);
+          }
+          if ((response.status === 502 || response.status === 503 || response.status === 504) && attempt < maxRetries) {
+            attempt++;
+            await new Promise((r) => setTimeout(r, 200 * attempt));
+            continue;
+          }
+          throw new MekoError(`HTTP ${response.status}: ${errorText}`, "MEKO_HTTP_ERROR", response.status);
         }
-        if (response.status === 429) {
-          throw new MekoError(`HTTP 429 Rate Limit: ${errorText}`, "MEKO_RATE_LIMITED", 429);
+
+        const returnedSessionId = response.headers && typeof response.headers.get === "function"
+          ? response.headers.get("mcp-session-id")
+          : undefined;
+        if (returnedSessionId) {
+          this.sessionId = returnedSessionId;
         }
-        throw new MekoError(`HTTP ${response.status}: ${errorText}`, "MEKO_HTTP_ERROR", response.status);
+
+        const json = (await response.json()) as MekoJsonRpcResponse;
+        const rpcError = extractMekoRpcError(json);
+        if (rpcError) {
+          throw rpcError;
+        }
+
+        const parsed = parseMekoToolResult<T>(json.result);
+
+        this.logInteraction({
+          event_id: `evt_${crypto.randomUUID()}`,
+          timestamp: new Date().toISOString(),
+          agent_id: effectiveAgentId,
+          datapack_id: effectiveDatapackId,
+          tool_name: toolName,
+          operation: this.mapOperation(toolName),
+          status: "SUCCESS",
+          duration_ms: Date.now() - startTime,
+          correlation_id: correlationId,
+        });
+
+        return parsed;
+      } catch (err: unknown) {
+        clearTimeout(timer);
+        lastError = err;
+        // Only retry network errors if attempt < maxRetries and not an abort / auth error
+        if (
+          attempt < maxRetries &&
+          !(err instanceof MekoAuthError) &&
+          !(err instanceof MekoValidationError) &&
+          ((err as Error)?.name !== "AbortError")
+        ) {
+          attempt++;
+          await new Promise((r) => setTimeout(r, 200 * attempt));
+          continue;
+        }
+        break;
       }
-
-      const returnedSessionId = response.headers && typeof response.headers.get === "function"
-        ? response.headers.get("mcp-session-id")
-        : undefined;
-      if (returnedSessionId) {
-        this.sessionId = returnedSessionId;
-      }
-
-      const json = (await response.json()) as MekoJsonRpcResponse;
-      const rpcError = extractMekoRpcError(json);
-      if (rpcError) {
-        throw rpcError;
-      }
-
-      const parsed = parseMekoToolResult<T>(json.result);
-
-      this.logInteraction({
-        event_id: `evt_${crypto.randomUUID()}`,
-        timestamp: new Date().toISOString(),
-        agent_id: effectiveAgentId,
-        datapack_id: effectiveDatapackId,
-        tool_name: toolName,
-        operation: this.mapOperation(toolName),
-        status: "SUCCESS",
-        duration_ms: Date.now() - startTime,
-        correlation_id: correlationId,
-      });
-
-      return parsed;
-    } catch (err: unknown) {
-      clearTimeout(timer);
-      const isAbort = (err as Error)?.name === "AbortError";
-      const mappedError = isAbort
-        ? new MekoNetworkError(`Meko request timed out after ${this.timeoutMs}ms`)
-        : err instanceof MekoError
-        ? err
-        : new MekoNetworkError(sanitizeMekoMessage((err as Error)?.message ?? "Connection failure"), err);
-
-      this.logInteraction({
-        event_id: `evt_${crypto.randomUUID()}`,
-        timestamp: new Date().toISOString(),
-        agent_id: effectiveAgentId,
-        datapack_id: effectiveDatapackId,
-        tool_name: toolName,
-        operation: this.mapOperation(toolName),
-        status: "FAILURE",
-        duration_ms: Date.now() - startTime,
-        error_message: mappedError.message,
-        correlation_id: correlationId,
-      });
-
-      throw mappedError;
     }
+
+    const isAbort = (lastError as Error)?.name === "AbortError";
+    const mappedError = isAbort
+      ? new MekoNetworkError(`Meko request timed out after ${this.timeoutMs}ms`)
+      : lastError instanceof MekoError
+      ? lastError
+      : new MekoNetworkError(sanitizeMekoMessage((lastError as Error)?.message ?? "Connection failure"), lastError);
+
+    this.logInteraction({
+      event_id: `evt_${crypto.randomUUID()}`,
+      timestamp: new Date().toISOString(),
+      agent_id: effectiveAgentId,
+      datapack_id: effectiveDatapackId,
+      tool_name: toolName,
+      operation: this.mapOperation(toolName),
+      status: "FAILURE",
+      duration_ms: Date.now() - startTime,
+      error_message: mappedError.message,
+      correlation_id: correlationId,
+    });
+
+    throw mappedError;
   }
 
   // ===========================================================================
