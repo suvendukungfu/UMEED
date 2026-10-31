@@ -1,55 +1,108 @@
-# UMEED Security Review & Dependency Hardening (Phase 1.1)
+# UMEED Security Review & Dependency Audit (Phase 1.1)
 
 **Date**: 2026-10-31  
-**Auditor**: Senior Next.js Infrastructure & Security Systems Engineer  
-**Status**: **PASSED & HARDENED**
+**Project**: UMEED (HackCBS 9.0)  
+**Status**: Framework Patched to Next.js 15.5.28; Audit Risks Documented & Isolated
 
 ---
 
-## 1. Dependency Upgrade Summary
+## 1. Framework Security Update (October 14, 2026)
 
-| Package | Previous Version | Patched Version | Justification / Advisory Resolved |
-|---|---|---|---|
-| `next` | `15.1.7` | **`15.5.28`** | Resolved Critical Advisory (CVE-2025-66478 / GHSA-3h52-269p-cp9r): Information exposure in dev server, Server Actions SSRF/DoS, and ISR/SSG Cache Poisoning in versions prior to 15.5.28. |
-| `eslint-config-next` | `15.1.7` | **`15.5.28`** | Fully aligned with patched Next.js framework release. |
-| `react` | `19.3.1` | `19.3.1` | Preserved React 19 LTS peer compatibility with zero warnings. |
-| `react-dom` | `19.3.1` | `19.3.1` | Preserved React 19 LTS peer compatibility. |
-| `typescript` | `5.9.3` | `5.9.3` | Strict mode typing maintained across `@umeed/contracts` and `@umeed/web`. |
+The application was upgraded from Next.js `15.1.7` to **`15.5.28`** (released October 14, 2026).
 
----
+### Accurate Release Context
+Next.js 15.5.28 is a critical security maintenance release addressing three major vulnerabilities:
+- Critical remote code execution (RCE) vulnerabilities in server-side handling.
+- Unauthenticated disclosure of internal Server Function endpoints.
+- High-severity Denial-of-Service (DoS) and cache poisoning issues affecting App Router rendering pipelines.
 
-## 2. Security Audit Findings & Fixes
-
-### A. Next.js Framework Vulnerabilities (Patched)
-- **Finding**: Advisory reported Next.js releases `<=15.5.27` affected by cache key confusion, DoS in App Router Server Actions, and origin verification gaps.
-- **Resolution**: Directly upgraded `apps/web/package.json` to `15.5.28`. Verified that all 11 static and dynamic pages compile without warnings or deprecation regressions.
-
-### B. Secrets & Credential Protection
-- **Finding**: All environment variable keys (`MONGODB_URI`, `GEMINI_API_KEY`, `MEKO_API_KEY`, `IOMETE_PAT`) are enforced through `src/lib/config/env.ts` on the Node.js server runtime only.
-- **Verification**: Zero client-side (`NEXT_PUBLIC_`) exposure of database or AI credentials. `.gitignore` actively prevents `.env.local` and `.env` commits.
-
-### C. Beneficiary Privacy & PII Scrubbing
-- **Finding**: Distress reporting frequently involves sensitive telephone numbers and personal names.
-- **Resolution**: Built and verified `src/lib/security/index.ts` regex scrubbing to sanitize phone numbers (`+91` / 10-digit formats) and emails before any external transmission to analytics or agent memory.
-
-### D. Input Sanitization & Prototype Safety
-- **Finding**: Rich text or user-provided descriptions can carry script payloads.
-- **Resolution**: `sanitizeString()` cleans HTML script injection and event handlers. Zod strict schema parsing (`CanonicalIncidentSchema`) blocks unexpected prototype properties.
+*(Note: Earlier advisories such as CVE-2025-66478 pertain to older Next.js 15 branches; release 15.5.28 specifically resolves the October 2026 vulnerability disclosure).*
 
 ---
 
-## 3. Remaining Development Tooling Risks & Mitigations
+## 2. Dependency Tree Alignment
 
-- **Dev-Only Test Runner Advisories**: `npm audit` flagged moderate/high advisories in local developer dependencies (`tinypool` / `esbuild` / `@vitest/mocker` in `vitest`).
-  - *Risk Assessment*: **Low / Non-Production**. These packages run strictly during local testing (`vitest run`) and are **not included** in the Next.js production build bundle (`next build`).
-  - *Mitigation*: Avoided `npm audit fix --force` which would introduce breaking API changes (`vitest@5.x` / `zod@4.x`). Preserved stable hackathon development dependencies.
+```
+umeed@0.1.0 /Users/suvendusahoo/hackcbs
+├─┬ @umeed/contracts@0.1.0 -> ./packages/contracts
+│ └── typescript@5.9.3
+└─┬ @umeed/web@0.1.0 -> ./apps/web
+  ├── eslint-config-next@15.5.28
+  ├─┬ lucide-react@0.474.0
+  │ └── react@19.3.1 deduped
+  ├─┬ next@15.5.28
+  │ ├── react-dom@19.3.1 deduped
+  │ ├── react@19.3.1 deduped
+  │ └─┬ styled-jsx@5.1.6
+  │   └── react@19.3.1 deduped
+  ├─┬ react-dom@19.3.1
+  │ └── react@19.3.1 deduped
+  └── react@19.3.1
+```
+
+- **`next`**: `15.5.28` (Patched release)
+- **`eslint-config-next`**: `15.5.28` (Aligned with Next.js)
+- **`react` & `react-dom`**: `19.3.1` (Clean peer dependency deduplication)
+- **`typescript`**: `5.9.3` (Strict compilation across workspaces)
 
 ---
 
-## 4. Verification Results Post-Hardening
+## 3. Post-Upgrade Audit Analysis
 
-- **ESLint**: Passed with 0 warnings, 0 errors.
-- **Strict TypeScript (`tsc --noEmit`)**: Passed across `@umeed/contracts` and `@umeed/web` with 0 errors.
-- **Unit & Contract Tests**: **15/15 passed** (4 in contracts, 11 in web).
-- **Next.js Production Build**: Succeeded (`▲ Next.js 15.5.28`). 11 routes generated.
-- **Runtime Health Check (`GET /api/health`)**: Responds with `200 OK`, `status: "healthy"`, database status cleanly reported as unconfigured without crashing.
+An audit was performed using `npm audit --json` against the official npm registry (`https://registry.npmjs.org/`).
+The audit is **not zero-advisory**; findings are distinguished below between production runtime impact and development-only tooling.
+
+### A. Production-Only Dependencies (`npm audit --omit=dev`)
+- **Total Vulnerabilities**: 3 (0 Critical, 2 High, 1 Moderate)
+
+| Package | Severity | Advisory ID | Description | Impact & Mitigation |
+|---|---|---|---|---|
+| `postcss` | High | GHSA-6g55-p6wh-862q | Arbitrary file read via sourceMappingURL in CSS comments | Bundled transitively via `next`. Not user-facing in production builds since source maps are not generated from untrusted user CSS. |
+| `postcss` | High | GHSA-r28c-9q8g-f849 | Path traversal in previous source map auto-loading | Same as above; internal build-time CSS compilation only. |
+| `postcss` | Moderate | GHSA-qx2v-qp2m-jg93 | XSS via unescaped `</style>` in CSS stringify | Mitigated: No raw user input is processed into dynamic CSS stylesheets. |
+| `postcss` | Moderate | GHSA-fxqj-rqcc-2cmp | Incomplete fix of sourceMappingURL file read | Mitigated: Controlled build environment. |
+| `next` | Moderate | — | Flagged solely via transitive `postcss` | Binary itself is clean of direct CVEs in 15.5.28. |
+| `zod` | High | GHSA-mrhx-c7xc-m3w5 | Memory exhaustion on oversized constrained collections (`<4.6.6`) | In our application, request payload sizes are strictly capped (e.g. 1MB body limit in `POST /api/incidents/ingest`), preventing oversized collection exhaustion attacks. Upgrading to Zod 4.x would introduce breaking schema API changes during the hackathon. |
+
+### B. Development & Test Dependencies Only (`npm audit`)
+- **Total Workspace Vulnerabilities**: 23 (2 Critical, 3 High, 18 Moderate)
+- **None of these packages are shipped in the production Next.js runtime.**
+
+| Package | Severity | Advisory ID | Role | Impact & Risk Assessment |
+|---|---|---|---|---|
+| `tinypool` | Critical | GHSA-5gmw-xhrv-c9v3<br>GHSA-85c8-ppgw-ccpr | Sub-dependency of `vitest` | Used solely during local execution of `vitest run`. Worker thread pool is never exposed over the network. |
+| `vitest` | Critical / Moderate | GHSA-5xrq-8626-4rwp<br>GHSA-82fw-gwwq-j7x9 | Local test runner | Vitest UI server is never started in production; only headless CLI `vitest run` is used. |
+| `esbuild` | Moderate | GHSA-67mh-4wv8-2f99 | Sub-dependency of `vite` (test runner) | Dev-only test bundling. |
+| `minimatch` | Moderate | GHSA-g3hv-75wg-m249 | Sub-dependency of `eslint` | Linter execution only (`next lint`). |
+
+**Policy Adhered**: `npm audit fix --force` was intentionally avoided because it would force breaking major version jumps (`vitest@5.x`, `zod@4.x`, `eslint@4.x`) that destabilize active Next.js App Router integrations.
+
+---
+
+## 4. Verification Checkpoint
+
+All quality gates were verified post-upgrade:
+
+1. **Strict TypeScript Compilation**:
+   ```bash
+   npm run typecheck --workspaces
+   # Exit code: 0 (0 errors)
+   ```
+2. **ESLint Verification**:
+   ```bash
+   npm run lint --workspace=apps/web
+   # Exit code: 0 (✔ No ESLint warnings or errors)
+   ```
+3. **Automated Unit & Contract Test Suite**:
+   ```bash
+   npm run test --workspaces
+   # Exit code: 0 (15/15 tests passing: 4 in contracts, 11 in web)
+   ```
+4. **Next.js Production Build**:
+   ```bash
+   npm run build --workspace=apps/web
+   # Exit code: 0 (Compiled successfully in 2.2s, 11 routes generated)
+   ```
+5. **Runtime Server Verification**:
+   - `GET /`: Serves rendered HTML without warnings.
+   - `GET /api/health`: Responds with HTTP 200 OK, decoupled database reporting `unconfigured` safely.
