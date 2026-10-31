@@ -1,11 +1,12 @@
-# UMEED Security Review & Dependency Audit (Phase 1.2 Remediation)
+# UMEED Security Review & Dependency Audit (Final Toolchain Hardening)
 
 **Date**: 2026-10-31  
 **Project**: UMEED (HackCBS 9.0)  
 **Security Status**:
 - **Production Runtime Dependencies**: **0 Vulnerabilities (`npm audit --omit=dev`)**
-- **Framework Hardening**: Next.js 15.5.28 (October 14, 2026 Security Release)
-- **Schema & Array Bounds**: Hardened with Zod 4.6.7 + bounded collections
+- **Test Toolchain**: Vitest `4.1.12` (Tinypool completely removed; 0 Critical, 0 High vulnerabilities across workspace)
+- **Framework**: Next.js 15.5.28 (October 14, 2026 Security Release)
+- **Schema Validation**: Zod 4.6.7 with strict `.max()` array and string limits
 
 ---
 
@@ -25,56 +26,67 @@ The application runs on **Next.js 15.5.28**. This release specifically resolves 
 
 ## 2. Production Dependency Remediation (`npm audit --omit=dev`)
 
-An audit using `npm audit --omit=dev --json` against the official npm registry (`https://registry.npmjs.org/`) confirms:
+An audit using `npm audit --omit=dev` against the official npm registry (`https://registry.npmjs.org/`) confirms:
 ```
 found 0 vulnerabilities
 ```
 
-### Remediation Applied:
-
-1. **PostCSS Transitive Dependency Upgrade (via npm overrides)**:
-   - *Previous state*: `next@15.5.28` declared a transitive pinned dependency on `postcss@8.4.31`, which carried advisories `GHSA-6g55-p6wh-862q`, `GHSA-r28c-9q8g-f849`, `GHSA-qx2v-qp2m-jg93`, and `GHSA-fxqj-rqcc-2cmp`.
-   - *Fix*: Applied an npm override in root `package.json`:
+### Remediation Details:
+1. **PostCSS Transitive Dependency Override**:
+   - `node_modules/next/node_modules/postcss` (pinned 8.4.31) was overridden using root `package.json` overrides:
      ```json
      "overrides": {
        "postcss": "8.5.32"
      }
      ```
-   - *Result*: All instances of PostCSS across the entire tree now resolve to `8.5.32`, completely eliminating the vulnerable `8.4.31` instance.
-
-2. **Zod Upgrade & Array Resource-Exhaustion Protection**:
-   - *Previous state*: `zod@3.25.76` carried advisory `GHSA-mrhx-c7xc-m3w5` (High, CVSS 7.5: memory exhaustion while validating oversized constrained collections in `<4.6.6`).
-   - *Fix*: Upgraded root and workspace packages to **`zod@4.6.7`**.
-   - *Application-Layer Defense*: Enforced strict `.max(...)` boundaries on all collections in `packages/contracts/src/incident.ts`:
-     - `evidence`: max 25 items
-     - `description`: max 5000 characters
-     - `source_reference`: max 256 characters
-     - `source_url`: max 2048 characters
-     - `address`: max 500 characters
-     - `district`: max 100 characters
-     - `severity.reasoning`: max 20 items (max 500 characters each)
-     - `missing_information`: max 20 tags (max 200 characters each)
-     - `latitude` / `longitude`: bounded to `[-90, 90]` and `[-180, 180]`
+   - Resolves all PostCSS advisories (`GHSA-6g55-p6wh-862q`, `GHSA-r28c-9q8g-f849`, `GHSA-qx2v-qp2m-jg93`, `GHSA-fxqj-rqcc-2cmp`).
+2. **Zod 4.6.7 Upgrade & Schema Defense**:
+   - Upgraded to `zod@4.6.7` (resolving `GHSA-mrhx-c7xc-m3w5`).
+   - Hardened `CanonicalIncidentSchema` in `packages/contracts/src/incident.ts` with explicit `.max()` limits (evidence: max 25, description: max 5000, reasoning: max 20, missing_info: max 20, geographic coordinates: bounded).
 
 ---
 
-## 3. Development-Only Dependencies Analysis (`npm audit`)
+## 3. Development Toolchain Remediation (Vitest 4.1.12)
 
-Full audit report: 19 advisories (0 in production runtime).
+### A. Tinypool Removal
+- **Previous state**: `vitest@3.2.7` depended on `tinypool@1.1.1`, which was flagged by two Critical RCE advisories (`GHSA-5gmw-xhrv-c9v3`, `GHSA-85c8-ppgw-ccpr`) due to worker option prototype pollution.
+- **Remediation**: Upgraded `vitest` to **`4.1.12`**. Vitest 4 completely removed Tinypool and replaced its execution pool with native worker scheduling.
+- **Verification**: `npm ls tinypool` now outputs `(empty)`.
 
-| Package | Severity | Advisory ID | Dependency Path | Mitigation & Exposure Assessment |
-|---|---|---|---|---|
-| `tinypool` | Critical | `GHSA-5gmw-xhrv-c9v3`<br>`GHSA-85c8-ppgw-ccpr` | `apps/web > dev vitest > tinypool` | Prototype pollution in worker options. **Zero Production Exposure**: Tinypool runs strictly in local unit tests (`vitest run`). It is never bundled into `next build`. |
-| `vitest` / `@vitest/mocker` | Moderate | `GHSA-82fw-gwwq-j7x9`<br>`GHSA-qxg6-89mg-rqv8` | `apps/web > dev vitest > @vitest/mocker` | Redirect mock path traversal during UI server runs. **Mitigation**: We only execute headless CLI `vitest run`, never listening on network ports. Upgraded Vitest to `3.2.7`. |
-| `esbuild` | Moderate | `GHSA-67mh-4wv8-2f99` | `apps/web > dev vitest > vite > esbuild` | Dev-server origin verification. Used solely for test file compilation. |
-| `minimatch` | Moderate | `GHSA-g3hv-75wg-m249` | `apps/web > dev eslint > @typescript-eslint > minimatch` | Potential ReDoS during glob expansion in ESLint config array. Used exclusively during static linting (`next lint`). |
+### B. Vite & Esbuild Alignment
+- Vitest 4.1.12 upgraded the internal Vite test bundler to `vite@8.3.5`, resolving the previous `esbuild` and `@vitest/mocker` advisories.
+
+### C. Remaining Development Tooling Advisory
+- **Remaining Advisory**: `minimatch <11.0.1` (`GHSA-g3hv-75wg-m249`, Moderate).
+  - *Dependency Path*: `eslint-config-next > eslint-plugin-import > minimatch@3.1.5`
+  - *Mitigation*: ESLint is strictly a local developer linter (`next lint`). `npm audit fix --force` suggests downgrading to `eslint@4.0.0`, which would be a severe breaking change. This advisory has **zero runtime exposure** in production.
 
 ---
 
-## 4. Verification Checkpoint
+## 4. Quality & Verification Gates
 
-1. `npm audit --omit=dev`: **0 vulnerabilities**
-2. `npm run typecheck --workspaces`: **0 errors**
-3. `npm run lint --workspace=apps/web`: **✔ No ESLint warnings or errors**
-4. `npm run test --workspaces`: **17/17 tests passing** (6 in `@umeed/contracts`, 11 in `@umeed/web`)
-5. `npm run build --workspace=apps/web`: **Production build succeeded in 1.3s** (11 static/dynamic routes)
+```bash
+# Production audit
+npm audit --omit=dev
+# Result: found 0 vulnerabilities (Exit code: 0)
+
+# Full audit
+npm audit
+# Result: 0 Critical, 0 High (only 13 moderate transitive minimatch instances in ESLint)
+
+# Strict TypeScript check
+npm run typecheck --workspaces
+# Result: 0 errors across @umeed/contracts and @umeed/web
+
+# ESLint check
+npm run lint --workspace=apps/web
+# Result: ✔ No ESLint warnings or errors
+
+# Automated test suite
+npm run test --workspaces
+# Result: 17/17 tests passing in 245ms
+
+# Production build
+npm run build --workspace=apps/web
+# Result: Compiled successfully in 1152ms (11 routes generated)
+```
