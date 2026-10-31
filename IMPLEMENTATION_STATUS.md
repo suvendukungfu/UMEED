@@ -1,8 +1,8 @@
 # UMEED Implementation Status Tracker
 
-**Current Phase**: Phase 3 — Citizen Incident Reporting & Gemini Multimodal Triage  
+**Current Phase**: Phase 4 — NGO Intelligence Registry & Explainable Matching Engine  
 **Primary Branch**: `main`  
-**Status**: **COMPLETED & VERIFIED** (Ready for Phase 4: NGO Intelligence Registry & Explainable Matching)  
+**Status**: **COMPLETED & VERIFIED** (Ready for Phase 5: Closed-Loop Case Coordination & State Machine)  
 
 ---
 
@@ -18,7 +18,7 @@
 | **Phase 2.1**| Incident Security, Authorization & Privacy Controls | **COMPLETED** | Coordinator Auth, Anti-Enumeration, EXIF Stripping, Rate Limiting, 54 tests pass |
 | **Phase 2.2**| Production Safety & Configuration Boundaries | **COMPLETED** | Fail-closed DB, Production Credential Rejection, Binary EXIF Purging, 70 tests pass |
 | **Phase 3** | Citizen Incident Reporting & Gemini Multimodal Triage | **COMPLETED** | Gemini 2.5 Flash, Strict Zod Output, Split Review UI, Fail-Soft Fallback, 87 tests pass |
-| **Phase 4** | NGO Intelligence Registry & Explainable Matching | Upcoming | Hard Capability Filter Tests |
+| **Phase 4** | NGO Intelligence Registry & Explainable Matching | **COMPLETED** | 117 tests pass, 2dsphere indexes, hard capability filters, 0 vulnerabilities |
 | **Phase 5** | Closed-Loop Case Coordination & State Machine | Upcoming | State Machine & Recursive Matching Tests |
 | **Phase 6** | Meko Coordination Memory Agent | Upcoming | Meko MCP Integration Spike & Recall Tests |
 | **Phase 7** | IOMETE Impact Analytics & Integration Outbox | Upcoming | Outbox & Event Stream Telemetry Tests |
@@ -119,4 +119,48 @@
 - [x] **ESLint Code Quality**: **✔ No ESLint warnings or errors**.
 - [x] **Production Bundle Build**: **Compiled successfully in 2.2s** (14 static and dynamic routes).
 - [x] **Zero Production Vulnerabilities**: Clean audit via `npm audit --omit=dev` (0 vulnerabilities).
+
+---
+
+## Phase 4 Verification Checklist
+
+- [x] **NGO Registry Data Model & Validation**:
+  - `NGOSchema` and `SanitizedPublicNGOSchema` implemented in `@umeed/contracts`.
+  - Comprehensive schemas for organisation type, verification status, registration status, availability status, capacity status, location, contacts, evidence, and response history.
+- [x] **MongoDB & In-Memory Repository Implementations**:
+  - `INGORepository` interface standardizing persistence operations.
+  - `MongoNGORepository` with MongoDB Atlas indexes (`ngo_id` unique, `registration_number` unique sparse, `service_categories` multikey, `operational_districts` multikey, `verification_status`, and `headquarters_location.geo` 2dsphere with `[longitude, latitude]` ordering).
+  - `InMemoryNGORepository` with geospatial distance calculation and deterministic filtering for local testing.
+  - Factory `getNGORepository()` enforcing production fail-closed boundaries (fails closed with 503 if MongoDB URI is not configured in production).
+- [x] **Privacy Boundary Enforcement**:
+  - `sanitizeNGOForPublic` strips confidential coordinator contact details, emergency phone numbers, and internal audit evidence for public directory viewers.
+  - `sanitizeNGOForCoordinator` preserves full operational intelligence for credentialed coordinators.
+- [x] **RFC 4180 CSV Ingestion Pipeline**:
+  - `POST /api/ngos/import` endpoint supporting CSV uploads up to 5 MB.
+  - Duplicate detection engine detecting identical registration numbers and fuzzy normalized name + district collisions.
+  - Granular `ImportValidationReport` returning row-by-row error reasons without failing entire batches.
+  - No-auto-promotion invariant: imported records are never promoted to `OPERATIONALLY_VERIFIED` automatically.
+- [x] **Synthetic Seed Registry**:
+  - 8 realistic Delhi NCR NGOs across animal rescue, homeless welfare, elder care, medical triage, and emergency shelter.
+  - Explicitly marked with `is_demo: true` and `DEMO_ONLY`.
+- [x] **Explainable Multi-Factor Matching Engine**:
+  - `ExplainableMatchingService` and `GET /api/ngos/matches/:incidentReference`.
+  - Hard capability pre-filtering: eliminates mismatches in service category or subject type regardless of proximity.
+  - Multi-criteria scoring: Capability (40%), Geographic Coverage (25%), Haversine Distance (15%), Availability (10%), Capacity (10%), with verification tier multiplier.
+  - Distance edge-case handling: unknown incident coordinates assign neutral 0.50 score without penalty and flag audit notice.
+  - Response history safeguard: metrics excluded when `sample_size < 5` to prevent small-sample skew.
+  - Human coordinator dispatch invariant: matching provides ranked recommendations with full transparency; coordinators retain sole dispatch authority.
+- [x] **Frontend Web Interfaces**:
+  - `/ngos`: Public/coordinator NGO directory with search, category/district/verification filters, CSV import modal, and organization details modal.
+  - `/incidents`: Coordinator incident review workspace with integrated Explainable Matching panel, candidate cards, component breakdowns, distance, and selection controls.
+- [x] **Comprehensive Automated Test Suite**: **117/117 tests passing** (6 contracts, 111 web) including:
+  - 11 NGO registry & validation tests (`ngo-registry.test.ts`)
+  - 11 matching engine & safeguard tests (`matching-engine.test.ts`)
+  - 8 NGO API & authorization tests (`ngo-api.test.ts`)
+  - 6 NGO repository & geospatial index tests (`ngo-repository.test.ts`)
+- [x] **TypeScript Strict Compilation**: **0 errors** across all workspaces (`tsc --noEmit`).
+- [x] **ESLint Code Quality**: **✔ No ESLint warnings or errors**.
+- [x] **Production Bundle Build**: **Compiled successfully** (17 static and dynamic routes).
+- [x] **Zero Production Vulnerabilities**: Clean audit via `npm audit --omit=dev` (0 vulnerabilities).
+
 

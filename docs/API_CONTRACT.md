@@ -16,6 +16,12 @@
 | `/api/incidents/:publicReference/triage` | `POST` | Coordinator / Staff | Trigger or re-run multimodal Gemini AI distress triage for an incident | `200`, `401`, `404`, `500` |
 | `/api/incidents/:publicReference/review` | `POST` | Coordinator / Staff | Record human coordinator review decision (`CONFIRM`, `OVERRIDE`, `REJECT`, `REQUEST_INFO`, `ESCALATE`) | `200`, `400`, `401`, `404`, `500` |
 | `/api/ai/evaluation` | `GET` | Coordinator / Staff | Execute 9-scenario synthetic AI triage benchmark suite and return metrics | `200`, `401`, `500` |
+| `/api/ngos` | `GET` | Public / Coordinator | Query NGO directory (Public: redacted; Coordinator: full contact & evidence) | `200`, `500` |
+| `/api/ngos` | `POST` | Coordinator / Staff | Register new NGO manually into the intelligence registry | `201`, `400`, `401`, `409`, `500` |
+| `/api/ngos/:ngoId` | `GET` | Public / Coordinator | Retrieve single NGO details by business identifier | `200`, `404`, `500` |
+| `/api/ngos/:ngoId` | `PATCH` | Coordinator / Staff | Update operational status, capacity, or details of an existing NGO | `200`, `400`, `401`, `404`, `500` |
+| `/api/ngos/import` | `POST` | Coordinator / Staff | Bulk import NGOs from RFC 4180 CSV with duplicate detection & validation report | `200`, `400`, `401`, `500` |
+| `/api/ngos/matches/:incidentReference` | `GET` | Coordinator / Staff | Generate explainable, multi-factor scored candidate recommendations for an incident | `200`, `401`, `404`, `500` |
 | `/api/health` | `GET` | Public | System readiness and database connectivity check | `200` |
 
 ---
@@ -335,4 +341,142 @@ Coordinator-authenticated trigger to run the 9-scenario synthetic evaluation ben
   }
 }
 ```
+
+---
+
+## 9. NGO Intelligence Registry: `GET /api/ngos`
+
+Lists and filters NGOs. Public callers receive sanitized profiles (private coordinator contact, direct emergency numbers, and internal audit evidence stripped). Authenticated coordinators receive full operational profiles.
+
+### Query Parameters
+- `service_category`: Filter by `IncidentType` (e.g. `injured_animal`, `homeless_person`)
+- `district`: Filter by operational district (e.g. `South Delhi`)
+- `verification_status`: Filter by status (`OPERATIONALLY_VERIFIED`, `REGISTRATION_CHECKED`, etc.)
+- `search`: Case-insensitive text search across name, alternate names, and capabilities
+
+### Headers
+- `x-coordinator-key` or `Authorization: Bearer <key>`: Optional. Enables coordinator-privileged view.
+
+### Response (`200 OK`)
+```json
+{
+  "status": "success",
+  "data": {
+    "ngos": [ ... ],
+    "total": 8,
+    "view_mode": "public | coordinator"
+  }
+}
+```
+
+---
+
+## 10. Manual NGO Registration: `POST /api/ngos`
+
+Allows coordinators to manually register an NGO.
+
+### Request Headers
+- `x-coordinator-key: <key>` or `Authorization: Bearer <key>` (Required)
+- `Content-Type: application/json`
+
+### Request Body (`NGOSchema`)
+Requires valid `organisation_name`, `organisation_type`, `service_categories`, `supported_subject_types`, `operational_districts`, and `headquarters_location` with coordinates.
+
+### Response (`201 Created` or `409 Conflict`)
+Returns the created NGO document. Returns `409 Conflict` if the registration number or business ID already exists.
+
+---
+
+## 11. Single NGO Operations: `GET /api/ngos/:ngoId` & `PATCH /api/ngos/:ngoId`
+
+### `GET /api/ngos/:ngoId`
+Returns a single organisation's profile. Sanitized if public caller; complete if authenticated coordinator.
+
+### `PATCH /api/ngos/:ngoId`
+Coordinator-only endpoint to update availability, capacity, verification tier, or contact details.
+
+#### Request Headers
+- `x-coordinator-key: <key>` or `Authorization: Bearer <key>` (Required)
+
+---
+
+## 12. NGO Bulk CSV Import: `POST /api/ngos/import`
+
+Imports NGO rosters from RFC 4180 CSV with automatic duplicate detection and row validation.
+
+### Request Headers
+- `x-coordinator-key: <key>` or `Authorization: Bearer <key>` (Required)
+- `Content-Type: text/csv` or `application/json` with `{ "csv_content": "..." }`
+
+### Response (`200 OK`)
+```json
+{
+  "status": "success",
+  "data": {
+    "total_rows": 12,
+    "imported_count": 10,
+    "skipped_count": 2,
+    "duplicate_count": 1,
+    "error_count": 1,
+    "errors": [
+      {
+        "row_number": 4,
+        "organisation_name": "Animal Care Delhi",
+        "reason": "Duplicate organization: Registration number DL/2018/0184920 already exists"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 13. Explainable Matching Engine: `GET /api/ngos/matches/:incidentReference`
+
+Computes ranked, explainable organization recommendations for an incident using multi-criteria weighted scoring.
+
+### Request Headers
+- `x-coordinator-key: <key>` or `Authorization: Bearer <key>` (Required)
+
+### Response (`200 OK`)
+```json
+{
+  "status": "success",
+  "data": {
+    "incident_reference": "UMD-7B29-4K12",
+    "evaluated_candidates_count": 8,
+    "eligible_candidates_count": 3,
+    "matched_candidates": [
+      {
+        "ngo_id": "ngo_del_001",
+        "organisation_name": "Delhi Animal Welfare Society Trust Regd",
+        "eligible": true,
+        "composite_score": 0.892,
+        "component_scores": {
+          "capability_score": 0.95,
+          "coverage_score": 1.0,
+          "distance_score": 0.8,
+          "availability_score": 1.0,
+          "capacity_score": 0.8,
+          "history_score": null
+        },
+        "distance_km": 8.4,
+        "ineligibility_reasons": [],
+        "explanation": "High capability alignment with 24/7 emergency response in South Delhi (8.4 km away).",
+        "missing_information": []
+      }
+    ],
+    "weights_applied": {
+      "capability": 0.40,
+      "coverage": 0.25,
+      "distance": 0.15,
+      "availability": 0.10,
+      "capacity": 0.10
+    },
+    "explanation_summary": "Top recommendation: Delhi Animal Welfare Society Trust Regd (Score: 89%). 3 eligible organisations identified.",
+    "generated_at": "2026-10-31T14:30:00.000Z"
+  }
+}
+```
+
 

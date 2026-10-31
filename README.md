@@ -47,6 +47,7 @@ npm run dev
 Visit [http://localhost:3000](http://localhost:3000) to view the UMEED Dashboard.
 - Citizen Report Form: [http://localhost:3000/report](http://localhost:3000/report)
 - Coordinator Triage Queue: [http://localhost:3000/incidents](http://localhost:3000/incidents)
+- NGO Intelligence Directory: [http://localhost:3000/ngos](http://localhost:3000/ngos)
 
 ### API Endpoints (Operational)
 - **Health Check**: `GET /api/health`
@@ -56,6 +57,10 @@ Visit [http://localhost:3000](http://localhost:3000) to view the UMEED Dashboard
 - **AI Triage Trigger**: `POST /api/incidents/:publicReference/triage` (On-demand multimodal Gemini triage)
 - **Coordinator Review**: `POST /api/incidents/:publicReference/review` (Confirm, override, reject, or escalate decisions)
 - **AI Benchmark Evaluation**: `GET /api/ai/evaluation` (Run 9-scenario synthetic evaluation suite)
+- **NGO Directory & Filter**: `GET /api/ngos` (Public sanitized vs. coordinator unredacted)
+- **NGO Creation & Updates**: `POST /api/ngos`, `PATCH /api/ngos/:ngoId`
+- **NGO Bulk CSV Import**: `POST /api/ngos/import` (RFC 4180 parser, duplicate detection, validation report)
+- **Explainable Matching**: `GET /api/ngos/matches/:incidentReference` (Multi-factor scoring, hard capability filter)
 
 ---
 

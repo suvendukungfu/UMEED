@@ -18,9 +18,10 @@ import {
   XCircle,
   HelpCircle,
   ArrowUpRight,
+  Building2,
 } from "lucide-react";
 import { IncidentDocument, ReviewDecision } from "@/features/incidents/types";
-import { IncidentType, TriageUrgencyLevel } from "@umeed/contracts";
+import { IncidentType, TriageUrgencyLevel, MatchResult } from "@umeed/contracts";
 
 export default function IncidentsPage() {
   const [incidents, setIncidents] = useState<IncidentDocument[]>([]);
@@ -38,6 +39,32 @@ export default function IncidentsPage() {
   const [overrideCategory, setOverrideCategory] = useState<IncidentType | "">("");
   const [overrideUrgency, setOverrideUrgency] = useState<TriageUrgencyLevel | "">("");
   const [actionMessage, setActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // NGO Matching state
+  const [matchLoading, setMatchLoading] = useState(false);
+  const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
+  const [matchingOpen, setMatchingOpen] = useState(false);
+  const [selectedMatchNgo, setSelectedMatchNgo] = useState<string | null>(null);
+
+  const handleFetchMatches = async (publicRef: string) => {
+    setMatchLoading(true);
+    try {
+      const res = await fetch(`/api/ngos/matches/${publicRef}`, {
+        headers: {
+          "x-coordinator-key": "umeed-coordinator-dev-key",
+        },
+      });
+      const json = await res.json();
+      if (json.status === "success") {
+        setMatchResult(json.data);
+        setMatchingOpen(true);
+      }
+    } catch {
+      // Graceful error handling
+    } finally {
+      setMatchLoading(false);
+    }
+  };
 
   const fetchIncidents = useCallback(async () => {
     setLoading(true);
@@ -750,6 +777,125 @@ export default function IncidentsPage() {
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Explainable NGO Matching Panel (Phase 4) */}
+            <div className="pt-6 border-t border-slate-200 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-emerald-600" />
+                    <span>Explainable NGO Responder Matching (Phase 4)</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Capability-filtered ranking: Service Match (40%), District Coverage (25%), Proximity (15%), Availability (10%), Capacity (10%)
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleFetchMatches(selectedIncident.public_reference)}
+                  disabled={matchLoading}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition disabled:opacity-50 self-start sm:self-auto"
+                >
+                  <RefreshCw className={`h-3 w-3 ${matchLoading ? "animate-spin" : ""}`} />
+                  <span>{matchResult ? "Re-evaluate Matches" : "Find Matching NGOs"}</span>
+                </button>
+              </div>
+
+              {matchResult && (
+                <div className="space-y-3">
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 space-y-1">
+                    <p className="font-semibold">{matchResult.explanation_summary}</p>
+                    <p className="text-[10px] text-emerald-800">
+                      Evaluated {matchResult.total_candidates_evaluated} organisations &bull; {matchResult.eligible_candidates_count} eligible candidates passed hard capability filter.
+                    </p>
+                  </div>
+
+                  {/* Candidates List */}
+                  <div className="space-y-2">
+                    {matchResult.candidates
+                      .filter((c) => c.eligible)
+                      .slice(0, 5)
+                      .map((cand, idx) => (
+                        <div
+                          key={cand.ngo_id}
+                          className={`p-3.5 rounded-xl border text-xs transition ${
+                            selectedMatchNgo === cand.ngo_id
+                              ? "border-emerald-500 bg-emerald-50/50 shadow-sm"
+                              : "border-slate-200 bg-white hover:border-slate-300"
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                            <div className="space-y-1.5 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-mono font-bold text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">
+                                  #{idx + 1}
+                                </span>
+                                <span className="font-bold text-slate-900 text-xs">
+                                  {cand.organisation_name}
+                                </span>
+                                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                  {cand.verification_status}
+                                </span>
+                                {cand.is_demo && (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                    DEMO_ONLY
+                                  </span>
+                                )}
+                              </div>
+
+                              <p className="text-[11px] text-slate-600">{cand.explanation}</p>
+
+                              {/* Component Breakdown Pills */}
+                              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700">
+                                  Capability: {Math.round(cand.component_scores.capability_score * 100)}%
+                                </span>
+                                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700">
+                                  Coverage: {Math.round(cand.component_scores.coverage_score * 100)}%
+                                </span>
+                                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700">
+                                  Distance: {Math.round(cand.component_scores.distance_score * 100)}%
+                                </span>
+                                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700">
+                                  Availability: {Math.round(cand.component_scores.availability_score * 100)}%
+                                </span>
+                                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700">
+                                  Capacity: {Math.round(cand.component_scores.capacity_score * 100)}%
+                                </span>
+                              </div>
+
+                              {cand.missing_information.length > 0 && (
+                                <div className="text-[10px] text-slate-500 pt-0.5">
+                                  <strong>Notice:</strong> {cand.missing_information.join("; ")}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="sm:text-right shrink-0 space-y-1.5">
+                              <div className="text-base font-bold text-emerald-700 font-mono">
+                                {Math.round(cand.total_score * 100)}%
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedMatchNgo(cand.ngo_id);
+                                  setActionMessage({
+                                    type: "success",
+                                    text: `Selected '${cand.organisation_name}' for coordinator outreach.`,
+                                  });
+                                }}
+                                className="px-2.5 py-1 text-[11px] font-semibold rounded bg-emerald-600 text-white hover:bg-emerald-700 transition"
+                              >
+                                {selectedMatchNgo === cand.ngo_id ? "Selected ✓" : "Select NGO"}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
