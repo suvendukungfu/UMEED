@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { getServerEnv, requireIntegrationConfig, resetEnvCache } from "./env";
+import { getServerEnv, requireIntegrationConfig, resetEnvCache, isPlaceholderValue } from "./env";
 
 describe("Server Environment Configuration", () => {
   const originalEnv = { ...process.env };
@@ -18,6 +18,24 @@ describe("Server Environment Configuration", () => {
     expect(env.PORT).toBe(3000);
     expect(env.MONGODB_URI).toBeUndefined();
     expect(env.GEMINI_API_KEY).toBeUndefined();
+  });
+
+  it("converts empty string environment variables to undefined", () => {
+    process.env.MONGODB_URI = "";
+    process.env.GEMINI_API_KEY = "   ";
+
+    const env = getServerEnv();
+    expect(env.MONGODB_URI).toBeUndefined();
+    expect(env.GEMINI_API_KEY).toBeUndefined();
+  });
+
+  it("identifies placeholder credentials and template variables", () => {
+    expect(isPlaceholderValue("mongodb+srv://<username>:<password>@cluster0.example.mongodb.net/?retryWrites=true")).toBe(true);
+    expect(isPlaceholderValue("your_gemini_api_key_placeholder")).toBe(true);
+    expect(isPlaceholderValue("AIzaSyDummyRealKey12345")).toBe(false);
+    expect(isPlaceholderValue("mongodb+srv://realuser:realpass@mycluster.net")).toBe(false);
+    expect(isPlaceholderValue("")).toBe(false);
+    expect(isPlaceholderValue(undefined)).toBe(false);
   });
 
   it("allows setting MONGODB_URI and MONGODB_DB", () => {

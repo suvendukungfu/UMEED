@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { InMemoryIncidentRepository } from "../repositories/memory-incident.repository";
+import { getIncidentRepository, setIncidentRepository } from "../repositories";
+import { resetEnvCache } from "@/lib/config/env";
 import { IncidentDocument } from "../types";
 
 describe("Incident Repository Architecture (Tests 9, 17, 18, 20)", () => {
@@ -102,5 +104,18 @@ describe("Incident Repository Architecture (Tests 9, 17, 18, 20)", () => {
     // Invariant 20: No case document exists or was created
     const hasCaseProperty = "case_id" in saved || "assigned_organisations" in saved;
     expect(hasCaseProperty).toBe(false);
+  });
+
+  it("safely falls back to InMemoryIncidentRepository when MONGODB_URI has template placeholders", () => {
+    setIncidentRepository(null);
+    process.env.MONGODB_URI = "mongodb+srv://<username>:<password>@cluster0.example.mongodb.net/?retryWrites=true&w=majority";
+    resetEnvCache();
+
+    const activeRepo = getIncidentRepository();
+    expect(activeRepo).toBeInstanceOf(InMemoryIncidentRepository);
+
+    setIncidentRepository(null);
+    delete process.env.MONGODB_URI;
+    resetEnvCache();
   });
 });

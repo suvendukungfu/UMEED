@@ -1,5 +1,19 @@
 import { z } from "zod";
 
+const emptyToUndefined = z.preprocess((val) => {
+  if (typeof val === "string" && val.trim() === "") {
+    return undefined;
+  }
+  return val;
+}, z.string().optional());
+
+const optionalUrl = z.preprocess((val) => {
+  if (typeof val === "string" && val.trim() === "") {
+    return undefined;
+  }
+  return val;
+}, z.string().url().optional());
+
 /**
  * Server-side Environment Configuration Schema.
  * Integration credentials are typed and marked optional so the application shell
@@ -10,22 +24,22 @@ const ServerEnvSchema = z.object({
   PORT: z.coerce.number().default(3000),
 
   // Database (MongoDB Atlas)
-  MONGODB_URI: z.string().optional(),
+  MONGODB_URI: emptyToUndefined,
   MONGODB_DB: z.string().default("umeed_db"),
 
   // AI Multimodal Triage (Google Gemini) - Phase 3
-  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_API_KEY: emptyToUndefined,
 
   // Coordination Memory (Meko) - Phase 6
-  MEKO_API_KEY: z.string().optional(),
-  MEKO_DATAPACK_ID: z.string().optional(),
+  MEKO_API_KEY: emptyToUndefined,
+  MEKO_DATAPACK_ID: emptyToUndefined,
 
   // Impact Analytics (IOMETE) - Phase 7
-  IOMETE_PAT: z.string().optional(),
-  IOMETE_EVENT_STREAM_URL: z.string().url().optional(),
+  IOMETE_PAT: emptyToUndefined,
+  IOMETE_EVENT_STREAM_URL: optionalUrl,
 
   // Discovery Crawler Service - Phase 8
-  DISCOVERY_SERVICE_URL: z.string().url().optional(),
+  DISCOVERY_SERVICE_URL: optionalUrl,
   CRAWLER_API_KEY: z.string().optional().default("umeed-crawler-dev-key"),
 
   // Coordinator Authentication & Authorization - Phase 2.1
@@ -35,6 +49,21 @@ const ServerEnvSchema = z.object({
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;
 
 let parsedEnv: ServerEnv | null = null;
+
+/**
+ * Detects if an environment variable holds an unconfigured template placeholder
+ * such as <username>, <password>, or *_placeholder.
+ */
+export function isPlaceholderValue(val?: string | null): boolean {
+  if (!val || typeof val !== "string") return false;
+  const trimmed = val.trim();
+  if (trimmed === "") return false;
+  return (
+    (trimmed.includes("<") && trimmed.includes(">")) ||
+    trimmed.toLowerCase().includes("placeholder") ||
+    trimmed.includes("example.mongodb.net")
+  );
+}
 
 /**
  * Safely parse and retrieve server environment variables.

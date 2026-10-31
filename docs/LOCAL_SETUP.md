@@ -61,22 +61,32 @@ cp .env.example .env.local
 ```bash
 # Application Configuration
 NODE_ENV=development
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_APP_VERSION=0.1.0
+PORT=3000
+NEXT_PUBLIC_APP_NAME="UMEED"
+NEXT_PUBLIC_APP_VERSION=1.0.0
 
-# Database (MongoDB Atlas or Local Instance)
-# If left empty, the application will boot in fail-soft mode with database marked as unconfigured.
-MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/umeed?retryWrites=true&w=majority
-MONGODB_DB_NAME=umeed
+# Database (MongoDB Atlas)
+# Leave empty to use the zero-setup InMemoryIncidentRepository fallback.
+MONGODB_URI=
+MONGODB_DB=umeed_dev
 
-# Multimodal AI Model (Server-Side Only)
-GEMINI_API_KEY=your_gemini_api_key_here
+# Access Control Keys (Phase 2.1)
+COORDINATOR_API_KEY=umeed-coordinator-dev-key
+CRAWLER_API_KEY=umeed-crawler-dev-key
 
-# Persistent Coordination Memory
-MEKO_API_KEY=your_meko_api_key_here
+# Multimodal AI Model (Server-Side Only - Phase 3)
+GEMINI_API_KEY=
 
-# Historical Analytics Stream
-IOMETE_TOKEN=your_iomete_token_here
+# Persistent Coordination Memory (Phase 6)
+# MEKO_API_KEY=
+# MEKO_DATAPACK_ID=
+
+# Historical Analytics Stream (Phase 7)
+# IOMETE_PAT=
+# IOMETE_EVENT_STREAM_URL=https://workspace.iomete.cloud/api/v1/event-stream
+
+# Discovery Crawler (Phase 8)
+DISCOVERY_SERVICE_URL=http://localhost:8000
 ```
 
 ---

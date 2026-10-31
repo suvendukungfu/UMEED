@@ -1,5 +1,5 @@
 import { MongoClient, Db, ServerApiVersion } from "mongodb";
-import { getServerEnv } from "@/lib/config/env";
+import { getServerEnv, isPlaceholderValue } from "@/lib/config/env";
 import { logger } from "@/lib/logging";
 
 /**
@@ -22,13 +22,25 @@ export interface DatabaseStatus {
 }
 
 /**
+ * Evaluates whether MONGODB_URI is realistically configured for an Atlas/Mongo cluster.
+ * Returns false if missing, empty, or containing template placeholder tokens.
+ */
+export function isMongoConfigured(uri?: string | null): uri is string {
+  if (!uri || typeof uri !== "string") return false;
+  const trimmed = uri.trim();
+  if (trimmed === "") return false;
+  if (isPlaceholderValue(trimmed)) return false;
+  return trimmed.startsWith("mongodb://") || trimmed.startsWith("mongodb+srv://");
+}
+
+/**
  * Get or initialize the cached MongoDB client promise.
  * Returns null if MONGODB_URI is not configured, allowing fail-soft application boots.
  */
 export function getMongoClientPromise(): Promise<MongoClient> | null {
   const env = getServerEnv();
 
-  if (!env.MONGODB_URI) {
+  if (!isMongoConfigured(env.MONGODB_URI)) {
     return null;
   }
 
@@ -94,6 +106,22 @@ export async function checkDatabaseReadiness(): Promise<DatabaseStatus> {
       configured: false,
       connected: false,
       error: "MONGODB_URI is not configured",
+    };
+  }
+
+  if (isPlaceholderValue(env.MONGODB_URI)) {
+    return {
+      configured: false,
+      connected: false,
+      error: "MONGODB_URI contains unconfigured placeholder template values",
+    };
+  }
+
+  if (!isMongoConfigured(env.MONGODB_URI)) {
+    return {
+      configured: false,
+      connected: false,
+      error: "MONGODB_URI must begin with mongodb:// or mongodb+srv://",
     };
   }
 
