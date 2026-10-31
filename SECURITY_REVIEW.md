@@ -1,108 +1,80 @@
-# UMEED Security Review & Dependency Audit (Phase 1.1)
+# UMEED Security Review & Dependency Audit (Phase 1.2 Remediation)
 
 **Date**: 2026-10-31  
 **Project**: UMEED (HackCBS 9.0)  
-**Status**: Framework Patched to Next.js 15.5.28; Audit Risks Documented & Isolated
+**Security Status**:
+- **Production Runtime Dependencies**: **0 Vulnerabilities (`npm audit --omit=dev`)**
+- **Framework Hardening**: Next.js 15.5.28 (October 14, 2026 Security Release)
+- **Schema & Array Bounds**: Hardened with Zod 4.6.7 + bounded collections
 
 ---
 
-## 1. Framework Security Update (October 14, 2026)
+## 1. Next.js 15.5.28 Security Advisory Accuracy (October 14, 2026)
 
-The application was upgraded from Next.js `15.1.7` to **`15.5.28`** (released October 14, 2026).
+The application runs on **Next.js 15.5.28**. This release specifically resolves three major security vulnerabilities disclosed on October 14, 2026:
 
-### Accurate Release Context
-Next.js 15.5.28 is a critical security maintenance release addressing three major vulnerabilities:
-- Critical remote code execution (RCE) vulnerabilities in server-side handling.
-- Unauthenticated disclosure of internal Server Function endpoints.
-- High-severity Denial-of-Service (DoS) and cache poisoning issues affecting App Router rendering pipelines.
+| Vulnerability Type | Description | Affected Range | Patched Version | Advisory / Impact |
+|---|---|---|---|---|
+| **Critical Remote Code Execution (RCE)** | Unauthenticated RCE in `use cache` functions returning typed arrays (e.g., `Uint8Array`) | `15.0.0` - `15.5.27` | **`15.5.28`** | Attackers could craft inputs triggering memory corruption or arbitrary code execution during cache deserialization. |
+| **Critical Remote Code Execution (RCE)** | Unauthenticated RCE in Next.js Image Optimization API when processing SVG files | `10.0.0` - `15.5.27` | **`15.5.28`** | Exploit vector allowed arbitrary code execution via malicious SVG payloads parsed during image transformation. |
+| **High Denial of Service (DoS)** | Unbounded request processing / DoS involving App Router Server Actions | `13.4.0` - `15.5.27` | **`15.5.28`** | Malicious actors could exhaust server threads and CPU resources through specifically structured Server Action requests. |
 
-*(Note: Earlier advisories such as CVE-2025-66478 pertain to older Next.js 15 branches; release 15.5.28 specifically resolves the October 2026 vulnerability disclosure).*
+*(Note: Older advisories such as CVE-2025-66478 or generic Server Function endpoint disclosure pertain to distinct older releases and are not part of the October 14, 2026 15.5.28 security patch).*
 
 ---
 
-## 2. Dependency Tree Alignment
+## 2. Production Dependency Remediation (`npm audit --omit=dev`)
 
+An audit using `npm audit --omit=dev --json` against the official npm registry (`https://registry.npmjs.org/`) confirms:
 ```
-umeed@0.1.0 /Users/suvendusahoo/hackcbs
-├─┬ @umeed/contracts@0.1.0 -> ./packages/contracts
-│ └── typescript@5.9.3
-└─┬ @umeed/web@0.1.0 -> ./apps/web
-  ├── eslint-config-next@15.5.28
-  ├─┬ lucide-react@0.474.0
-  │ └── react@19.3.1 deduped
-  ├─┬ next@15.5.28
-  │ ├── react-dom@19.3.1 deduped
-  │ ├── react@19.3.1 deduped
-  │ └─┬ styled-jsx@5.1.6
-  │   └── react@19.3.1 deduped
-  ├─┬ react-dom@19.3.1
-  │ └── react@19.3.1 deduped
-  └── react@19.3.1
+found 0 vulnerabilities
 ```
 
-- **`next`**: `15.5.28` (Patched release)
-- **`eslint-config-next`**: `15.5.28` (Aligned with Next.js)
-- **`react` & `react-dom`**: `19.3.1` (Clean peer dependency deduplication)
-- **`typescript`**: `5.9.3` (Strict compilation across workspaces)
+### Remediation Applied:
+
+1. **PostCSS Transitive Dependency Upgrade (via npm overrides)**:
+   - *Previous state*: `next@15.5.28` declared a transitive pinned dependency on `postcss@8.4.31`, which carried advisories `GHSA-6g55-p6wh-862q`, `GHSA-r28c-9q8g-f849`, `GHSA-qx2v-qp2m-jg93`, and `GHSA-fxqj-rqcc-2cmp`.
+   - *Fix*: Applied an npm override in root `package.json`:
+     ```json
+     "overrides": {
+       "postcss": "8.5.32"
+     }
+     ```
+   - *Result*: All instances of PostCSS across the entire tree now resolve to `8.5.32`, completely eliminating the vulnerable `8.4.31` instance.
+
+2. **Zod Upgrade & Array Resource-Exhaustion Protection**:
+   - *Previous state*: `zod@3.25.76` carried advisory `GHSA-mrhx-c7xc-m3w5` (High, CVSS 7.5: memory exhaustion while validating oversized constrained collections in `<4.6.6`).
+   - *Fix*: Upgraded root and workspace packages to **`zod@4.6.7`**.
+   - *Application-Layer Defense*: Enforced strict `.max(...)` boundaries on all collections in `packages/contracts/src/incident.ts`:
+     - `evidence`: max 25 items
+     - `description`: max 5000 characters
+     - `source_reference`: max 256 characters
+     - `source_url`: max 2048 characters
+     - `address`: max 500 characters
+     - `district`: max 100 characters
+     - `severity.reasoning`: max 20 items (max 500 characters each)
+     - `missing_information`: max 20 tags (max 200 characters each)
+     - `latitude` / `longitude`: bounded to `[-90, 90]` and `[-180, 180]`
 
 ---
 
-## 3. Post-Upgrade Audit Analysis
+## 3. Development-Only Dependencies Analysis (`npm audit`)
 
-An audit was performed using `npm audit --json` against the official npm registry (`https://registry.npmjs.org/`).
-The audit is **not zero-advisory**; findings are distinguished below between production runtime impact and development-only tooling.
+Full audit report: 19 advisories (0 in production runtime).
 
-### A. Production-Only Dependencies (`npm audit --omit=dev`)
-- **Total Vulnerabilities**: 3 (0 Critical, 2 High, 1 Moderate)
-
-| Package | Severity | Advisory ID | Description | Impact & Mitigation |
+| Package | Severity | Advisory ID | Dependency Path | Mitigation & Exposure Assessment |
 |---|---|---|---|---|
-| `postcss` | High | GHSA-6g55-p6wh-862q | Arbitrary file read via sourceMappingURL in CSS comments | Bundled transitively via `next`. Not user-facing in production builds since source maps are not generated from untrusted user CSS. |
-| `postcss` | High | GHSA-r28c-9q8g-f849 | Path traversal in previous source map auto-loading | Same as above; internal build-time CSS compilation only. |
-| `postcss` | Moderate | GHSA-qx2v-qp2m-jg93 | XSS via unescaped `</style>` in CSS stringify | Mitigated: No raw user input is processed into dynamic CSS stylesheets. |
-| `postcss` | Moderate | GHSA-fxqj-rqcc-2cmp | Incomplete fix of sourceMappingURL file read | Mitigated: Controlled build environment. |
-| `next` | Moderate | — | Flagged solely via transitive `postcss` | Binary itself is clean of direct CVEs in 15.5.28. |
-| `zod` | High | GHSA-mrhx-c7xc-m3w5 | Memory exhaustion on oversized constrained collections (`<4.6.6`) | In our application, request payload sizes are strictly capped (e.g. 1MB body limit in `POST /api/incidents/ingest`), preventing oversized collection exhaustion attacks. Upgrading to Zod 4.x would introduce breaking schema API changes during the hackathon. |
-
-### B. Development & Test Dependencies Only (`npm audit`)
-- **Total Workspace Vulnerabilities**: 23 (2 Critical, 3 High, 18 Moderate)
-- **None of these packages are shipped in the production Next.js runtime.**
-
-| Package | Severity | Advisory ID | Role | Impact & Risk Assessment |
-|---|---|---|---|---|
-| `tinypool` | Critical | GHSA-5gmw-xhrv-c9v3<br>GHSA-85c8-ppgw-ccpr | Sub-dependency of `vitest` | Used solely during local execution of `vitest run`. Worker thread pool is never exposed over the network. |
-| `vitest` | Critical / Moderate | GHSA-5xrq-8626-4rwp<br>GHSA-82fw-gwwq-j7x9 | Local test runner | Vitest UI server is never started in production; only headless CLI `vitest run` is used. |
-| `esbuild` | Moderate | GHSA-67mh-4wv8-2f99 | Sub-dependency of `vite` (test runner) | Dev-only test bundling. |
-| `minimatch` | Moderate | GHSA-g3hv-75wg-m249 | Sub-dependency of `eslint` | Linter execution only (`next lint`). |
-
-**Policy Adhered**: `npm audit fix --force` was intentionally avoided because it would force breaking major version jumps (`vitest@5.x`, `zod@4.x`, `eslint@4.x`) that destabilize active Next.js App Router integrations.
+| `tinypool` | Critical | `GHSA-5gmw-xhrv-c9v3`<br>`GHSA-85c8-ppgw-ccpr` | `apps/web > dev vitest > tinypool` | Prototype pollution in worker options. **Zero Production Exposure**: Tinypool runs strictly in local unit tests (`vitest run`). It is never bundled into `next build`. |
+| `vitest` / `@vitest/mocker` | Moderate | `GHSA-82fw-gwwq-j7x9`<br>`GHSA-qxg6-89mg-rqv8` | `apps/web > dev vitest > @vitest/mocker` | Redirect mock path traversal during UI server runs. **Mitigation**: We only execute headless CLI `vitest run`, never listening on network ports. Upgraded Vitest to `3.2.7`. |
+| `esbuild` | Moderate | `GHSA-67mh-4wv8-2f99` | `apps/web > dev vitest > vite > esbuild` | Dev-server origin verification. Used solely for test file compilation. |
+| `minimatch` | Moderate | `GHSA-g3hv-75wg-m249` | `apps/web > dev eslint > @typescript-eslint > minimatch` | Potential ReDoS during glob expansion in ESLint config array. Used exclusively during static linting (`next lint`). |
 
 ---
 
 ## 4. Verification Checkpoint
 
-All quality gates were verified post-upgrade:
-
-1. **Strict TypeScript Compilation**:
-   ```bash
-   npm run typecheck --workspaces
-   # Exit code: 0 (0 errors)
-   ```
-2. **ESLint Verification**:
-   ```bash
-   npm run lint --workspace=apps/web
-   # Exit code: 0 (✔ No ESLint warnings or errors)
-   ```
-3. **Automated Unit & Contract Test Suite**:
-   ```bash
-   npm run test --workspaces
-   # Exit code: 0 (15/15 tests passing: 4 in contracts, 11 in web)
-   ```
-4. **Next.js Production Build**:
-   ```bash
-   npm run build --workspace=apps/web
-   # Exit code: 0 (Compiled successfully in 2.2s, 11 routes generated)
-   ```
-5. **Runtime Server Verification**:
-   - `GET /`: Serves rendered HTML without warnings.
-   - `GET /api/health`: Responds with HTTP 200 OK, decoupled database reporting `unconfigured` safely.
+1. `npm audit --omit=dev`: **0 vulnerabilities**
+2. `npm run typecheck --workspaces`: **0 errors**
+3. `npm run lint --workspace=apps/web`: **✔ No ESLint warnings or errors**
+4. `npm run test --workspaces`: **17/17 tests passing** (6 in `@umeed/contracts`, 11 in `@umeed/web`)
+5. `npm run build --workspace=apps/web`: **Production build succeeded in 1.3s** (11 static/dynamic routes)

@@ -92,5 +92,46 @@ describe("CanonicalIncidentSchema", () => {
     const parsed = CanonicalIncidentSchema.safeParse(payload);
     expect(parsed.success).toBe(false);
   });
-});
 
+  it("enforces maximum bounds on arrays preventing resource exhaustion (DoS)", () => {
+    const oversizedEvidence = Array.from({ length: 30 }, (_, i) => ({
+      type: "image" as const,
+      url: `https://example.com/img_${i}.jpg`,
+    }));
+
+    const payload = {
+      source_type: "citizen_report",
+      source_reference: "ref_oversized",
+      reported_at: "2026-10-31T12:00:00.000Z",
+      incident_type: "injured_animal",
+      subject_type: "animal",
+      description: "test",
+      evidence: oversizedEvidence,
+    };
+
+    const parsed = CanonicalIncidentSchema.safeParse(payload);
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      expect(parsed.error.issues[0].message).toContain("Maximum of 25");
+    }
+  });
+
+  it("rejects invalid latitude and longitude out of geographic bounds", () => {
+    const payload = {
+      source_type: "citizen_report",
+      source_reference: "ref_geo",
+      reported_at: "2026-10-31T12:00:00.000Z",
+      incident_type: "injured_animal",
+      subject_type: "animal",
+      description: "test",
+      location: {
+        latitude: 195.0, // Invalid > 90
+        longitude: 77.1025,
+        confidence: 0.8,
+      },
+    };
+
+    const parsed = CanonicalIncidentSchema.safeParse(payload);
+    expect(parsed.success).toBe(false);
+  });
+});
