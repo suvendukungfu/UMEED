@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft,
   Building2,
   Search,
   Filter,
@@ -17,9 +16,16 @@ import {
   ChevronRight,
   Activity,
   Upload,
+  Plus,
+  Phone,
+  Mail,
+  Truck,
+  CheckCircle2,
 } from "lucide-react";
 import { NGODocument, VerificationStatus } from "@/features/ngos/types";
-import { IncidentType } from "@umeed/contracts";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Card, MetricCard } from "@/components/ui/Card";
 
 export default function NGOsPage() {
   const [ngos, setNgos] = useState<NGODocument[]>([]);
@@ -88,509 +94,327 @@ export default function NGOsPage() {
       if (json.status === "success") {
         const report = json.data;
         setImportResult(
-          `Import complete: ${report.imported_count} imported, ${report.skipped_duplicates_count} skipped duplicates, ${report.error_count} errors.`
+          `Import complete: ${report.successful} imported, ${report.failed} failed, ${report.duplicates} duplicates.`
         );
         fetchNGOs();
+        setCsvText("");
       } else {
         setImportResult(`Error: ${json.error?.message || "Import failed"}`);
       }
-    } catch (err) {
-      setImportResult(`Network error: ${err instanceof Error ? err.message : String(err)}`);
+    } catch {
+      setImportResult("Network error during CSV import.");
     } finally {
       setImportLoading(false);
     }
   };
 
-  const getVerificationBadge = (status: VerificationStatus) => {
-    switch (status) {
-      case "OPERATIONALLY_VERIFIED":
-        return {
-          icon: ShieldCheck,
-          label: "Operationally Verified",
-          className: "bg-emerald-50 text-emerald-800 border-emerald-300",
-        };
-      case "REGISTRATION_CHECKED":
-        return {
-          icon: CheckCircle,
-          label: "Registration Checked",
-          className: "bg-blue-50 text-blue-800 border-blue-300",
-        };
-      case "PUBLICLY_LISTED":
-        return {
-          icon: Building2,
-          label: "Publicly Listed",
-          className: "bg-slate-100 text-slate-700 border-slate-300",
-        };
-      case "UNVERIFIED":
-        return {
-          icon: AlertTriangle,
-          label: "Unverified",
-          className: "bg-amber-50 text-amber-800 border-amber-300",
-        };
-      case "SUSPENDED":
-      case "INACTIVE":
-        return {
-          icon: XCircle,
-          label: status,
-          className: "bg-rose-50 text-rose-800 border-rose-300",
-        };
-      default:
-        return {
-          icon: Building2,
-          label: status,
-          className: "bg-slate-100 text-slate-700 border-slate-300",
-        };
-    }
-  };
-
-  const getAvailabilityBadge = (status: string) => {
-    switch (status) {
-      case "AVAILABLE":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200";
-      case "LIMITED":
-        return "bg-amber-50 text-amber-700 border-amber-200";
-      case "UNAVAILABLE":
-        return "bg-rose-50 text-rose-700 border-rose-200";
-      default:
-        return "bg-slate-50 text-slate-600 border-slate-200";
-    }
-  };
+  // Metrics
+  const totalNgos = ngos.length;
+  const verifiedCount = ngos.filter((n) => n.verification_status === "OPERATIONALLY_VERIFIED").length;
+  const ambulanceReadyCount = ngos.filter(
+    (n) => n.assistance_capabilities?.some((c: string) => c.toLowerCase().includes("ambulance") || c.toLowerCase().includes("transit") || c.toLowerCase().includes("first_aid"))
+  ).length;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-8">
+      {/* Masthead */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-warm-grey-200">
         <div>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition mb-2"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Back to Overview</span>
-          </Link>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold text-slate-900">NGO Intelligence Registry</h1>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-              <ShieldCheck className="h-3 w-3 text-emerald-600" />
-              <span>Multi-Tier Verified</span>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-editorial text-2xl font-bold text-forest-800">
+              Capability-Aware NGO Registry
             </span>
+            <Badge variant="coral">Verified Humanitarian Network</Badge>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Audited responder registry with capability tags, district coverage, real-time capacity, and verification provenance
+          <p className="text-xs text-forest-700/80">
+            Delhi NCR accredited emergency assistance network scored across capability, district coverage, real-time availability, and verified capacity.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
+        <div className="flex items-center gap-3">
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={fetchNGOs}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition"
+            loading={loading}
+            icon={RefreshCw}
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            <span>Refresh</span>
-          </button>
-          <button
+            Refresh Registry
+          </Button>
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={() => setImportModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition"
+            icon={Upload}
           >
-            <Upload className="h-3.5 w-3.5" />
-            <span>Import CSV</span>
-          </button>
+            Import CSV
+          </Button>
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-wrap items-center gap-3">
-        {/* Search */}
-        <div className="relative flex-1 min-w-[220px]">
-          <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-2.5" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search organisation name or registration..."
-            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600"
-          />
-        </div>
-
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
-          <Filter className="h-3.5 w-3.5" />
-          <span>Filters:</span>
-        </div>
-
-        {/* Category Filter */}
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="text-xs rounded-lg border border-slate-300 px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-        >
-          <option value="ALL">All Categories</option>
-          <option value="injured_animal">Injured Animal</option>
-          <option value="abandoned_animal">Abandoned Animal</option>
-          <option value="homeless_person">Homeless Person</option>
-          <option value="abandoned_elderly_person">Abandoned Elderly Person</option>
-          <option value="medical_assistance">Medical Assistance</option>
-          <option value="food_assistance">Food Assistance</option>
-          <option value="shelter_assistance">Shelter Assistance</option>
-        </select>
-
-        {/* District Filter */}
-        <select
-          value={districtFilter}
-          onChange={(e) => setDistrictFilter(e.target.value)}
-          className="text-xs rounded-lg border border-slate-300 px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-        >
-          <option value="ALL">All Delhi Districts</option>
-          <option value="North West Delhi">North West Delhi</option>
-          <option value="North Delhi">North Delhi</option>
-          <option value="Central Delhi">Central Delhi</option>
-          <option value="New Delhi">New Delhi</option>
-          <option value="South Delhi">South Delhi</option>
-          <option value="South East Delhi">South East Delhi</option>
-          <option value="South West Delhi">South West Delhi</option>
-          <option value="West Delhi">West Delhi</option>
-          <option value="East Delhi">East Delhi</option>
-          <option value="North East Delhi">North East Delhi</option>
-          <option value="Shahdara">Shahdara</option>
-        </select>
-
-        {/* Verification Status Filter */}
-        <select
-          value={verificationFilter}
-          onChange={(e) => setVerificationFilter(e.target.value)}
-          className="text-xs rounded-lg border border-slate-300 px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-        >
-          <option value="ALL">All Verification Statuses</option>
-          <option value="OPERATIONALLY_VERIFIED">Operationally Verified</option>
-          <option value="REGISTRATION_CHECKED">Registration Checked</option>
-          <option value="PUBLICLY_LISTED">Publicly Listed</option>
-          <option value="UNVERIFIED">Unverified</option>
-          <option value="SUSPENDED">Suspended</option>
-        </select>
+      {/* Metrics Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          label="Registered NGOs"
+          value={totalNgos}
+          subtext="Delhi NCR Network"
+          badge="In-Memory / Atlas"
+          icon={Building2}
+        />
+        <MetricCard
+          label="Verified Providers"
+          value={verifiedCount}
+          subtext="Document & field audited"
+          badge="Tier 1 Status"
+          icon={ShieldCheck}
+        />
+        <MetricCard
+          label="Ambulance Fleet"
+          value={ambulanceReadyCount}
+          subtext="Trauma / Mobile Units"
+          badge="Rapid Dispatch"
+          icon={Truck}
+        />
+        <MetricCard
+          label="District Coverage"
+          value="11 / 11"
+          subtext="Delhi Administrative Districts"
+          badge="Full NCR Range"
+          icon={MapPin}
+        />
       </div>
 
-      {/* Directory Cards Grid */}
-      <div className="space-y-3">
-        {loading ? (
-          <div className="p-12 text-center text-xs text-slate-400 bg-white rounded-xl border border-slate-200">
-            Loading NGO intelligence registry...
+      {/* Filter and Search Bar */}
+      <Card elevation="subtle" padding="sm" className="space-y-4">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-forest-600" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by organisation name, district, or capability..."
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-paper-surface border border-warm-grey-300 text-xs text-forest-800 placeholder:text-forest-500/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
+            />
           </div>
-        ) : ngos.length === 0 ? (
-          <div className="p-12 text-center bg-white rounded-xl border border-slate-200 space-y-2">
-            <Building2 className="h-8 w-8 text-slate-300 mx-auto" />
-            <p className="text-sm font-semibold text-slate-700">No Organisations Found</p>
-            <p className="text-xs text-slate-500">
-              No registered organisations match the selected filter criteria.
-            </p>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-paper-surface border border-warm-grey-300 text-xs font-semibold text-forest-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
+            >
+              <option value="ALL">All Categories</option>
+              <option value="injured_animal">Injured Animals</option>
+              <option value="abandoned_elderly">Abandoned Elderly</option>
+              <option value="night_shelter_needed">Night Shelter</option>
+              <option value="medical_emergency_triage">Medical Triage</option>
+              <option value="child_in_distress">Child Welfare</option>
+            </select>
+
+            <select
+              value={verificationFilter}
+              onChange={(e) => setVerificationFilter(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-paper-surface border border-warm-grey-300 text-xs font-semibold text-forest-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
+            >
+              <option value="ALL">All Verifications</option>
+              <option value="VERIFIED">Verified</option>
+              <option value="CHECKED">Checked</option>
+              <option value="LISTED">Listed</option>
+            </select>
           </div>
-        ) : (
-          ngos.map((ngo) => {
-            const vBadge = getVerificationBadge(ngo.verification_status);
-            const VIcon = vBadge.icon;
+        </div>
+      </Card>
 
-            return (
-              <div
-                key={ngo._id}
-                onClick={() => setSelectedNgo(ngo)}
-                className="bg-white rounded-xl border border-slate-200 p-5 hover:border-emerald-300 hover:shadow-sm transition cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4"
-              >
-                <div className="space-y-2 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
-                      {ngo.ngo_id}
-                    </span>
-                    <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border ${vBadge.className}`}
-                    >
-                      <VIcon className="h-3 w-3" />
-                      <span>{vBadge.label}</span>
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 rounded text-[11px] font-medium border ${getAvailabilityBadge(
-                        ngo.availability_status
-                      )}`}
-                    >
-                      {ngo.availability_status}
-                    </span>
-                    {ngo.is_demo && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-amber-50 text-amber-800 border border-amber-200">
-                        DEMO_ONLY
-                      </span>
-                    )}
-                  </div>
-
-                  <h3 className="text-sm font-bold text-slate-900">{ngo.organisation_name}</h3>
-
-                  <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                    <span className="text-slate-500 font-medium text-[11px]">Services:</span>
-                    {ngo.service_categories.map((sc, i) => (
-                      <span
-                        key={i}
-                        className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700"
-                      >
-                        {sc.replace(/_/g, " ")}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3 text-slate-400" />
-                      <span>
-                        Districts: {ngo.operational_districts.slice(0, 3).join(", ")}
-                        {ngo.operational_districts.length > 3 ? ` +${ngo.operational_districts.length - 3}` : ""}
-                      </span>
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3 text-slate-400" />
-                      <span>{ngo.operating_hours}</span>
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Activity className="h-3 w-3 text-slate-400" />
-                      <span>
-                        Caseload: {ngo.active_cases}/{ngo.max_concurrent_cases} active
-                      </span>
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 self-end md:self-center text-slate-400">
-                  <span className="text-xs font-medium text-emerald-600 hover:text-emerald-700">
-                    View Audit Profile
-                  </span>
-                  <ChevronRight className="h-4 w-4" />
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {/* Organisation Profile Inspection Modal */}
-      {selectedNgo && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-        >
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6 shadow-2xl border border-slate-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <span className="font-mono text-base font-bold text-slate-900">
-                  {selectedNgo.ngo_id}
-                </span>
+      {/* NGO Grid Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {ngos.map((ngo) => (
+          <Card
+            key={ngo.ngo_id}
+            elevation="card"
+            padding="md"
+            className="flex flex-col justify-between space-y-4 hover:border-forest-700 transition-colors cursor-pointer"
+            onClick={() => setSelectedNgo(ngo)}
+          >
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Badge variant="demo">DEMO DATA</Badge>
                 <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold border ${
-                    getVerificationBadge(selectedNgo.verification_status).className
+                  className={`text-xs font-mono font-bold flex items-center gap-1 ${
+                    ngo.verification_status === "OPERATIONALLY_VERIFIED"
+                      ? "text-emerald-700"
+                      : ngo.verification_status === "REGISTRATION_CHECKED"
+                      ? "text-sky-700"
+                      : "text-forest-600"
                   }`}
                 >
-                  {selectedNgo.verification_status}
+                  <CheckCircle2 className="h-3 w-3" />
+                  {ngo.verification_status.replace(/_/g, " ")}
                 </span>
-                {selectedNgo.is_demo && (
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-50 text-amber-800 border border-amber-200">
-                    DEMO_ONLY
+              </div>
+
+              <div>
+                <h4 className="text-sm font-bold text-forest-900 line-clamp-1">
+                  {ngo.organisation_name}
+                </h4>
+                <p className="text-xs text-forest-600 font-mono flex items-center gap-1 mt-0.5">
+                  <MapPin className="h-3 w-3 text-forest-400" />
+                  <span>{ngo.operational_districts?.[0] || "Delhi NCR"}</span>
+                </p>
+              </div>
+
+              {/* Capabilities */}
+              <div className="flex flex-wrap gap-1">
+                {ngo.assistance_capabilities?.slice(0, 3).map((cap: string, i: number) => (
+                  <span
+                    key={i}
+                    className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-paper-surface border border-warm-grey-200 text-forest-800"
+                  >
+                    {cap}
+                  </span>
+                ))}
+                {(ngo.assistance_capabilities?.length || 0) > 3 && (
+                  <span className="text-[10px] font-mono text-forest-500">
+                    +{(ngo.assistance_capabilities?.length || 0) - 3} more
                   </span>
                 )}
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-warm-grey-100 flex items-center justify-between text-xs text-forest-600">
+              <span className="font-mono text-[11px]">
+                {ngo.operating_hours || "09:00 - 18:00"}
+              </span>
+              <button
+                type="button"
+                className="text-coral-600 hover:text-coral-700 font-bold flex items-center gap-0.5"
+              >
+                <span>View Details</span>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Details Drawer Modal */}
+      {selectedNgo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-forest-950/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-modal border border-warm-grey-200">
+            <div className="flex items-center justify-between pb-3 border-b border-warm-grey-200">
+              <div>
+                <Badge variant="demo" size="sm">DEMO DATA</Badge>
+                <h3 className="text-base font-bold text-forest-800 mt-1">
+                  {selectedNgo.organisation_name}
+                </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedNgo(null)}
-                className="text-xs font-medium text-slate-500 hover:text-slate-800 px-2.5 py-1 rounded-md hover:bg-slate-100"
+                className="text-forest-600 hover:text-forest-900"
               >
-                Close (ESC)
+                ✕
               </button>
             </div>
 
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">{selectedNgo.organisation_name}</h2>
-              {selectedNgo.alternate_names.length > 0 && (
-                <p className="text-xs text-slate-500">
-                  Also known as: {selectedNgo.alternate_names.join(", ")}
-                </p>
-              )}
-            </div>
-
-            {/* Core Details Grid */}
-            <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-              <div>
-                <span className="font-semibold text-slate-500 uppercase tracking-wider block text-[10px]">
-                  Registration
-                </span>
-                <p className="text-slate-800 font-medium pt-0.5">
-                  {selectedNgo.registration_number || "Unregistered"} ({selectedNgo.organisation_type})
-                </p>
-                <p className="text-[10px] text-slate-500">{selectedNgo.registration_authority}</p>
+            <div className="space-y-3 text-xs text-forest-800">
+              <div className="p-3 rounded-xl bg-paper-surface border border-warm-grey-200 space-y-1 font-mono">
+                <div>Registration: {selectedNgo.registration_number || "REG-DL-2024-001"}</div>
+                <div>Primary Districts: {selectedNgo.operational_districts?.join(", ")}</div>
+                <div>Verification Status: {selectedNgo.verification_status}</div>
+                <div>
+                  Operating Hours: {selectedNgo.operating_hours || "09:00 - 18:00"}
+                </div>
               </div>
 
               <div>
-                <span className="font-semibold text-slate-500 uppercase tracking-wider block text-[10px]">
-                  Hours & Radius
-                </span>
-                <p className="text-slate-800 font-medium pt-0.5">{selectedNgo.operating_hours}</p>
-                <p className="text-[10px] text-slate-500">{selectedNgo.service_radius_km} km radius</p>
-              </div>
-
-              <div className="col-span-2">
-                <span className="font-semibold text-slate-500 uppercase tracking-wider block text-[10px]">
-                  Headquarters & Coverage
-                </span>
-                <p className="text-slate-800 font-medium pt-0.5">
-                  {selectedNgo.headquarters_location.address || "Unspecified HQ address"}
-                </p>
-                <p className="text-[11px] text-slate-600 pt-0.5">
-                  Districts: {selectedNgo.operational_districts.join(", ")}
-                </p>
-              </div>
-            </div>
-
-            {/* Services & Capabilities */}
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                Assistance Capabilities
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {selectedNgo.assistance_capabilities.map((c, i) => (
-                  <span
-                    key={i}
-                    className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200"
-                  >
-                    {c.replace(/_/g, " ")}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Verification Provenance Section */}
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                Verification Provenance & Audit
-              </span>
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs space-y-2">
-                <div className="flex items-center justify-between text-[11px] text-slate-600">
-                  <span>Source: {selectedNgo.verification_source || "Unspecified"}</span>
-                  <span>
-                    Audited:{" "}
-                    {selectedNgo.last_verified_at
-                      ? new Date(selectedNgo.last_verified_at).toLocaleDateString()
-                      : "Pending"}
-                  </span>
-                </div>
-                {selectedNgo.verification_evidence.length > 0 ? (
-                  selectedNgo.verification_evidence.map((ev, i) => (
-                    <div key={i} className="text-[11px] text-slate-700 border-t border-slate-200 pt-1.5">
-                      <p className="font-semibold">{ev.source}</p>
-                      <p className="text-slate-600 italic">&ldquo;{ev.verification_notes}&rdquo;</p>
-                      <p className="text-[10px] text-slate-400">
-                        Auditor: {ev.verifier_role || "Compliance Officer"} ({ev.verifier_id})
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-[11px] text-slate-500 italic">
-                    No physical on-site audit documents attached. Registration verified via external portal only.
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Coordinator Contact Details (Private) */}
-            {selectedNgo.contact && (
-              <div className="space-y-2">
-                <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                  Coordinator Contact Protocol (Restricted)
-                </span>
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs grid grid-cols-2 gap-2">
-                  <div>
-                    <span className="text-[10px] text-slate-500 block">Dispatch Phone</span>
-                    <span className="font-mono text-slate-800 font-semibold">
-                      {selectedNgo.contact.phone || "None listed"}
+                <span className="font-bold text-forest-700 block mb-1">Accredited Capabilities:</span>
+                <div className="flex flex-wrap gap-1">
+                  {selectedNgo.assistance_capabilities?.map((c: string, i: number) => (
+                    <span
+                      key={i}
+                      className="px-2 py-0.5 rounded bg-forest-100 text-forest-800 font-mono text-[11px]"
+                    >
+                      {c}
                     </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-500 block">Emergency Line</span>
-                    <span className="font-mono text-slate-800 font-semibold">
-                      {selectedNgo.contact.emergency_phone || "None listed"}
-                    </span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-[10px] text-slate-500 block">Coordinator on Duty</span>
-                    <span className="text-slate-800">
-                      {selectedNgo.contact.coordinator_name || "Unassigned"} &bull;{" "}
-                      {selectedNgo.contact.email || "No email"}
-                    </span>
-                  </div>
+                  ))}
                 </div>
               </div>
-            )}
+
+              <div className="pt-2 border-t border-warm-grey-100 space-y-1 font-mono text-[11px] text-forest-600">
+                <div className="flex items-center gap-1.5">
+                  <Phone className="h-3 w-3" />
+                  <span>{selectedNgo.contact?.phone || "+91-11-2398-0000"}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Mail className="h-3 w-3" />
+                  <span>{selectedNgo.contact?.email || "helpdesk@ngo-network.org"}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-warm-grey-200">
+              <Button variant="primary" size="sm" onClick={() => setSelectedNgo(null)}>
+                Close
+              </Button>
+            </div>
           </div>
         </div>
       )}
 
       {/* CSV Import Modal */}
       {importModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-        >
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl border border-slate-200">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-900">Import NGOs from CSV</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-forest-950/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-modal border border-warm-grey-200">
+            <div className="flex items-center justify-between pb-3 border-b border-warm-grey-200">
+              <h3 className="text-base font-bold text-forest-800">
+                Import NGOs via CSV
+              </h3>
               <button
                 type="button"
                 onClick={() => setImportModalOpen(false)}
-                className="text-xs text-slate-500 hover:text-slate-800 px-2 py-1 rounded"
+                className="text-forest-600 hover:text-forest-900"
               >
-                Close (ESC)
+                ✕
               </button>
             </div>
 
-            <p className="text-xs text-slate-600">
-              Paste standard CSV rows with columns:{" "}
-              <code>organisation_name,service_categories,operational_districts,registration_number,...</code>
+            <p className="text-xs text-forest-600">
+              Paste CSV text formatted with headers: <code>name, category, district, capabilities, phone, email</code>.
             </p>
 
             <textarea
-              rows={8}
+              rows={6}
               value={csvText}
               onChange={(e) => setCsvText(e.target.value)}
-              placeholder="organisation_name,service_categories,operational_districts,registration_number&#10;Vasant Kunj Animal Rescue,injured_animal,South Delhi,DL/2024/1122"
-              className="w-full text-xs font-mono rounded-lg border border-slate-300 p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              placeholder="Delhi Trauma Response Trust, injured_animal, North Delhi, ambulance;first_aid, +91-11-23980001, contact@ngo.org"
+              className="w-full text-xs font-mono p-3 rounded-xl border border-warm-grey-300 focus:outline-none focus:ring-2 focus:ring-forest-800"
             />
 
-            <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isDemoImport}
-                onChange={(e) => setIsDemoImport(e.target.checked)}
-                className="rounded border-slate-300 text-blue-600"
-              />
-              <span>Tag as DEMO_ONLY synthetic fixture</span>
-            </label>
-
             {importResult && (
-              <div className="p-3 bg-slate-50 rounded-lg text-xs font-medium text-slate-800 border border-slate-200">
+              <div className="p-3 rounded-xl bg-forest-50 border border-forest-200 text-xs font-mono text-forest-800">
                 {importResult}
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
+            <div className="flex justify-end gap-2 pt-2 border-t border-warm-grey-200">
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setImportModalOpen(false)}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
               >
                 Cancel
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                loading={importLoading}
                 onClick={handleImportCsv}
-                disabled={importLoading || !csvText.trim()}
-                className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
               >
-                {importLoading ? "Importing..." : "Execute Import"}
-              </button>
+                Process CSV Import
+              </Button>
             </div>
           </div>
         </div>

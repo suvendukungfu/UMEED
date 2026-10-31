@@ -3,8 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #F4F1EA;
+  --foreground: #18392F;
+  --paper: #F4F1EA;
+  --paper-surface: #FAF8F5;
+  --paper-card: #FFFFFF;
+  --forest: #18392F;
+  --coral: #E36F50;
+  --sage: #D8E2D8;
+  --secondary-text: #3F574E;
+  --muted-text: #60776E;
+  --border-warm: #E5E0D5;
 }
 
 body {
@@ -12,11 +21,55 @@ body {
   background-color: var(--background);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom focus ring for accessibility */
+/* Accessibility: WCAG 2.2 Compliant Focus Rings */
 *:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid #18392F;
   outline-offset: 2px;
 }
 
+/* Restrained motion support */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Continuity Line pulsing pulse animation */
+@keyframes continuityGlow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.08);
+  }
+}
+
+.animate-continuity-glow {
+  animation: continuityGlow 2.5s ease-in-out infinite;
+}
+
+/* Editorial Serif Headline Utility */
+.font-editorial {
+  font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  letter-spacing: -0.025em;
+}
+
+/* Light Surface Utility for Charts & Dashboards */
+.surface-light {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E0D5;
+}
+
+/* Numeric tabular formatting */
+.tabular-metrics {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}

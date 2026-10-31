@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft,
   FilePlus,
   MapPin,
   CheckCircle,
@@ -11,9 +10,84 @@ import {
   Copy,
   Lock,
   Loader2,
+  Sparkles,
+  ArrowRight,
+  ArrowLeft,
+  ShieldCheck,
+  Search,
+  Eye,
+  Info,
+  Clock,
+  Heart,
+  User,
+  Shield,
+  Truck,
+  CheckCircle2,
 } from "lucide-react";
+import { ContinuityLine, ContinuityStage } from "@/components/common/ContinuityLine";
+import { Button } from "@/components/ui/Button";
+import { Badge, StatusBadge } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
+
+const DELHI_DISTRICTS = [
+  "Central Delhi",
+  "East Delhi",
+  "New Delhi",
+  "North Delhi",
+  "North East Delhi",
+  "North West Delhi",
+  "Shahdara",
+  "South Delhi",
+  "South East Delhi",
+  "South West Delhi",
+  "West Delhi",
+];
+
+const INCIDENT_CATEGORIES = [
+  {
+    id: "injured_animal",
+    label: "Injured or Traumatized Animal",
+    subject: "animal",
+    description: "Street animal with fractures, hit-and-run, wounds, or extreme distress.",
+    icon: "🐾",
+  },
+  {
+    id: "abandoned_elderly",
+    label: "Abandoned Elderly Citizen",
+    subject: "person",
+    description: "Senior citizen in public spaces without shelter, medical attention, or family.",
+    icon: "👴",
+  },
+  {
+    id: "night_shelter_needed",
+    label: "Night Shelter / Homeless Distress",
+    subject: "person",
+    description: "Vulnerable individuals or families exposed to hypothermia, rain, or heat.",
+    icon: "⛺",
+  },
+  {
+    id: "child_in_distress",
+    label: "Child in Vulnerable Circumstances",
+    subject: "person",
+    description: "Unaccompanied minor, runaway, or child requiring immediate child welfare intake.",
+    icon: "🧒",
+  },
+  {
+    id: "medical_emergency_triage",
+    label: "Acute Non-Ambulance Medical Triage",
+    subject: "person",
+    description: "Severe dehydration, unaddressed infection, or chronic malnourishment.",
+    icon: "🩺",
+  },
+];
 
 export default function ReportPage() {
+  const [activeTab, setActiveTab] = useState<"submit" | "track">("submit");
+
+  // Multi-step progression (1 to 5)
+  const [step, setStep] = useState(1);
+
+  // Form State
   const [subjectType, setSubjectType] = useState<"animal" | "person">("animal");
   const [incidentType, setIncidentType] = useState("injured_animal");
   const [description, setDescription] = useState("");
@@ -39,6 +113,13 @@ export default function ReportPage() {
     created_at: string;
   } | null>(null);
 
+  // Track Mode State
+  const [trackRef, setTrackRef] = useState("");
+  const [trackToken, setTrackToken] = useState("");
+  const [trackLoading, setTrackLoading] = useState(false);
+  const [trackError, setTrackError] = useState<string | null>(null);
+  const [trackedIncident, setTrackedIncident] = useState<any | null>(null);
+
   const handleDetectLocation = () => {
     if (!navigator.geolocation) {
       setErrorMsg("Geolocation is not supported by your browser.");
@@ -54,10 +135,32 @@ export default function ReportPage() {
       },
       (err) => {
         setIsLocating(false);
-        setErrorMsg(`Unable to retrieve GPS coordinates: ${err.message}. Please enter address manually.`);
+        setErrorMsg(`Unable to retrieve GPS coordinates: ${err.message}. Please select your district manually.`);
       },
       { timeout: 10000, enableHighAccuracy: true }
     );
+  };
+
+  const handleNextStep = () => {
+    setErrorMsg(null);
+    if (step === 1 && !incidentType) {
+      setErrorMsg("Please select an incident category.");
+      return;
+    }
+    if (step === 2 && !district) {
+      setErrorMsg("Please select a valid district.");
+      return;
+    }
+    if (step === 3 && description.trim().length < 10) {
+      setErrorMsg("Please provide at least 10 characters describing the situation.");
+      return;
+    }
+    setStep((prev) => Math.min(5, prev + 1));
+  };
+
+  const handlePrevStep = () => {
+    setErrorMsg(null);
+    setStep((prev) => Math.max(1, prev - 1));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,339 +231,666 @@ export default function ReportPage() {
     }
   };
 
+  const handleLookupIncident = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTrackError(null);
+    setTrackedIncident(null);
+
+    const cleanRef = trackRef.trim().toUpperCase();
+    const cleanToken = trackToken.trim();
+
+    if (!cleanRef || !cleanToken) {
+      setTrackError("Both public reference code (UMD-XXXX-YYYY) and tracking token are required.");
+      return;
+    }
+
+    setTrackLoading(true);
+    try {
+      const res = await fetch(`/api/incidents/${cleanRef}`, {
+        method: "GET",
+        headers: {
+          "X-Tracking-Token": cleanToken,
+        },
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error?.message || "Incident not found or invalid tracking token.");
+      }
+
+      setTrackedIncident(json.data);
+    } catch (err) {
+      setTrackError((err as Error).message);
+    } finally {
+      setTrackLoading(false);
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  if (successData) {
-    return (
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 space-y-5">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
-              <CheckCircle className="h-6 w-6" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-emerald-950">
-                Distress Report Received
-              </h2>
-              <p className="text-xs text-emerald-700">
-                Your report has been safely logged in the UMEED coordination network.
-              </p>
-            </div>
-          </div>
+  // Map incident status to Continuity Line stage
+  const mapStatusToStage = (status: string): ContinuityStage => {
+    switch (status) {
+      case "REPORTED":
+        return "REPORT";
+      case "TRIAGED":
+        return "TRIAGE";
+      case "APPROVED":
+      case "MATCHED":
+        return "COORDINATION";
+      case "ASSIGNED":
+      case "IN_PROGRESS":
+        return "RESCUE";
+      case "HANDOFF_PENDING":
+        return "HANDOFF";
+      case "RESOLVED":
+        return "VERIFIED_COMPLETION";
+      default:
+        return "REPORT";
+    }
+  };
 
-          {/* Reference Code Box */}
-          <div className="bg-white rounded-lg border border-emerald-200 p-4 space-y-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Public Reference Code
-            </span>
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-2xl font-bold text-slate-900">
-                {successData.public_reference}
-              </span>
-              <button
-                type="button"
-                onClick={() => copyToClipboard(successData.public_reference)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
-              >
-                <Copy className="h-3.5 w-3.5" />
-                <span>{copiedCode ? "Copied!" : "Copy"}</span>
-              </button>
-            </div>
-            <p className="text-xs text-slate-500">
-              Use this reference to track assistance milestones. No personal data is linked.
-            </p>
-          </div>
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12 space-y-8">
+      {/* Header and Switcher */}
+      <div className="text-center space-y-3">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-coral-50 border border-coral-200 text-coral-800 text-xs font-mono font-bold">
+          <ShieldCheck className="h-3.5 w-3.5 text-coral-600" />
+          <span>Confidential Citizen Portal</span>
+        </div>
+        <h1 className="font-editorial text-3xl sm:text-5xl font-bold text-forest-800 tracking-tight">
+          {activeTab === "submit" ? "Report Distress" : "Track Assistance Progress"}
+        </h1>
+        <p className="text-xs sm:text-sm text-forest-700/80 max-w-lg mx-auto">
+          Every submission is triaged by multimodal AI, matched to accredited NGOs, and verified
+          at receiving medical or shelter facilities.
+        </p>
 
-          {/* Confidential Tracking Token */}
-          {successData.tracking_token && (
-            <div className="bg-amber-50 rounded-lg border border-amber-300 p-4 space-y-2">
-              <div className="flex items-center gap-2 text-amber-800 font-semibold text-xs uppercase tracking-wider">
-                <Lock className="h-4 w-4" />
-                <span>Confidential Citizen Access Token</span>
-              </div>
-              <div className="bg-white p-2.5 rounded border border-amber-200 font-mono text-xs text-slate-800 break-all select-all">
-                {successData.tracking_token}
-              </div>
-              <p className="text-xs text-amber-800 font-medium">
-                Important: Save this token now. For your security, this credential is never stored in plaintext and cannot be retrieved again.
-              </p>
-            </div>
-          )}
-
-          {successData.is_suspected_duplicate && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800 flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-              <span>
-                Note: A similar distress observation was recently reported nearby. A human coordinator will review both reports to ensure comprehensive coverage without double dispatch.
-              </span>
-            </div>
-          )}
-
-          <div className="flex items-center gap-3 pt-2">
+        {/* Tab Switcher */}
+        <div className="pt-4 flex justify-center">
+          <div className="inline-flex p-1 rounded-xl bg-paper-surface border border-warm-grey-300 shadow-2xs">
             <button
               type="button"
               onClick={() => {
+                setActiveTab("submit");
                 setSuccessData(null);
-                setDescription("");
-                setEvidenceUrl("");
-                setLatitude(null);
-                setLongitude(null);
               }}
-              className="px-4 py-2 text-xs font-medium text-emerald-800 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition"
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                activeTab === "submit"
+                  ? "bg-forest-800 text-white shadow-xs"
+                  : "text-forest-700 hover:text-forest-900"
+              }`}
             >
-              Submit Another Report
+              Submit New Distress Report
             </button>
-            <Link
-              href="/incidents"
-              className="px-4 py-2 text-xs font-medium text-slate-700 hover:text-slate-900 rounded-lg transition"
+            <button
+              type="button"
+              onClick={() => setActiveTab("track")}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                activeTab === "track"
+                  ? "bg-forest-800 text-white shadow-xs"
+                  : "text-forest-700 hover:text-forest-900"
+              }`}
             >
-              View Coordinator Queue &rarr;
-            </Link>
+              Track Existing Report
+            </button>
           </div>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" />
-        <span>Back to Overview</span>
-      </Link>
-
-      <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
-        <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-          <div className="h-10 w-10 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-            <FilePlus className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">Submit Distress Report</h1>
-            <p className="text-xs text-slate-500">
-              Closed-loop assistance coordination for vulnerable people and animals
-            </p>
-          </div>
-        </div>
-
-        {errorMsg && (
-          <div
-            role="alert"
-            className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium"
-          >
-            {errorMsg}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Subject Type Radio */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
-              Who needs assistance? *
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setSubjectType("animal");
-                  setIncidentType("injured_animal");
-                }}
-                className={`py-3 px-4 rounded-lg border text-left transition flex items-center justify-between ${
-                  subjectType === "animal"
-                    ? "border-blue-600 bg-blue-50/50 text-blue-900 font-semibold"
-                    : "border-slate-200 hover:border-slate-300 text-slate-700"
-                }`}
-              >
-                <span>Animal in Distress</span>
-                {subjectType === "animal" && <span className="text-blue-600 text-xs">Selected</span>}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSubjectType("person");
-                  setIncidentType("homeless_person");
-                }}
-                className={`py-3 px-4 rounded-lg border text-left transition flex items-center justify-between ${
-                  subjectType === "person"
-                    ? "border-blue-600 bg-blue-50/50 text-blue-900 font-semibold"
-                    : "border-slate-200 hover:border-slate-300 text-slate-700"
-                }`}
-              >
-                <span>Vulnerable Person</span>
-                {subjectType === "person" && <span className="text-blue-600 text-xs">Selected</span>}
-              </button>
-            </div>
-          </div>
-
-          {/* Category Dropdown */}
-          <div>
-            <label
-              htmlFor="incident-type"
-              className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5"
-            >
-              Assistance Category *
-            </label>
-            <select
-              id="incident-type"
-              value={incidentType}
-              onChange={(e) => setIncidentType(e.target.value)}
-              className="w-full text-sm rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
-            >
-              {subjectType === "animal" ? (
-                <>
-                  <option value="injured_animal">Injured Animal (Medical / Trauma)</option>
-                  <option value="abandoned_animal">Abandoned Animal (Shelter / Food)</option>
-                  <option value="other">Other Animal Welfare</option>
-                </>
-              ) : (
-                <>
-                  <option value="abandoned_elderly_person">Abandoned Elderly Person</option>
-                  <option value="homeless_person">Homeless Person Needing Welfare</option>
-                  <option value="medical_assistance">Acute Medical Assistance</option>
-                  <option value="food_assistance">Food & Nutrition Relief</option>
-                  <option value="shelter_assistance">Emergency Shelter</option>
-                  <option value="other">Other Social Distress</option>
-                </>
-              )}
-            </select>
-          </div>
-
-          {/* Location Section */}
-          <div className="space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                <MapPin className="h-4 w-4 text-blue-600" />
-                Location Information
+      {/* =========================================================================
+          TAB 1: SUBMIT REPORT
+          ========================================================================= */}
+      {activeTab === "submit" && !successData && (
+        <Card elevation="card" padding="lg" className="space-y-6">
+          {/* Progress Indicator */}
+          <div className="border-b border-warm-grey-200 pb-5">
+            <div className="flex items-center justify-between text-xs font-mono font-bold text-forest-700 mb-2">
+              <span>STEP {step} OF 5</span>
+              <span>
+                {step === 1 && "NATURE OF DISTRESS"}
+                {step === 2 && "GEOGRAPHIC LOCATION"}
+                {step === 3 && "OBSERVATIONS & EVIDENCE"}
+                {step === 4 && "CITIZEN PRIVACY & CONSENT"}
+                {step === 5 && "REVIEW & SUBMIT"}
               </span>
-              <button
-                type="button"
-                onClick={handleDetectLocation}
-                disabled={isLocating}
-                className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md bg-blue-600 hover:bg-blue-700 text-white transition disabled:opacity-50"
-              >
-                {isLocating && <Loader2 className="h-3 w-3 animate-spin" />}
-                <span>{isLocating ? "Resolving GPS..." : "Detect My Location"}</span>
-              </button>
             </div>
+            <div className="w-full h-1.5 bg-warm-grey-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-coral-500 transition-all duration-300"
+                style={{ width: `${(step / 5) * 100}%` }}
+              />
+            </div>
+          </div>
 
-            {latitude && longitude && (
-              <div className="text-xs font-mono text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded border border-emerald-200">
-                GPS Lat: {latitude}, Lon: {longitude} (Recorded)
+          {errorMsg && (
+            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {/* STEP 1: What happened? */}
+          {step === 1 && (
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-base font-bold text-forest-800">Who is in need of assistance?</h3>
+                <p className="text-xs text-forest-600">Select whether the report concerns an animal or a human beneficiary.</p>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSubjectType("animal");
+                    setIncidentType("injured_animal");
+                  }}
+                  className={`p-4 rounded-xl border text-left transition-all ${
+                    subjectType === "animal"
+                      ? "bg-forest-50/60 border-forest-800 ring-2 ring-forest-800/20"
+                      : "border-warm-grey-200 hover:border-warm-grey-400 bg-white"
+                  }`}
+                >
+                  <span className="text-2xl block mb-2">🐾</span>
+                  <div className="font-bold text-sm text-forest-800">Animal in Distress</div>
+                  <div className="text-xs text-forest-600">Injured street dog, cat, cattle, bird trauma</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSubjectType("person");
+                    setIncidentType("abandoned_elderly");
+                  }}
+                  className={`p-4 rounded-xl border text-left transition-all ${
+                    subjectType === "person"
+                      ? "bg-forest-50/60 border-forest-800 ring-2 ring-forest-800/20"
+                      : "border-warm-grey-200 hover:border-warm-grey-400 bg-white"
+                  }`}
+                >
+                  <span className="text-2xl block mb-2">🤝</span>
+                  <div className="font-bold text-sm text-forest-800">Human Distress</div>
+                  <div className="text-xs text-forest-600">Elderly abandoned, homeless, child welfare, acute illness</div>
+                </button>
+              </div>
+
+              <div className="pt-2 space-y-3">
+                <label className="block text-xs font-bold uppercase text-forest-700 font-mono">
+                  Select Specific Incident Category
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {INCIDENT_CATEGORIES.filter((cat) => cat.subject === subjectType).map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setIncidentType(cat.id)}
+                      className={`p-3.5 rounded-xl border text-left transition-all ${
+                        incidentType === cat.id
+                          ? "bg-coral-50/60 border-coral-500 ring-1 ring-coral-500"
+                          : "border-warm-grey-200 hover:border-warm-grey-300 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-lg">{cat.icon}</span>
+                        <span className="font-bold text-xs text-forest-800">{cat.label}</span>
+                      </div>
+                      <p className="text-[11px] text-forest-600 leading-snug">{cat.description}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: Where did it happen? */}
+          {step === 2 && (
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-base font-bold text-forest-800">Where is the incident located?</h3>
+                <p className="text-xs text-forest-600">
+                  Accurate district location enables matching with authorized local NGOs.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-forest-700 font-mono mb-1.5">
+                    Delhi Administrative District (Required)
+                  </label>
+                  <select
+                    value={district}
+                    onChange={(e) => setDistrict(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-warm-grey-300 text-forest-800 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
+                  >
+                    {DELHI_DISTRICTS.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase text-forest-700 font-mono mb-1.5">
+                    Landmark or Street Address
+                  </label>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="e.g. Near Metro Pillar 384, Rohini Sector 11"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-warm-grey-300 text-forest-800 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
+                  />
+                </div>
+
+                <div className="p-4 rounded-xl bg-paper-surface border border-warm-grey-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold text-forest-800 block">Precise GPS Pin (Optional)</span>
+                    <span className="text-[11px] text-forest-600 block">
+                      {latitude && longitude
+                        ? `Captured: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
+                        : "Detecting GPS coordinates helps ambulance drivers arrive faster."}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    loading={isLocating}
+                    onClick={handleDetectLocation}
+                    icon={MapPin}
+                  >
+                    {latitude ? "Update GPS" : "Detect Current Location"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: Observations & Evidence */}
+          {step === 3 && (
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-base font-bold text-forest-800">What are your observations?</h3>
+                <p className="text-xs text-forest-600">
+                  Describe what you see: visible injuries, consciousness, ability to walk, immediate hazards.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-forest-700 font-mono mb-1.5">
+                    Distress Description (Min 10 characters)
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="e.g. Medium-sized stray dog lying on roadside with injured hind leg, unable to walk, bleeding near paw, seems alert but scared..."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-warm-grey-300 text-forest-800 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
+                  />
+                  <div className="flex justify-between items-center text-[11px] text-forest-600 mt-1">
+                    <span>Be as descriptive as possible to assist Gemini AI triage.</span>
+                    <span className={description.trim().length < 10 ? "text-amber-700 font-bold" : "text-emerald-700"}>
+                      {description.trim().length} chars
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase text-forest-700 font-mono mb-1.5">
+                    Photo or Document URL (Optional)
+                  </label>
+                  <input
+                    type="url"
+                    value={evidenceUrl}
+                    onChange={(e) => setEvidenceUrl(e.target.value)}
+                    placeholder="https://example.com/photo.jpg or cloud storage link"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-warm-grey-300 text-forest-800 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
+                  />
+                  <span className="text-[11px] text-forest-600 block mt-1">
+                    Direct image URLs allow Gemini vision to extract condition severity before responder arrival.
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: Citizen Privacy & Consent */}
+          {step === 4 && (
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-base font-bold text-forest-800">Privacy & Cryptographic Security</h3>
+                <p className="text-xs text-forest-600">
+                  UMEED is architected to protect citizen reporters from surveillance, harassment, or retaliation.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-forest-50/80 border border-forest-200 space-y-3">
+                <div className="flex items-center gap-2 text-forest-900 font-bold text-xs">
+                  <Lock className="h-4 w-4 text-forest-700" />
+                  <span>SHA-256 Token Privacy Protection Enforced</span>
+                </div>
+                <ul className="text-xs text-forest-700/90 space-y-1.5 list-disc pl-4">
+                  <li>No account or phone number registration required.</li>
+                  <li>Upon submission, a private 128-bit tracking token is generated locally.</li>
+                  <li>Only the SHA-256 hash is saved to the database; the plaintext token is never stored.</li>
+                  <li>Strict fail-closed PII redactor removes personal identifying information before Meko memory archiving.</li>
+                </ul>
+              </div>
+
+              <div className="flex items-center gap-3 p-3.5 rounded-xl border border-warm-grey-300 bg-white">
+                <input
+                  type="checkbox"
+                  id="anonymous-toggle"
+                  checked={isAnonymous}
+                  onChange={(e) => setIsAnonymous(e.target.checked)}
+                  className="h-4 w-4 rounded text-forest-800 focus:ring-forest-800"
+                />
+                <label htmlFor="anonymous-toggle" className="text-xs font-semibold text-forest-800 cursor-pointer">
+                  Submit this report anonymously (recommended for community whistleblowers)
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 5: Review & Submit */}
+          {step === 5 && (
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-base font-bold text-forest-800">Review & Confirm Submission</h3>
+                <p className="text-xs text-forest-600">
+                  Please review the details before dispatching to the UMEED coordination network.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-paper-surface border border-warm-grey-200 space-y-3 text-xs text-forest-800 font-mono">
+                <div className="flex justify-between py-1 border-b border-warm-grey-200">
+                  <span className="text-forest-600">Subject:</span>
+                  <span className="font-bold uppercase">{subjectType}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-warm-grey-200">
+                  <span className="text-forest-600">Category:</span>
+                  <span className="font-bold">{incidentType}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-warm-grey-200">
+                  <span className="text-forest-600">District:</span>
+                  <span className="font-bold">{district}</span>
+                </div>
+                {address && (
+                  <div className="flex justify-between py-1 border-b border-warm-grey-200">
+                    <span className="text-forest-600">Address:</span>
+                    <span>{address}</span>
+                  </div>
+                )}
+                {latitude && longitude && (
+                  <div className="flex justify-between py-1 border-b border-warm-grey-200">
+                    <span className="text-forest-600">GPS Pin:</span>
+                    <span>{latitude.toFixed(4)}, {longitude.toFixed(4)}</span>
+                  </div>
+                )}
+                <div className="py-1">
+                  <span className="text-forest-600 block mb-1">Description:</span>
+                  <p className="font-sans text-forest-900 bg-white p-2.5 rounded-lg border border-warm-grey-200">
+                    {description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step Navigation Buttons */}
+          <div className="pt-4 flex items-center justify-between border-t border-warm-grey-200">
+            {step > 1 ? (
+              <Button type="button" variant="outline" size="sm" onClick={handlePrevStep} icon={ArrowLeft}>
+                Back
+              </Button>
+            ) : (
+              <div />
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label
-                  htmlFor="street-address"
-                  className="block text-xs font-medium text-slate-600 mb-1"
-                >
-                  Landmark / Street Address
-                </label>
-                <input
-                  id="street-address"
-                  type="text"
-                  placeholder="e.g. Near Madhuban Chowk Pillar 342"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="w-full text-xs rounded border border-slate-300 px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="district"
-                  className="block text-xs font-medium text-slate-600 mb-1"
-                >
-                  Delhi NCR District
-                </label>
-                <select
-                  id="district"
-                  value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
-                  className="w-full text-xs rounded border border-slate-300 px-3 py-2 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                >
-                  <option value="North West Delhi">North West Delhi</option>
-                  <option value="North Delhi">North Delhi</option>
-                  <option value="Central Delhi">Central Delhi</option>
-                  <option value="West Delhi">West Delhi</option>
-                  <option value="South Delhi">South Delhi</option>
-                  <option value="South West Delhi">South West Delhi</option>
-                  <option value="East Delhi">East Delhi</option>
-                </select>
-              </div>
+            {step < 5 ? (
+              <Button type="button" variant="primary" size="md" onClick={handleNextStep} icon={ArrowRight} iconPosition="right">
+                Continue
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="primary"
+                size="lg"
+                loading={isSubmitting}
+                onClick={handleSubmit}
+                icon={CheckCircle}
+              >
+                Submit Distress Report
+              </Button>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* =========================================================================
+          SUCCESS RECEIPT STATE
+          ========================================================================= */}
+      {activeTab === "submit" && successData && (
+        <Card elevation="elevated" padding="lg" className="space-y-6">
+          <div className="flex items-center gap-3 pb-4 border-b border-warm-grey-200">
+            <div className="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+              <CheckCircle className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-forest-800">
+                Distress Report Received
+              </h2>
+              <p className="text-xs text-forest-600">
+                Logged in the UMEED network and queued for Gemini multimodal triage.
+              </p>
             </div>
           </div>
 
-          {/* Description */}
-          <div>
-            <label
-              htmlFor="description"
-              className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5"
-            >
-              Description of Observed Distress *
-            </label>
-            <textarea
-              id="description"
-              rows={4}
-              required
-              placeholder="Describe visible condition, exact position, and immediate safety hazards (e.g. animal bleeding, subject exposed to rain)..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full text-sm rounded-lg border border-slate-300 p-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 placeholder:text-slate-400"
-            />
+          {/* Reference & Token Box */}
+          <div className="p-5 rounded-2xl bg-paper-surface border border-warm-grey-300 space-y-4">
+            <div className="space-y-1">
+              <span className="text-[11px] font-mono uppercase text-forest-600 font-bold">Public Reference Code</span>
+              <div className="flex items-center justify-between bg-white px-3.5 py-2.5 rounded-xl border border-warm-grey-200">
+                <span className="font-mono text-base font-bold text-forest-800">
+                  {successData.public_reference}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(successData.public_reference)}
+                  className="text-xs text-coral-600 hover:text-coral-700 font-semibold flex items-center gap-1"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  <span>{copiedCode ? "Copied" : "Copy"}</span>
+                </button>
+              </div>
+            </div>
+
+            {successData.tracking_token && (
+              <div className="space-y-1">
+                <span className="text-[11px] font-mono uppercase text-coral-600 font-bold flex items-center gap-1">
+                  <Lock className="h-3 w-3" />
+                  Confidential Tracking Token (Save This Key)
+                </span>
+                <div className="flex items-center justify-between bg-white px-3.5 py-2.5 rounded-xl border border-coral-200">
+                  <span className="font-mono text-xs font-bold text-forest-800 truncate mr-2">
+                    {successData.tracking_token}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(successData.tracking_token!)}
+                    className="text-xs text-coral-600 hover:text-coral-700 font-semibold flex items-center gap-1 shrink-0"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    <span>Copy Token</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-forest-600">
+                  Keep this token safe. UMEED only stores the SHA-256 hash; nobody else can view the private tracking timeline without this exact key.
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Evidence URL */}
-          <div>
-            <label
-              htmlFor="evidence-url"
-              className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5"
-            >
-              Photo Evidence URL (Optional)
-            </label>
-            <input
-              id="evidence-url"
-              type="url"
-              placeholder="https://storage.umeed.local/photo.jpg"
-              value={evidenceUrl}
-              onChange={(e) => setEvidenceUrl(e.target.value)}
-              className="w-full text-xs rounded border border-slate-300 px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 placeholder:text-slate-400"
-            />
+          {/* Continuity Line Progress Preview */}
+          <div className="space-y-2 pt-2">
+            <span className="text-xs font-mono uppercase font-bold text-forest-700 block">
+              Case Journey Progression
+            </span>
+            <div className="p-4 rounded-xl bg-white border border-warm-grey-200">
+              <ContinuityLine currentStage="REPORT" variant="compact" />
+            </div>
           </div>
 
-          {/* Anonymous toggle */}
-          <div className="flex items-center gap-2 pt-1">
-            <input
-              type="checkbox"
-              id="anonymous-toggle"
-              checked={isAnonymous}
-              onChange={(e) => setIsAnonymous(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="anonymous-toggle" className="text-xs text-slate-600">
-              Submit anonymously (no contact details stored or shared)
-            </label>
+          <div className="pt-2 flex flex-col sm:flex-row gap-3">
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              onClick={() => {
+                setTrackRef(successData.public_reference);
+                setTrackToken(successData.tracking_token || "");
+                setActiveTab("track");
+              }}
+              icon={Search}
+            >
+              Track This Case Now
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              onClick={() => {
+                setSuccessData(null);
+                setStep(1);
+                setDescription("");
+                setAddress("");
+              }}
+            >
+              Submit Another Report
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* =========================================================================
+          TAB 2: TRACK EXISTING REPORT
+          ========================================================================= */}
+      {activeTab === "track" && (
+        <Card elevation="card" padding="lg" className="space-y-6">
+          <div className="space-y-1 pb-4 border-b border-warm-grey-200">
+            <h3 className="text-lg font-bold text-forest-800">
+              Look Up Incident Status
+            </h3>
+            <p className="text-xs text-forest-600">
+              Enter the Public Reference and Confidential Tracking Token provided during submission.
+            </p>
           </div>
 
-          {/* Submit Button */}
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              <span>{isSubmitting ? "Submitting to UMEED Engine..." : "Submit Distress Report"}</span>
-            </button>
-          </div>
-        </form>
-      </div>
+          {trackError && (
+            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
+              <span>{trackError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleLookupIncident} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase text-forest-700 font-mono mb-1.5">
+                  Public Reference (e.g. UMD-XXXX-YYYY)
+                </label>
+                <input
+                  type="text"
+                  value={trackRef}
+                  onChange={(e) => setTrackRef(e.target.value)}
+                  placeholder="UMD-82F1-94A0"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-warm-grey-300 text-forest-800 font-mono text-sm uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-forest-700 font-mono mb-1.5">
+                  Confidential Tracking Token
+                </label>
+                <input
+                  type="text"
+                  value={trackToken}
+                  onChange={(e) => setTrackToken(e.target.value)}
+                  placeholder="trk_..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-warm-grey-300 text-forest-800 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
+                />
+              </div>
+            </div>
+
+            <Button type="submit" variant="primary" size="md" loading={trackLoading} icon={Search}>
+              Verify & Retrieve Status
+            </Button>
+          </form>
+
+          {/* Tracked Result Display */}
+          {trackedIncident && (
+            <div className="mt-6 pt-6 border-t border-warm-grey-200 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4 rounded-xl bg-paper-surface border border-warm-grey-200">
+                <div>
+                  <span className="text-[11px] font-mono text-forest-600 block">INCIDENT CASE</span>
+                  <span className="font-mono text-base font-bold text-forest-800">
+                    {trackedIncident.public_reference}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={trackedIncident.status} />
+                  <span className="text-xs text-forest-600 font-mono">
+                    {trackedIncident.location?.district || "Delhi NCR"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Continuity Line Progress */}
+              <div className="space-y-2">
+                <span className="text-xs font-mono uppercase font-bold text-forest-700 block">
+                  Assistance Lifecycle Stage
+                </span>
+                <div className="p-4 rounded-2xl bg-white border border-warm-grey-200 shadow-2xs">
+                  <ContinuityLine
+                    currentStage={mapStatusToStage(trackedIncident.status)}
+                    variant="timeline"
+                  />
+                </div>
+              </div>
+
+              {/* Sanitized Public Information */}
+              <div className="p-4 rounded-xl bg-white border border-warm-grey-200 space-y-2 text-xs">
+                <div className="flex justify-between py-1 border-b border-warm-grey-100">
+                  <span className="text-forest-600 font-medium">Category:</span>
+                  <span className="font-bold text-forest-800">{trackedIncident.incident_type}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-warm-grey-100">
+                  <span className="text-forest-600 font-medium">Reported At:</span>
+                  <span className="font-mono text-forest-800">
+                    {new Date(trackedIncident.reported_at).toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-warm-grey-100">
+                  <span className="text-forest-600 font-medium">District Coverage:</span>
+                  <span className="text-forest-800">{trackedIncident.location?.district}</span>
+                </div>
+                <div className="py-1">
+                  <span className="text-forest-600 font-medium block mb-1">Description:</span>
+                  <p className="text-forest-900 leading-relaxed bg-paper-surface p-2.5 rounded-lg border border-warm-grey-100">
+                    {trackedIncident.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

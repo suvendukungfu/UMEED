@@ -18,8 +18,19 @@ import {
   ExternalLink,
   History,
   Info,
+  ShieldCheck,
+  Truck,
+  Sparkles,
+  Heart,
+  Plus,
+  RefreshCw,
+  AlertOctagon,
 } from "lucide-react";
+import { ContinuityLine, ContinuityStage } from "@/components/common/ContinuityLine";
 import { ContextInspector } from "@/components/context-inspector";
+import { Button } from "@/components/ui/Button";
+import { Badge, StatusBadge } from "@/components/ui/Badge";
+import { Card, MetricCard } from "@/components/ui/Card";
 
 interface CaseDetail {
   case_id: string;
@@ -96,6 +107,12 @@ export default function CaseDetailPage() {
   const [targetRequirement, setTargetRequirement] = useState("");
   const [candidates, setCandidates] = useState<any[]>([]);
 
+  // Resolution Modal State
+  const [showResolveModal, setShowResolveModal] = useState(false);
+  const [resolutionRationale, setResolutionRationale] = useState("");
+  const [resolutionEvidenceUrl, setResolutionEvidenceUrl] = useState("");
+  const [overrideUnresolved, setOverrideUnresolved] = useState(false);
+
   const fetchCaseDetail = useCallback(async () => {
     if (!caseReference) return;
     try {
@@ -138,16 +155,17 @@ export default function CaseDetailPage() {
   }, [fetchCaseDetail]);
 
   const handleOpenAssignModal = () => {
-    fetchMatches();
     setShowAssignModal(true);
+    fetchMatches();
   };
 
   const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedOrgId || !targetRequirement) return;
 
+    setActionLoading(true);
+    setActionMessage(null);
     try {
-      setActionLoading(true);
       const res = await fetch(`/api/cases/${caseReference}/assignments`, {
         method: "POST",
         headers: {
@@ -155,197 +173,359 @@ export default function CaseDetailPage() {
           "x-coordinator-key": "umeed-coordinator-dev-key",
         },
         body: JSON.stringify({
-          assignments: [
-            {
-              organisation_id: selectedOrgId,
-              requirement: targetRequirement,
-              response_deadline_hours: 2,
-            },
-          ],
+          organisation_id: selectedOrgId,
+          requirement: targetRequirement,
         }),
       });
-
       const data = await res.json();
-      if (res.ok) {
-        setActionMessage("Organisation assigned and notified successfully!");
+      if (data.status === "success") {
         setShowAssignModal(false);
         fetchCaseDetail();
+        setActionMessage("Provider assigned successfully with 30-minute response SLA.");
       } else {
-        setActionMessage(`Error: ${data.error?.message || "Failed to assign organisation"}`);
+        setActionMessage(data.error?.message || "Failed to assign organisation");
       }
     } catch (err) {
-      setActionMessage("Network error assigning organisation.");
+      setActionMessage((err as Error).message);
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleFollowUpCycle = async () => {
+    if (!caseRecord) return;
+    setActionLoading(true);
+    setActionMessage(null);
     try {
-      setActionLoading(true);
       const res = await fetch(`/api/cases/${caseReference}/follow-up`, {
         method: "POST",
-        headers: { "x-coordinator-key": "umeed-coordinator-dev-key" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-coordinator-key": "umeed-coordinator-dev-key",
+        },
       });
       const data = await res.json();
-      if (res.ok) {
-        setActionMessage(data.message || "New recursive cycle started!");
+      if (data.status === "success") {
         fetchCaseDetail();
+        setActionMessage(
+          `Cycle incremented to ${data.data.matching_cycle}. Secondary matching initialized.`
+        );
       } else {
-        setActionMessage(`Error: ${data.error?.message || "Failed to start follow-up"}`);
+        setActionMessage(data.error?.message || "Failed to initiate follow-up cycle");
       }
     } catch (err) {
-      setActionMessage("Network error initiating follow-up.");
+      setActionMessage((err as Error).message);
     } finally {
       setActionLoading(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const handleResolveCase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resolutionRationale.trim()) return;
+
+    setActionLoading(true);
+    setActionMessage(null);
+    try {
+      const res = await fetch(`/api/cases/${caseReference}/resolve`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-coordinator-key": "umeed-coordinator-dev-key",
+        },
+        body: JSON.stringify({
+          rationale: resolutionRationale.trim(),
+          evidence_url: resolutionEvidenceUrl.trim() || undefined,
+          override_unresolved: overrideUnresolved,
+        }),
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        setShowResolveModal(false);
+        fetchCaseDetail();
+        setActionMessage("Case formally resolved with verified coordinator sign-off.");
+      } else {
+        setActionMessage(
+          data.error?.message || "Resolution rejected: verify receiving provider handoff."
+        );
+      }
+    } catch (err) {
+      setActionMessage((err as Error).message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReopenCase = async () => {
+    const reason = prompt("Enter rationale for reopening this case:");
+    if (!reason) return;
+
+    setActionLoading(true);
+    setActionMessage(null);
+    try {
+      const res = await fetch(`/api/cases/${caseReference}/reopen`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-coordinator-key": "umeed-coordinator-dev-key",
+        },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        fetchCaseDetail();
+        setActionMessage("Case successfully reopened for follow-up coordination.");
+      } else {
+        setActionMessage(data.error?.message || "Failed to reopen case");
+      }
+    } catch (err) {
+      setActionMessage((err as Error).message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const mapCaseStatusToStage = (status: string): ContinuityStage => {
     switch (status) {
       case "APPROVED":
-        return "bg-blue-50 text-blue-700 border-blue-200";
+        return "REPORT";
       case "MATCHING":
-        return "bg-indigo-50 text-indigo-700 border-indigo-200";
+        return "COORDINATION";
       case "RESPONDERS_CONTACTED":
-        return "bg-amber-50 text-amber-700 border-amber-200";
       case "ACCEPTED":
-        return "bg-teal-50 text-teal-700 border-teal-200";
       case "RESPONDER_ARRIVED":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200";
       case "INTERVENTION_PROVIDED":
-        return "bg-cyan-50 text-cyan-700 border-cyan-200";
+        return "RESCUE";
       case "FOLLOW_UP_REQUIRED":
-        return "bg-orange-50 text-orange-700 border-orange-200 animate-pulse";
+        return "HANDOFF";
       case "RESOLVED":
-        return "bg-slate-100 text-slate-800 border-slate-300";
-      case "ESCALATED":
-        return "bg-rose-50 text-rose-700 border-rose-200 font-semibold";
+        return "VERIFIED_COMPLETION";
       default:
-        return "bg-slate-50 text-slate-600 border-slate-200";
+        return "COORDINATION";
     }
   };
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto p-12 text-center text-slate-400 text-sm">
-        Loading case details...
+      <div className="max-w-6xl mx-auto py-16 text-center text-forest-600 text-sm">
+        Loading case workspace...
       </div>
     );
   }
 
   if (!caseRecord) {
     return (
-      <div className="max-w-5xl mx-auto p-12 text-center space-y-3">
-        <AlertTriangle className="h-8 w-8 text-rose-500 mx-auto" />
-        <div className="text-sm font-semibold text-slate-900">Case Not Found</div>
-        <Link href="/cases" className="text-xs text-indigo-600 hover:underline">
-          Return to cases workspace
+      <Card elevation="subtle" padding="lg" className="max-w-lg mx-auto text-center space-y-3">
+        <AlertTriangle className="h-8 w-8 text-coral-500 mx-auto" />
+        <h3 className="text-base font-bold text-forest-800">Case Record Not Found</h3>
+        <p className="text-xs text-forest-600">
+          The requested case reference does not exist or has been archived.
+        </p>
+        <Link href="/cases">
+          <Button variant="outline" size="sm">
+            Back to Case Workspace
+          </Button>
         </Link>
-      </div>
+      </Card>
     );
   }
 
+  // Detect whether downstream receiving handoff is needed
+  const requiresReceivingHandoff =
+    caseRecord.assistance_requirements.some((r) =>
+      ["veterinary_care", "medical_triage", "night_shelter", "hospital_intake"].includes(r)
+    ) || caseRecord.case_status === "FOLLOW_UP_REQUIRED";
+
+  const isHandoffVerified = caseRecord.case_status === "RESOLVED";
+
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Top Header */}
-      <div>
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Navigation & Header */}
+      <div className="space-y-4 pb-4 border-b border-warm-grey-200">
         <Link
           href="/cases"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition mb-2"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-forest-600 hover:text-forest-900 transition"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           <span>Back to Case Workspace</span>
         </Link>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm">
+            <div className="h-10 w-10 rounded-xl bg-forest-800 text-white flex items-center justify-center font-bold text-sm shadow-subtle">
               <GitPullRequest className="h-5 w-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-slate-900">{caseRecord.public_case_reference}</h1>
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium border ${getStatusBadge(
-                    caseRecord.case_status
-                  )}`}
-                >
-                  {caseRecord.case_status}
-                </span>
-                <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200 font-mono">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="font-mono text-xl md:text-2xl font-bold text-forest-800">
+                  {caseRecord.public_case_reference}
+                </h1>
+                <StatusBadge status={caseRecord.case_status} />
+                <span className="text-xs bg-paper-surface text-forest-800 px-2 py-0.5 rounded-md border border-warm-grey-300 font-mono">
                   Cycle {caseRecord.current_matching_cycle}/{caseRecord.max_matching_cycles}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-forest-600 font-mono mt-0.5">
                 Linked Incident:{" "}
-                <Link
-                  href={`/incidents`}
-                  className="font-mono text-indigo-600 hover:underline inline-flex items-center gap-1"
-                >
+                <Link href="/incidents" className="text-coral-600 font-bold hover:underline">
                   {caseRecord.incident_reference}
-                  <ExternalLink className="h-3 w-3" />
-                </Link>
+                </Link>{" "}
+                • Approved {new Date(caseRecord.approved_at).toLocaleString()}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Action CTAs */}
+          <div className="flex items-center gap-2 flex-wrap">
             {caseRecord.case_status === "FOLLOW_UP_REQUIRED" && (
-              <button
+              <Button
+                variant="primary"
+                size="sm"
+                loading={actionLoading}
                 onClick={handleFollowUpCycle}
-                disabled={actionLoading}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-orange-600 text-white hover:bg-orange-700 transition shadow-sm"
+                icon={RotateCcw}
               >
-                <RotateCcw className="h-4 w-4" />
-                <span>Start Follow-Up Cycle</span>
-              </button>
+                Trigger Secondary Match
+              </Button>
             )}
 
-            {caseRecord.case_status !== "RESOLVED" && (
-              <button
-                onClick={handleOpenAssignModal}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm"
+            {caseRecord.case_status !== "RESOLVED" ? (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleOpenAssignModal}
+                  icon={Send}
+                >
+                  Assign Provider
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowResolveModal(true)}
+                  icon={CheckCircle2}
+                >
+                  Resolve Case
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReopenCase}
+                icon={RotateCcw}
               >
-                <Send className="h-4 w-4" />
-                <span>Assign Organisation</span>
-              </button>
+                Reopen Case
+              </Button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Notification banner */}
       {actionMessage && (
-        <div className="bg-indigo-50 border border-indigo-200 text-indigo-900 px-4 py-3 rounded-lg text-xs flex items-center justify-between">
+        <div className="p-3.5 rounded-xl bg-forest-50 border border-forest-300 text-forest-900 text-xs flex items-center justify-between">
           <span>{actionMessage}</span>
           <button
+            type="button"
             onClick={() => setActionMessage(null)}
-            className="text-indigo-600 hover:text-indigo-900 font-bold ml-4"
+            className="text-forest-600 hover:text-forest-900 font-bold ml-4"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* Split Grid Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Requirements & Status */}
-        <div className="space-y-6 lg:col-span-1">
-          {/* Unresolved Assistance Needs */}
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
-            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
-              <span>Assistance Needs</span>
-            </h2>
+      {/* Continuity Line Stage Progress */}
+      <Card elevation="card" padding="md" className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-mono uppercase font-bold text-coral-600">
+            Assistance Continuity Journey
+          </span>
+          <span className="text-[11px] font-mono text-forest-600">
+            Current Stage: {caseRecord.case_status}
+          </span>
+        </div>
+        <ContinuityLine
+          currentStage={mapCaseStatusToStage(caseRecord.case_status)}
+          variant="timeline"
+        />
+      </Card>
 
-            <div className="space-y-2 text-xs">
+      {/* Prominent Handoff Checkpoint Card */}
+      {requiresReceivingHandoff && (
+        <div
+          className={`p-5 rounded-2xl border transition-all ${
+            isHandoffVerified
+              ? "bg-forest-50 border-forest-300"
+              : "bg-amber-50/70 border-amber-300 shadow-card"
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div
+                className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  isHandoffVerified
+                    ? "bg-forest-800 text-white"
+                    : "bg-amber-500 text-white"
+                }`}
+              >
+                <ShieldAlert className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-forest-900">
+                    Downstream Receiving Provider Handoff Gate
+                  </h3>
+                  <span
+                    className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                      isHandoffVerified
+                        ? "bg-forest-200 text-forest-900"
+                        : "bg-amber-200 text-amber-900"
+                    }`}
+                  >
+                    {isHandoffVerified ? "GATE VERIFIED" : "GATE ACTIVE — ADMISSION REQUIRED"}
+                  </span>
+                </div>
+                <p className="text-xs text-forest-700 max-w-2xl leading-relaxed">
+                  {isHandoffVerified
+                    ? "Receiving facility clinical/shelter admission has been verified with coordinator evidence sign-off."
+                    : "Physical transport has arrived. Case resolution is BLOCKED until receiving clinical hospital or shelter admission is formally verified to prevent patient abandonment at gate."}
+                </p>
+              </div>
+            </div>
+
+            {!isHandoffVerified && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setShowResolveModal(true)}
+              >
+                Verify Admission
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Main Workspace Split Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Requirements & Context Inspector */}
+        <div className="space-y-6 lg:col-span-1">
+          {/* Requirements Card */}
+          <Card elevation="subtle" padding="md" className="space-y-4">
+            <h3 className="text-xs font-mono uppercase font-bold text-forest-800 flex items-center gap-1.5">
+              <AlertTriangle className="h-4 w-4 text-coral-500" />
+              <span>Assistance Requirements</span>
+            </h3>
+
+            <div className="space-y-3 text-xs">
               <div>
-                <span className="text-slate-500 font-medium">All Requirements:</span>
-                <div className="flex flex-wrap gap-1 mt-1">
+                <span className="text-forest-600 block mb-1">Identified Requirements:</span>
+                <div className="flex flex-wrap gap-1">
                   {caseRecord.assistance_requirements.map((req, i) => (
                     <span
                       key={i}
-                      className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-mono text-[11px]"
+                      className="px-2 py-0.5 rounded bg-paper-surface text-forest-800 border border-warm-grey-300 font-mono text-[11px]"
                     >
                       {req}
                     </span>
@@ -353,19 +533,19 @@ export default function CaseDetailPage() {
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-100">
-                <span className="text-slate-500 font-medium">Outstanding Unresolved:</span>
+              <div className="pt-2 border-t border-warm-grey-100">
+                <span className="text-forest-600 block mb-1">Unresolved Outstanding:</span>
                 {caseRecord.unresolved_requirements.length === 0 ? (
-                  <div className="mt-1 flex items-center gap-1.5 text-emerald-600 font-medium">
-                    <CheckCircle2 className="h-4 w-4" />
+                  <div className="flex items-center gap-1.5 text-forest-800 font-semibold">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                     <span>All needs fully addressed</span>
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-1 mt-1">
+                  <div className="flex flex-wrap gap-1">
                     {caseRecord.unresolved_requirements.map((req, i) => (
                       <span
                         key={i}
-                        className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-mono text-[11px] font-bold"
+                        className="px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-300 font-mono text-[11px] font-bold"
                       >
                         {req}
                       </span>
@@ -374,255 +554,301 @@ export default function CaseDetailPage() {
                 )}
               </div>
             </div>
-          </div>
+          </Card>
 
-          {/* Meko Context Inspector */}
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <ContextInspector
-              caseReference={caseRecord.public_case_reference}
-              incidentReference={caseRecord.incident_reference}
-            />
-          </div>
-
-          {/* Final Resolution Details (if resolved) */}
-          {caseRecord.resolution_decision && (
-            <div className="bg-slate-50 p-5 rounded-xl border border-slate-300 shadow-sm space-y-3">
-              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                <span>Resolution Audit Record</span>
-              </h2>
-              <div className="text-xs space-y-1 text-slate-600">
-                <div>
-                  <strong>Decision:</strong> {caseRecord.resolution_decision.decision}
-                </div>
-                <div>
-                  <strong>Resolved By:</strong> {caseRecord.resolution_decision.resolved_by}
-                </div>
-                <div>
-                  <strong>Timestamp:</strong>{" "}
-                  {new Date(caseRecord.resolution_decision.timestamp).toLocaleString()}
-                </div>
-                <div>
-                  <strong>Rationale:</strong> {caseRecord.resolution_decision.rationale}
-                </div>
-                {caseRecord.resolution_evidence.length > 0 && (
-                  <div className="pt-2">
-                    <strong>Evidence URLs:</strong>
-                    <ul className="list-disc pl-4 text-indigo-600 mt-1">
-                      {caseRecord.resolution_evidence.map((url, i) => (
-                        <li key={i}>
-                          <a href={url} target="_blank" rel="noreferrer" className="underline">
-                            {url}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
+          {/* Context Inspector Drawer */}
+          <Card elevation="subtle" padding="none" className="overflow-hidden">
+            <div className="p-4 border-b border-warm-grey-200 bg-paper-surface flex items-center justify-between">
+              <span className="text-xs font-mono uppercase font-bold text-forest-800 flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-coral-500" />
+                <span>Meko Context Inspector</span>
+              </span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-forest-100 text-forest-800">
+                Active Memory
+              </span>
             </div>
-          )}
+            <div className="p-4">
+              <ContextInspector caseReference={caseRecord.public_case_reference} />
+            </div>
+          </Card>
         </div>
 
-        {/* Right Column: Assignments, Interventions & Timeline */}
+        {/* Right Column: Assignments & Interventions */}
         <div className="space-y-6 lg:col-span-2">
-          {/* Active Assignments */}
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                <Building2 className="h-4 w-4 text-indigo-600" />
-                <span>Organisation Assignments ({caseRecord.assignments.length})</span>
-              </h2>
+          {/* Provider Assignments */}
+          <Card elevation="subtle" padding="md" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-mono uppercase font-bold text-forest-800 flex items-center gap-1.5">
+                <Building2 className="h-4 w-4 text-forest-700" />
+                <span>Assigned Providers & Response Stages</span>
+              </h3>
+              <span className="text-xs text-forest-600 font-mono">
+                {caseRecord.assignments.length} Providers Assigned
+              </span>
             </div>
 
             {caseRecord.assignments.length === 0 ? (
-              <div className="text-xs text-slate-400 py-6 text-center">
-                No organisations assigned yet. Click &ldquo;Assign Organisation&rdquo; to select candidates.
+              <div className="p-6 text-center text-forest-500 text-xs italic bg-paper-surface rounded-xl border border-warm-grey-200">
+                No organisations assigned yet. Click &quot;Assign Provider&quot; to match an accredited NGO.
               </div>
             ) : (
               <div className="space-y-3">
-                {caseRecord.assignments.map((asg) => (
+                {caseRecord.assignments.map((a) => (
                   <div
-                    key={asg.assignment_id}
-                    className="p-4 rounded-lg border border-slate-200 bg-slate-50/50 space-y-2 text-xs"
+                    key={a.assignment_id}
+                    className="p-4 rounded-xl border border-warm-grey-200 bg-paper-surface space-y-2 text-xs"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
-                      <div>
-                        <div className="font-bold text-slate-900 text-sm">{asg.organisation_name}</div>
-                        <div className="text-slate-500 text-[11px]">
-                          Requirement: <strong className="text-slate-800">{asg.requirement}</strong> | Cycle: {asg.matching_cycle}
-                        </div>
-                      </div>
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border self-start ${getStatusBadge(
-                          asg.status
-                        )}`}
-                      >
-                        {asg.status}
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-forest-900 text-sm">
+                        {a.organisation_name}
                       </span>
+                      <StatusBadge status={a.status} />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-slate-500 text-[11px]">
-                      <div>Assigned: {new Date(asg.assigned_at).toLocaleTimeString()}</div>
-                      <div>Deadline: {new Date(asg.response_deadline).toLocaleTimeString()}</div>
-                      {asg.accepted_at && <div className="text-teal-700">Accepted: {new Date(asg.accepted_at).toLocaleTimeString()}</div>}
-                      {asg.arrived_at && <div className="text-emerald-700">Arrived: {new Date(asg.arrived_at).toLocaleTimeString()}</div>}
-                      {asg.rejected_at && <div className="text-rose-700">Rejected: {asg.rejection_reason}</div>}
+                    <div className="grid grid-cols-2 gap-2 text-forest-700 font-mono text-[11px]">
+                      <div>Requirement: {a.requirement}</div>
+                      <div>Cycle: {a.matching_cycle}</div>
+                      <div>Assigned: {new Date(a.assigned_at).toLocaleTimeString()}</div>
+                      <div>Deadline: {new Date(a.response_deadline).toLocaleTimeString()}</div>
                     </div>
 
-                    {/* Contact Attempts Audit */}
-                    {asg.contact_attempts.length > 0 && (
-                      <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 space-y-1">
-                        <span className="font-medium text-slate-700">Notification Provenance:</span>
-                        {asg.contact_attempts.map((att) => (
-                          <div key={att.attempt_id} className="flex items-center justify-between bg-white px-2 py-1 rounded border border-slate-200">
-                            <span>Channel: {att.channel}</span>
-                            <span className="font-mono text-[10px] bg-slate-100 px-1.5 py-0.5 rounded">
-                              {att.status}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    {/* Stage Milestones */}
+                    <div className="pt-2 border-t border-warm-grey-100 flex flex-wrap gap-2 text-[10px] font-mono">
+                      {a.accepted_at && (
+                        <span className="text-forest-800 bg-white px-2 py-0.5 rounded border border-warm-grey-200">
+                          Accepted: {new Date(a.accepted_at).toLocaleTimeString()}
+                        </span>
+                      )}
+                      {a.en_route_at && (
+                        <span className="text-forest-800 bg-white px-2 py-0.5 rounded border border-warm-grey-200">
+                          En Route: {new Date(a.en_route_at).toLocaleTimeString()}
+                        </span>
+                      )}
+                      {a.arrived_at && (
+                        <span className="text-forest-800 bg-white px-2 py-0.5 rounded border border-warm-grey-200">
+                          Arrived: {new Date(a.arrived_at).toLocaleTimeString()}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </Card>
 
-          {/* Interventions Recorded */}
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
-            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5 border-b border-slate-100 pb-3">
-              <FileCheck className="h-4 w-4 text-emerald-600" />
-              <span>Interventions Recorded ({caseRecord.interventions.length})</span>
-            </h2>
+          {/* Interventions & Field Evidence */}
+          <Card elevation="subtle" padding="md" className="space-y-4">
+            <h3 className="text-xs font-mono uppercase font-bold text-forest-800 flex items-center gap-1.5">
+              <FileCheck className="h-4 w-4 text-forest-700" />
+              <span>Field Interventions & Evidence Log</span>
+            </h3>
 
             {caseRecord.interventions.length === 0 ? (
-              <div className="text-xs text-slate-400 py-6 text-center">
-                No field interventions recorded yet. Awaiting responder action.
+              <div className="p-6 text-center text-forest-500 text-xs italic bg-paper-surface rounded-xl border border-warm-grey-200">
+                No field interventions recorded yet. Field responders submit updates via the Responder Cockpit.
               </div>
             ) : (
               <div className="space-y-3">
-                {caseRecord.interventions.map((intv) => (
+                {caseRecord.interventions.map((inv) => (
                   <div
-                    key={intv.intervention_id}
-                    className="p-4 rounded-lg border border-emerald-100 bg-emerald-50/30 space-y-2 text-xs"
+                    key={inv.intervention_id}
+                    className="p-4 rounded-xl border border-warm-grey-200 bg-white space-y-2 text-xs"
                   >
-                    <div className="flex items-center justify-between border-b border-emerald-100 pb-2">
-                      <span className="font-bold text-emerald-950 text-sm">
-                        {intv.intervention_type.replace(/_/g, " ").toUpperCase()}
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-forest-900 capitalize">
+                        {inv.intervention_type.replace(/_/g, " ")}
                       </span>
-                      <span className="text-[11px] text-slate-500">
-                        {new Date(intv.performed_at).toLocaleString()}
+                      <span className="font-mono text-[11px] text-forest-600">
+                        {new Date(inv.performed_at).toLocaleString()}
                       </span>
                     </div>
 
-                    <p className="text-slate-700">{intv.description}</p>
+                    <p className="text-forest-800 bg-paper-surface p-2.5 rounded-lg border border-warm-grey-100">
+                      {inv.description}
+                    </p>
 
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      <span className="text-slate-500 font-medium">Provided:</span>
-                      {intv.assistance_provided.map((p, idx) => (
-                        <span key={idx} className="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-mono text-[10px]">
-                          {p}
-                        </span>
-                      ))}
-                    </div>
+                    {inv.assistance_provided.length > 0 && (
+                      <div className="text-[11px] font-mono text-forest-700">
+                        Provided: {inv.assistance_provided.join(", ")}
+                      </div>
+                    )}
 
-                    {intv.additional_needs.length > 0 && (
-                      <div className="flex flex-wrap gap-1 pt-1 text-orange-800">
-                        <span className="font-medium">Additional Needs Reported:</span>
-                        {intv.additional_needs.map((need, idx) => (
-                          <span key={idx} className="bg-orange-100 text-orange-900 px-1.5 py-0.5 rounded font-mono text-[10px] font-bold">
-                            {need}
-                          </span>
-                        ))}
+                    {inv.additional_needs.length > 0 && (
+                      <div className="text-[11px] font-mono text-amber-800 font-bold">
+                        Secondary Needs Reported: {inv.additional_needs.join(", ")}
                       </div>
                     )}
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </Card>
         </div>
       </div>
 
-      {/* Assign Organisation Modal */}
+      {/* Assign Provider Modal */}
       {showAssignModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-200">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-slate-900">Assign Organisation to Requirement</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-forest-950/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-modal border border-warm-grey-200">
+            <div className="flex items-center justify-between pb-3 border-b border-warm-grey-200">
+              <h3 className="text-base font-bold text-forest-800">
+                Assign Accredited NGO Provider
+              </h3>
               <button
+                type="button"
                 onClick={() => setShowAssignModal(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold"
+                className="text-forest-600 hover:text-forest-900"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleAssignSubmit} className="space-y-4 text-xs">
+            <form onSubmit={handleAssignSubmit} className="space-y-4">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Target Assistance Requirement:
+                <label className="block text-xs font-bold text-forest-700 mb-1">
+                  Target Assistance Requirement
                 </label>
                 <select
                   value={targetRequirement}
                   onChange={(e) => setTargetRequirement(e.target.value)}
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  className="w-full text-xs p-2.5 rounded-xl border border-warm-grey-300 bg-white"
                 >
-                  {caseRecord.unresolved_requirements.map((req, i) => (
-                    <option key={i} value={req}>
+                  {caseRecord.assistance_requirements.map((req) => (
+                    <option key={req} value={req}>
                       {req}
-                    </option>
-                  ))}
-                  {caseRecord.assistance_requirements.map((req, i) => (
-                    <option key={`all-${i}`} value={req}>
-                      {req} (General)
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Select Eligible Candidate Organisation:
+                <label className="block text-xs font-bold text-forest-700 mb-1">
+                  Select Accredited NGO Candidate
                 </label>
-                {candidates.length === 0 ? (
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-500">
-                    Loading recommendation matches...
-                  </div>
-                ) : (
-                  <select
-                    value={selectedOrgId}
-                    onChange={(e) => setSelectedOrgId(e.target.value)}
-                    required
-                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900"
-                  >
-                    <option value="">-- Choose Vetted Organisation --</option>
-                    {candidates.map((cand) => (
-                      <option key={cand.ngo_id} value={cand.ngo_id}>
-                        {cand.organisation_name} (Score: {Math.round(cand.total_score * 100)}%)
-                      </option>
-                    ))}
-                  </select>
-                )}
+                <select
+                  value={selectedOrgId}
+                  onChange={(e) => setSelectedOrgId(e.target.value)}
+                  className="w-full text-xs p-2.5 rounded-xl border border-warm-grey-300 bg-white"
+                >
+                  <option value="">Select Candidate Provider...</option>
+                  {candidates.map((c) => (
+                    <option key={c.ngo_id} value={c.ngo_id}>
+                      {c.organisation_name} (Score: {(c.composite_score * 100).toFixed(0)}%)
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                <button
+              <div className="flex justify-end gap-2 pt-2 border-t border-warm-grey-200">
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setShowAssignModal(false)}
-                  className="px-3 py-1.5 text-slate-600 hover:text-slate-900"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  disabled={actionLoading || !selectedOrgId}
-                  className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-50"
+                  variant="primary"
+                  size="sm"
+                  disabled={!selectedOrgId || !targetRequirement}
+                  loading={actionLoading}
                 >
-                  {actionLoading ? "Assigning..." : "Confirm Assignment"}
-                </button>
+                  Dispatch Assignment
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Resolve Modal */}
+      {showResolveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-forest-950/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-modal border border-warm-grey-200">
+            <div className="flex items-center justify-between pb-3 border-b border-warm-grey-200">
+              <h3 className="text-base font-bold text-forest-800">
+                Verify Closed-Loop Case Resolution
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowResolveModal(false)}
+                className="text-forest-600 hover:text-forest-900"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleResolveCase} className="space-y-4">
+              <div className="p-3.5 rounded-xl bg-paper-surface border border-warm-grey-200 text-xs space-y-1 font-mono">
+                <div>Case Reference: {caseRecord.public_case_reference}</div>
+                <div>
+                  Unresolved Needs:{" "}
+                  {caseRecord.unresolved_requirements.length > 0 ? (
+                    <span className="text-amber-800 font-bold">
+                      {caseRecord.unresolved_requirements.join(", ")}
+                    </span>
+                  ) : (
+                    <span className="text-emerald-700 font-bold">All Needs Satisfied</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-forest-700 mb-1">
+                  Resolution Rationale & Handoff Sign-off (Mandatory)
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={resolutionRationale}
+                  onChange={(e) => setResolutionRationale(e.target.value)}
+                  placeholder="e.g. Verified receiving hospital admission slip and surgical registration signed by Dr. Sharma..."
+                  className="w-full text-xs p-2.5 rounded-xl border border-warm-grey-300 focus:outline-none focus:ring-2 focus:ring-forest-800"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-forest-700 mb-1">
+                  Admission Evidence / Document URL (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={resolutionEvidenceUrl}
+                  onChange={(e) => setResolutionEvidenceUrl(e.target.value)}
+                  placeholder="https://example.com/admission_slip.jpg"
+                  className="w-full text-xs p-2.5 rounded-xl border border-warm-grey-300 focus:outline-none focus:ring-2 focus:ring-forest-800"
+                />
+              </div>
+
+              {caseRecord.unresolved_requirements.length > 0 && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+                  <input
+                    type="checkbox"
+                    id="override-check-case"
+                    checked={overrideUnresolved}
+                    onChange={(e) => setOverrideUnresolved(e.target.checked)}
+                    className="h-4 w-4 rounded text-forest-800"
+                  />
+                  <label htmlFor="override-check-case" className="font-semibold cursor-pointer">
+                    Override remaining needs (Coordinator assumes explicit responsibility)
+                  </label>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-warm-grey-200">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowResolveModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm" loading={actionLoading}>
+                  Confirm Resolution
+                </Button>
               </div>
             </form>
           </div>

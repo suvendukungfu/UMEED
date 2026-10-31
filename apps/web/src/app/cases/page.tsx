@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft,
   GitPullRequest,
   Search,
   Filter,
@@ -18,7 +17,14 @@ import {
   Send,
   Building2,
   FileCheck,
+  RefreshCw,
+  Plus,
+  ShieldCheck,
 } from "lucide-react";
+import { ContinuityLine, ContinuityStage } from "@/components/common/ContinuityLine";
+import { Button } from "@/components/ui/Button";
+import { Badge, StatusBadge } from "@/components/ui/Badge";
+import { Card, MetricCard } from "@/components/ui/Card";
 
 interface CaseItem {
   case_id: string;
@@ -82,8 +88,8 @@ export default function CoordinatorCasesPage() {
         headers: { "x-coordinator-key": "umeed-coordinator-dev-key" },
       });
       const data = await res.json();
-      if (data.status === "success" && data.data?.cases) {
-        setCases(data.data.cases);
+      if (data.status === "success") {
+        setCases(data.data?.cases || []);
       }
     } catch (err) {
       console.error("Failed to load cases:", err);
@@ -96,20 +102,16 @@ export default function CoordinatorCasesPage() {
     fetchCases();
   }, [fetchCases]);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchCases();
-  };
-
   const handleCreateCase = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newIncidentRef.trim()) return;
 
+    setActionLoading(true);
+    setActionMessage(null);
     try {
-      setActionLoading(true);
-      const reqList = newRequirements
-        .split(/[,;\n]/)
-        .map((s) => s.trim())
+      const requirements = newRequirements
+        .split(",")
+        .map((r) => r.trim())
         .filter(Boolean);
 
       const res = await fetch("/api/cases", {
@@ -119,550 +121,535 @@ export default function CoordinatorCasesPage() {
           "x-coordinator-key": "umeed-coordinator-dev-key",
         },
         body: JSON.stringify({
-          incident_public_reference: newIncidentRef.trim(),
-          assistance_requirements: reqList.length > 0 ? reqList : undefined,
+          incident_reference: newIncidentRef.trim().toUpperCase(),
+          assistance_requirements:
+            requirements.length > 0 ? requirements : ["emergency_first_aid"],
         }),
       });
 
       const data = await res.json();
-      if (res.ok) {
-        setActionMessage(`Case ${data.data.public_case_reference} created successfully!`);
+      if (data.status === "success") {
         setShowCreateModal(false);
         setNewIncidentRef("");
         setNewRequirements("");
         fetchCases();
+        setActionMessage(`Case ${data.data.case.public_case_reference} created successfully.`);
       } else {
-        setActionMessage(`Error: ${data.error?.message || "Failed to create case"}`);
+        setActionMessage(data.error?.message || "Failed to create case");
       }
     } catch (err) {
-      setActionMessage("Network error creating case.");
+      setActionMessage((err as Error).message);
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleTriggerFollowUp = async (caseRef: string) => {
-    try {
-      setActionLoading(true);
-      const res = await fetch(`/api/cases/${caseRef}/follow-up`, {
-        method: "POST",
-        headers: { "x-coordinator-key": "umeed-coordinator-dev-key" },
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setActionMessage(data.message || "Follow-up cycle initiated!");
-        fetchCases();
-      } else {
-        setActionMessage(`Error: ${data.error?.message || "Failed to trigger follow-up"}`);
-      }
-    } catch (err) {
-      setActionMessage("Network error initiating follow-up.");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleResolveCaseSubmit = async (e: React.FormEvent) => {
+  const handleResolveCase = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCaseForResolve || !resolutionRationale.trim()) return;
 
+    setActionLoading(true);
+    setActionMessage(null);
     try {
-      setActionLoading(true);
-      const res = await fetch(`/api/cases/${selectedCaseForResolve.public_case_reference}/resolve`, {
+      const res = await fetch(
+        `/api/cases/${selectedCaseForResolve.public_case_reference}/resolve`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-coordinator-key": "umeed-coordinator-dev-key",
+          },
+          body: JSON.stringify({
+            rationale: resolutionRationale.trim(),
+            evidence_url: resolutionEvidenceUrl.trim() || undefined,
+            override_unresolved: overrideUnresolved,
+          }),
+        }
+      );
+
+      const data = await res.json();
+      if (data.status === "success") {
+        setSelectedCaseForResolve(null);
+        setResolutionRationale("");
+        setResolutionEvidenceUrl("");
+        setOverrideUnresolved(false);
+        fetchCases();
+        setActionMessage(
+          `Case ${selectedCaseForResolve.public_case_reference} resolved with verified review.`
+        );
+      } else {
+        setActionMessage(data.error?.message || "Resolution rejected: verify receiving handoff.");
+      }
+    } catch (err) {
+      setActionMessage((err as Error).message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReopenCase = async (caseRef: string) => {
+    const reason = prompt("Enter rationale for reopening this case:");
+    if (!reason) return;
+
+    setActionLoading(true);
+    setActionMessage(null);
+    try {
+      const res = await fetch(`/api/cases/${caseRef}/reopen`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-coordinator-key": "umeed-coordinator-dev-key",
         },
-        body: JSON.stringify({
-          decision: "RESOLVED",
-          rationale: resolutionRationale.trim(),
-          evidence_urls: resolutionEvidenceUrl ? [resolutionEvidenceUrl.trim()] : [],
-          override_unresolved: overrideUnresolved,
-        }),
+        body: JSON.stringify({ reason }),
       });
 
       const data = await res.json();
-      if (res.ok) {
-        setActionMessage(`Case ${selectedCaseForResolve.public_case_reference} formally resolved.`);
-        setSelectedCaseForResolve(null);
-        setResolutionRationale("");
-        setResolutionEvidenceUrl("");
+      if (data.status === "success") {
         fetchCases();
+        setActionMessage(`Case ${caseRef} reopened for follow-up coordination.`);
       } else {
-        setActionMessage(`Error: ${data.error?.message || "Failed to resolve case"}`);
+        setActionMessage(data.error?.message || "Failed to reopen case");
       }
     } catch (err) {
-      setActionMessage("Network error resolving case.");
+      setActionMessage((err as Error).message);
     } finally {
       setActionLoading(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  // Map case status to Continuity Line stage
+  const mapCaseStatusToStage = (status: string): ContinuityStage => {
     switch (status) {
       case "APPROVED":
-        return "bg-blue-50 text-blue-700 border-blue-200";
+        return "REPORT";
       case "MATCHING":
-        return "bg-indigo-50 text-indigo-700 border-indigo-200";
+        return "COORDINATION";
       case "RESPONDERS_CONTACTED":
-        return "bg-amber-50 text-amber-700 border-amber-200";
       case "ACCEPTED":
-        return "bg-teal-50 text-teal-700 border-teal-200";
       case "RESPONDER_ARRIVED":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200";
       case "INTERVENTION_PROVIDED":
-        return "bg-cyan-50 text-cyan-700 border-cyan-200";
+        return "RESCUE";
       case "FOLLOW_UP_REQUIRED":
-        return "bg-orange-50 text-orange-700 border-orange-200 animate-pulse";
+        return "HANDOFF";
       case "RESOLVED":
-        return "bg-slate-100 text-slate-800 border-slate-300";
-      case "ESCALATED":
-        return "bg-rose-50 text-rose-700 border-rose-200 font-semibold";
+        return "VERIFIED_COMPLETION";
       default:
-        return "bg-slate-50 text-slate-600 border-slate-200";
+        return "COORDINATION";
     }
   };
 
-  // Compute metrics
-  const activeCasesCount = cases.filter((c) => !["RESOLVED", "CANCELLED"].includes(c.case_status)).length;
-  const followUpCount = cases.filter((c) => c.case_status === "FOLLOW_UP_REQUIRED").length;
-  const resolvedCount = cases.filter((c) => c.case_status === "RESOLVED").length;
+  // Metrics
+  const totalCases = cases.length;
+  const activeCases = cases.filter((c) => c.case_status !== "RESOLVED").length;
+  const pendingHandoffs = cases.filter(
+    (c) => c.case_status === "FOLLOW_UP_REQUIRED" || c.case_status === "INTERVENTION_PROVIDED"
+  ).length;
+  const verifiedCompletions = cases.filter((c) => c.case_status === "RESOLVED").length;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Top Header & Breadcrumbs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-8">
+      {/* Masthead */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-warm-grey-200">
         <div>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition mb-2"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Back to Dashboard</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm">
-              <GitPullRequest className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">Coordinator Case Workspace</h1>
-              <p className="text-xs text-slate-500">
-                Closed-Loop Response Tracking & Recursive Assistance Engine (Phase 5)
-              </p>
-            </div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-editorial text-2xl font-bold text-forest-800">
+              Coordinator Mission Control
+            </span>
+            <Badge variant="coral">Operational Assistance Cases</Badge>
           </div>
+          <p className="text-xs text-forest-700/80">
+            Multi-NGO case lifecycle management, capability dispatch, and receiving provider handoff verification.
+          </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Link
-            href="/responder"
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 transition"
+        <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={fetchCases}
+            loading={loading}
+            icon={RefreshCw}
           >
-            <Building2 className="h-4 w-4 text-slate-500" />
-            <span>NGO Responder Workspace</span>
-          </Link>
-          <button
+            Refresh Cases
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
             onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm"
+            icon={Plus}
           >
-            <PlusCircle className="h-4 w-4" />
-            <span>Open Case</span>
-          </button>
+            Create Case
+          </Button>
         </div>
       </div>
 
-      {/* Metrics Banner */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-medium text-slate-500">Active Cases</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1">{activeCasesCount}</div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-medium text-orange-600">Follow-Up Required</div>
-          <div className="text-2xl font-bold text-orange-700 mt-1">{followUpCount}</div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-medium text-slate-500">Resolved Cases</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1">{resolvedCount}</div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-medium text-slate-500">Total Tracked</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1">{cases.length}</div>
-        </div>
-      </div>
-
-      {/* Action Notification Banner */}
       {actionMessage && (
-        <div className="bg-indigo-50 border border-indigo-200 text-indigo-900 px-4 py-3 rounded-lg text-xs flex items-center justify-between">
+        <div className="p-3.5 rounded-xl bg-forest-50 border border-forest-300 text-forest-900 text-xs flex items-center justify-between">
           <span>{actionMessage}</span>
           <button
+            type="button"
             onClick={() => setActionMessage(null)}
-            className="text-indigo-600 hover:text-indigo-900 font-bold ml-4"
+            className="text-forest-600 hover:text-forest-900 font-bold"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Filter className="h-4 w-4 text-slate-400 mr-1" />
-          {[
-            { id: "ALL", label: "All Statuses" },
-            { id: "APPROVED", label: "Approved" },
-            { id: "MATCHING", label: "Matching" },
-            { id: "RESPONDERS_CONTACTED", label: "Contacted" },
-            { id: "ACCEPTED", label: "Accepted" },
-            { id: "RESPONDER_ARRIVED", label: "On Scene" },
-            { id: "FOLLOW_UP_REQUIRED", label: "Follow-Up Needed" },
-            { id: "RESOLVED", label: "Resolved" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setStatusFilter(tab.id)}
-              className={`px-2.5 py-1 text-xs rounded-md font-medium transition ${
-                statusFilter === tab.id
-                  ? "bg-slate-900 text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="relative w-full sm:w-64">
-            <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              placeholder="Search reference or requirement..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900"
-            />
-          </div>
-          <button
-            type="submit"
-            className="px-3 py-1.5 text-xs bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
-          >
-            Filter
-          </button>
-        </form>
+      {/* Metrics Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          label="Total Managed Cases"
+          value={totalCases}
+          subtext="Closed-loop lifecycle"
+          badge="Live Register"
+          icon={GitPullRequest}
+        />
+        <MetricCard
+          label="Active In-Progress"
+          value={activeCases}
+          subtext="Awaiting full resolution"
+          badge="Active Field"
+          icon={Clock}
+        />
+        <MetricCard
+          label="Pending Handoff Gates"
+          value={pendingHandoffs}
+          subtext="Receiving provider gate"
+          badge="Critical Checkpoint"
+          icon={ShieldAlert}
+        />
+        <MetricCard
+          label="Verified Completions"
+          value={verifiedCompletions}
+          subtext="Staff review confirmed"
+          badge="Closed Loop"
+          icon={CheckCircle2}
+        />
       </div>
 
-      {/* Cases List */}
-      {loading ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400 text-sm">
-          Loading coordination cases...
-        </div>
-      ) : cases.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center space-y-3">
-          <GitPullRequest className="h-8 w-8 text-slate-300 mx-auto" />
-          <div className="text-sm font-semibold text-slate-700">No Cases Found</div>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
-            No assistance cases match your current filter. Convert an approved incident from the review queue
-            or click &ldquo;Open Case&rdquo; above.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {cases.map((c) => (
-            <div
-              key={c.case_id}
-              className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-slate-300 transition space-y-4"
+      {/* Search & Filter Bar */}
+      <Card elevation="subtle" padding="sm" className="space-y-4">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-forest-600" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by case reference (CASE-XXXX-YYYY), linked incident, or requirement..."
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-paper-surface border border-warm-grey-300 text-xs text-forest-800 placeholder:text-forest-500/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-paper-surface border border-warm-grey-300 text-xs font-semibold text-forest-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-sm font-bold text-slate-900">
-                    {c.public_case_reference}
-                  </span>
-                  <span className="text-xs text-slate-400">Linked to: {c.incident_reference}</span>
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getStatusBadge(
-                      c.case_status
-                    )}`}
-                  >
-                    {c.case_status}
-                  </span>
-                  <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200 font-mono">
-                    Cycle {c.current_matching_cycle}/{c.max_matching_cycles}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Link
-                    href={`/cases/${c.public_case_reference}`}
-                    className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2 py-1 rounded hover:bg-indigo-50 transition"
-                  >
-                    <span>View Case Details</span>
-                    <ExternalLink className="h-3 w-3" />
-                  </Link>
-                </div>
-              </div>
-
-              {/* Requirements & Unresolved Needs */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div>
-                  <div className="font-medium text-slate-500 mb-1">Assistance Requirements:</div>
-                  <div className="flex flex-wrap gap-1">
-                    {c.assistance_requirements.map((req, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-mono text-[11px]"
-                      >
-                        {req}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="font-medium text-slate-500 mb-1">Unresolved Needs:</div>
-                  {c.unresolved_requirements.length === 0 ? (
-                    <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      All requirements addressed
-                    </span>
-                  ) : (
-                    <div className="flex flex-wrap gap-1">
-                      {c.unresolved_requirements.map((req, idx) => (
-                        <span
-                          key={idx}
-                          className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-mono text-[11px] font-semibold"
-                        >
-                          {req}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Assignments Snapshot */}
-              {c.assignments.length > 0 && (
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 space-y-2 text-xs">
-                  <div className="font-medium text-slate-600">Assigned Organisations ({c.assignments.length}):</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {c.assignments.map((asg) => (
-                      <div
-                        key={asg.assignment_id}
-                        className="bg-white p-2 rounded border border-slate-200 flex items-center justify-between"
-                      >
-                        <div>
-                          <div className="font-semibold text-slate-800">{asg.organisation_name}</div>
-                          <div className="text-[11px] text-slate-500">Need: {asg.requirement}</div>
-                        </div>
-                        <span
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${getStatusBadge(
-                            asg.status
-                          )}`}
-                        >
-                          {asg.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Interventions Recorded */}
-              {c.interventions.length > 0 && (
-                <div className="bg-emerald-50/50 p-3 rounded-lg border border-emerald-100 text-xs space-y-1">
-                  <div className="font-medium text-emerald-900 flex items-center gap-1.5">
-                    <FileCheck className="h-3.5 w-3.5 text-emerald-600" />
-                    <span>Recorded Interventions ({c.interventions.length}):</span>
-                  </div>
-                  {c.interventions.map((intv) => (
-                    <div key={intv.intervention_id} className="text-slate-600 pl-5">
-                      • <strong className="text-slate-800">{intv.intervention_type}</strong>: {intv.description}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Coordination Controls Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
-                <div className="text-[11px] text-slate-400">
-                  Last updated: {new Date(c.updated_at).toLocaleString()}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {c.case_status === "FOLLOW_UP_REQUIRED" && (
-                    <button
-                      onClick={() => handleTriggerFollowUp(c.public_case_reference)}
-                      disabled={actionLoading}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded bg-orange-600 text-white hover:bg-orange-700 transition"
-                    >
-                      <RotateCcw className="h-3 w-3" />
-                      <span>Start Follow-Up Cycle</span>
-                    </button>
-                  )}
-
-                  {c.case_status !== "RESOLVED" && (
-                    <button
-                      onClick={() => setSelectedCaseForResolve(c)}
-                      className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded bg-slate-900 text-white hover:bg-slate-800 transition"
-                    >
-                      <CheckCircle2 className="h-3 w-3" />
-                      <span>Resolve Case</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+              <option value="ALL">All Case Statuses</option>
+              <option value="APPROVED">APPROVED</option>
+              <option value="MATCHING">MATCHING</option>
+              <option value="ACCEPTED">ACCEPTED</option>
+              <option value="RESPONDER_ARRIVED">RESPONDER_ARRIVED</option>
+              <option value="INTERVENTION_PROVIDED">INTERVENTION_PROVIDED</option>
+              <option value="FOLLOW_UP_REQUIRED">FOLLOW_UP_REQUIRED (Handoff Pending)</option>
+              <option value="RESOLVED">RESOLVED</option>
+              <option value="REOPENED">REOPENED</option>
+            </select>
+          </div>
         </div>
-      )}
+      </Card>
 
-      {/* Resolution Modal */}
+      {/* Cases Table */}
+      <Card elevation="card" padding="none" className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-forest-800">
+            <thead className="bg-paper-surface border-b border-warm-grey-200 text-forest-700 font-mono text-[11px] uppercase tracking-wider">
+              <tr>
+                <th className="py-3 px-4">Case Reference</th>
+                <th className="py-3 px-4">Linked Incident</th>
+                <th className="py-3 px-4">Requirements & Cycle</th>
+                <th className="py-3 px-4">Assigned Providers</th>
+                <th className="py-3 px-4">Lifecycle Stage</th>
+                <th className="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-warm-grey-100">
+              {cases.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-forest-600">
+                    <p className="font-semibold">No assistance cases found matching filters.</p>
+                  </td>
+                </tr>
+              ) : (
+                cases.map((c) => (
+                  <tr key={c.case_id} className="hover:bg-paper-surface/60 transition-colors">
+                    <td className="py-3.5 px-4">
+                      <Link
+                        href={`/cases/${c.public_case_reference}`}
+                        className="font-mono font-bold text-coral-600 hover:text-coral-700 flex items-center gap-1 group"
+                      >
+                        <span>{c.public_case_reference}</span>
+                        <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </Link>
+                      <div className="mt-1">
+                        <StatusBadge status={c.case_status} />
+                      </div>
+                    </td>
+
+                    <td className="py-3.5 px-4 font-mono font-medium text-forest-800">
+                      <Link
+                        href="/incidents"
+                        className="hover:underline text-forest-700"
+                      >
+                        {c.incident_reference}
+                      </Link>
+                    </td>
+
+                    <td className="py-3.5 px-4">
+                      <div className="flex flex-wrap gap-1 mb-1">
+                        {c.assistance_requirements.map((req) => (
+                          <span
+                            key={req}
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                              c.unresolved_requirements.includes(req)
+                                ? "bg-amber-100 text-amber-900 border border-amber-300 font-bold"
+                                : "bg-forest-100 text-forest-800 font-medium"
+                            }`}
+                          >
+                            {req}
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-[10px] font-mono text-forest-600">
+                        Cycle {c.current_matching_cycle}/{c.max_matching_cycles}
+                      </span>
+                    </td>
+
+                    <td className="py-3.5 px-4">
+                      {c.assignments.length === 0 ? (
+                        <span className="text-forest-500 italic text-[11px]">Unassigned</span>
+                      ) : (
+                        <div className="space-y-1">
+                          {c.assignments.map((a) => (
+                            <div key={a.assignment_id} className="text-[11px]">
+                              <span className="font-semibold text-forest-800">
+                                {a.organisation_name}
+                              </span>{" "}
+                              <span className="text-[10px] font-mono px-1 rounded bg-paper-surface border border-warm-grey-200">
+                                {a.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="py-3.5 px-4">
+                      <ContinuityLine
+                        currentStage={mapCaseStatusToStage(c.case_status)}
+                        variant="compact"
+                      />
+                    </td>
+
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Link href={`/cases/${c.public_case_reference}`}>
+                          <Button variant="outline" size="sm">
+                            Workspace
+                          </Button>
+                        </Link>
+
+                        {c.case_status !== "RESOLVED" ? (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setSelectedCaseForResolve(c)}
+                          >
+                            Resolve
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleReopenCase(c.public_case_reference)}
+                          >
+                            Reopen
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* Resolve Case Modal */}
       {selectedCaseForResolve && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-200">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-slate-900">
-                Resolve Case: {selectedCaseForResolve.public_case_reference}
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-forest-950/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-modal border border-warm-grey-200">
+            <div className="flex items-center justify-between pb-3 border-b border-warm-grey-200">
+              <div>
+                <span className="text-[11px] font-mono uppercase text-forest-600 font-bold block">
+                  Verify Closed-Loop Case Resolution
+                </span>
+                <h3 className="text-base font-bold text-forest-800 font-mono">
+                  {selectedCaseForResolve.public_case_reference}
+                </h3>
+              </div>
               <button
+                type="button"
                 onClick={() => setSelectedCaseForResolve(null)}
-                className="text-slate-400 hover:text-slate-600 font-bold"
+                className="text-forest-600 hover:text-forest-900"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleResolveCaseSubmit} className="space-y-4 text-xs">
-              {selectedCaseForResolve.unresolved_requirements.length > 0 && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
-                  <div className="flex items-center gap-1.5 text-amber-800 font-semibold">
-                    <AlertTriangle className="h-4 w-4" />
-                    <span>Unresolved Requirements Detected</span>
-                  </div>
-                  <p className="text-amber-700">
-                    Remaining needs: {selectedCaseForResolve.unresolved_requirements.join(", ")}.
-                  </p>
-                  <label className="flex items-center gap-2 cursor-pointer font-medium text-amber-900">
-                    <input
-                      type="checkbox"
-                      checked={overrideUnresolved}
-                      onChange={(e) => setOverrideUnresolved(e.target.checked)}
-                      className="rounded"
-                    />
-                    <span>Explicit Coordinator Override (Authorize resolution with documented rationale)</span>
-                  </label>
+            <form onSubmit={handleResolveCase} className="space-y-4">
+              <div className="p-3.5 rounded-xl bg-paper-surface border border-warm-grey-200 text-xs space-y-1.5 font-mono">
+                <div>Linked Incident: {selectedCaseForResolve.incident_reference}</div>
+                <div>
+                  Unresolved Needs:{" "}
+                  {selectedCaseForResolve.unresolved_requirements.length > 0 ? (
+                    <span className="text-amber-800 font-bold">
+                      {selectedCaseForResolve.unresolved_requirements.join(", ")}
+                    </span>
+                  ) : (
+                    <span className="text-emerald-700 font-bold">All Requirements Satisfied</span>
+                  )}
                 </div>
-              )}
+              </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Resolution Rationale (Mandatory, min 5 chars):
+                <label className="block text-xs font-bold text-forest-700 mb-1">
+                  Resolution Rationale (Mandatory)
                 </label>
                 <textarea
                   rows={3}
                   required
                   value={resolutionRationale}
                   onChange={(e) => setResolutionRationale(e.target.value)}
-                  placeholder="Detail final outcome, hospital admission, shelter intake, or verified resolution..."
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  placeholder="e.g. Verified receiving hospital admission slip and veterinary surgery admission on record..."
+                  className="w-full text-xs p-2.5 rounded-xl border border-warm-grey-300 focus:outline-none focus:ring-2 focus:ring-forest-800"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Resolution Evidence URL / Documentation (Optional):
+                <label className="block text-xs font-bold text-forest-700 mb-1">
+                  Evidence / Discharge Slip URL (Optional)
                 </label>
                 <input
-                  type="text"
+                  type="url"
                   value={resolutionEvidenceUrl}
                   onChange={(e) => setResolutionEvidenceUrl(e.target.value)}
-                  placeholder="https://storage.umeed.internal/evidence/admission_slip.pdf"
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  placeholder="https://example.com/admission_slip.jpg"
+                  className="w-full text-xs p-2.5 rounded-xl border border-warm-grey-300 focus:outline-none focus:ring-2 focus:ring-forest-800"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                <button
+              {selectedCaseForResolve.unresolved_requirements.length > 0 && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+                  <input
+                    type="checkbox"
+                    id="override-check"
+                    checked={overrideUnresolved}
+                    onChange={(e) => setOverrideUnresolved(e.target.checked)}
+                    className="h-4 w-4 rounded text-forest-800"
+                  />
+                  <label htmlFor="override-check" className="font-semibold cursor-pointer">
+                    Override remaining needs (Coordinator assumes explicit responsibility)
+                  </label>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-warm-grey-200">
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setSelectedCaseForResolve(null)}
-                  className="px-3 py-1.5 text-slate-600 hover:text-slate-900"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  disabled={actionLoading || (!overrideUnresolved && selectedCaseForResolve.unresolved_requirements.length > 0)}
-                  className="px-4 py-1.5 bg-slate-900 text-white rounded-lg font-semibold hover:bg-slate-800 transition disabled:opacity-50"
+                  variant="primary"
+                  size="sm"
+                  loading={actionLoading}
                 >
-                  {actionLoading ? "Resolving..." : "Confirm Final Resolution"}
-                </button>
+                  Confirm Resolution
+                </Button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* New Case Modal */}
+      {/* Create Case Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-200">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-slate-900">Open Assistance Case</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-forest-950/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-modal border border-warm-grey-200">
+            <div className="flex items-center justify-between pb-3 border-b border-warm-grey-200">
+              <h3 className="text-base font-bold text-forest-800">
+                Create Operational Assistance Case
+              </h3>
               <button
+                type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold"
+                className="text-forest-600 hover:text-forest-900"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleCreateCase} className="space-y-4 text-xs">
+            <form onSubmit={handleCreateCase} className="space-y-4">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Incident Reference (e.g. UMD-7B29-4K12):
+                <label className="block text-xs font-bold text-forest-700 mb-1">
+                  Incident Reference Code (e.g. UMD-XXXX-YYYY)
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="UMD-..."
                   value={newIncidentRef}
                   onChange={(e) => setNewIncidentRef(e.target.value)}
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 font-mono"
+                  placeholder="UMD-82F1-94A0"
+                  className="w-full text-xs font-mono p-2.5 rounded-xl border border-warm-grey-300 uppercase focus:outline-none focus:ring-2 focus:ring-forest-800"
                 />
-                <span className="text-[11px] text-slate-400 mt-1 block">
-                  Incident must be in APPROVED status.
-                </span>
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Assistance Requirements (Optional, comma-separated):
+                <label className="block text-xs font-bold text-forest-700 mb-1">
+                  Assistance Requirements (Comma-separated)
                 </label>
                 <input
                   type="text"
-                  placeholder="animal_ambulance, veterinary_first_aid"
                   value={newRequirements}
                   onChange={(e) => setNewRequirements(e.target.value)}
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 font-mono"
+                  placeholder="emergency_first_aid, veterinary_care, night_shelter"
+                  className="w-full text-xs p-2.5 rounded-xl border border-warm-grey-300 focus:outline-none focus:ring-2 focus:ring-forest-800"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                <button
+              <div className="flex justify-end gap-2 pt-2 border-t border-warm-grey-200">
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-3 py-1.5 text-slate-600 hover:text-slate-900"
                 >
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-50"
-                >
-                  {actionLoading ? "Creating..." : "Create Case"}
-                </button>
+                </Button>
+                <Button type="submit" variant="primary" size="sm" loading={actionLoading}>
+                  Create Case
+                </Button>
               </div>
             </form>
           </div>

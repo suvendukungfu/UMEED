@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Header } from "@/components/layout/Header";
+import { AppShell } from "@/components/layout/AppShell";
 
 export const metadata: Metadata = {
-  title: "UMEED — From Distress to Real Assistance",
+  title: "UMEED — Every Report Deserves a Verified Handoff",
   description:
-    "AI-powered social distress discovery and closed-loop assistance coordination platform for vulnerable individuals and animals.",
+    "AI-powered humanitarian assistance platform coordinating from citizen discovery to verified clinical and shelter intake, backed by Meko persistent memory.",
+  keywords: [
+    "humanitarian assistance",
+    "social distress",
+    "NGO coordination",
+    "closed-loop response",
+    "Meko MCP",
+    "HackCBS 9.0",
+  ],
 };
 
 export default function RootLayout({
@@ -16,18 +23,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased bg-slate-50 text-slate-900">
-        <div className="flex h-screen overflow-hidden">
-          <Sidebar />
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <Header />
-            <main className="flex-1 overflow-y-auto p-6 md:p-8">
-              {children}
-            </main>
-          </div>
-        </div>
+      <body className="antialiased bg-paper text-forest-800">
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
 }
-

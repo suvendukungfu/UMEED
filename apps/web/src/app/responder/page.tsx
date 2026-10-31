@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft,
   Building2,
   CheckCircle2,
   Clock,
@@ -15,7 +14,17 @@ import {
   UserCheck,
   HelpCircle,
   XCircle,
+  ShieldCheck,
+  Radio,
+  ArrowRight,
+  RefreshCw,
+  PhoneCall,
+  Sparkles,
 } from "lucide-react";
+import { ContinuityLine, ContinuityStage } from "@/components/common/ContinuityLine";
+import { Button } from "@/components/ui/Button";
+import { Badge, StatusBadge } from "@/components/ui/Badge";
+import { Card, MetricCard } from "@/components/ui/Card";
 
 interface AssignmentView {
   assignment_id: string;
@@ -34,12 +43,12 @@ interface AssignmentView {
 }
 
 const DEMO_NGO_PERSONAS = [
-  { id: "ngo_del_001", name: "Delhi Animal Welfare Society Trust Regd", category: "Animals / Trauma Ambulance" },
-  { id: "ngo_del_002", name: "South Delhi Homeless Welfare Trust", category: "Homeless / Night Shelter" },
-  { id: "ngo_del_003", name: "Prerna Senior Care & Elder Rehabilitation", category: "Abandoned Elderly" },
-  { id: "ngo_del_004", name: "Sanjivani Community Mobile Health Foundation", category: "Medical Triage" },
+  { id: "ngo_del_001", name: "Delhi Animal Welfare Society Trust", category: "Trauma Ambulance & First Aid" },
+  { id: "ngo_del_002", name: "South Delhi Homeless Welfare Trust", category: "Night Shelter & Cold Relief" },
+  { id: "ngo_del_003", name: "Prerna Senior Care & Rehabilitation", category: "Abandoned Elderly Welfare" },
+  { id: "ngo_del_004", name: "Sanjivani Community Mobile Health", category: "Acute Medical Triage" },
   { id: "ngo_del_005", name: "Delhi Emergency Relief Ambulance Network", category: "Critical Medical Transport" },
-  { id: "ngo_del_006", name: "Apna Aashray Emergency Shelter Collective", category: "Emergency Winter Shelter" },
+  { id: "ngo_del_006", name: "Apna Aashray Emergency Shelter", category: "Emergency Winter Shelter" },
 ];
 
 export default function NGOResponderPage() {
@@ -48,7 +57,7 @@ export default function NGOResponderPage() {
   const [assignments, setAssignments] = useState<AssignmentView[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Reject modal state
   const [rejectingAssignmentId, setRejectingAssignmentId] = useState<string | null>(null);
@@ -104,6 +113,7 @@ export default function NGOResponderPage() {
   const handleAccept = async (assignmentId: string) => {
     try {
       setActionLoading(true);
+      setActionMessage(null);
       const res = await fetch(`/api/assignments/${assignmentId}/accept`, {
         method: "POST",
         headers: {
@@ -111,79 +121,17 @@ export default function NGOResponderPage() {
           "x-ngo-id": selectedNgoId,
           "x-responder-id": responderId,
         },
-        body: JSON.stringify({ notes: "Accepted by on-duty responder" }),
+        body: JSON.stringify({ notes: "Accepted by on-duty responder team" }),
       });
       const data = await res.json();
       if (res.ok) {
-        setActionMessage("Assignment accepted! Dispatch initialized.");
+        setActionMessage({ type: "success", text: "Assignment accepted! Field dispatch initialized." });
         fetchAssignments();
       } else {
-        setActionMessage(`Error: ${data.error?.message || "Failed to accept"}`);
+        setActionMessage({ type: "error", text: data.error?.message || "Failed to accept assignment." });
       }
-    } catch (err) {
-      setActionMessage("Network error accepting assignment.");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleRejectSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!rejectingAssignmentId) return;
-
-    try {
-      setActionLoading(true);
-      const res = await fetch(`/api/assignments/${rejectingAssignmentId}/reject`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-ngo-id": selectedNgoId,
-          "x-responder-id": responderId,
-        },
-        body: JSON.stringify({ reason: rejectionReason }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setActionMessage("Assignment rejected. Coordinator notified.");
-        setRejectingAssignmentId(null);
-        setRejectionReason("");
-        fetchAssignments();
-      } else {
-        setActionMessage(`Error: ${data.error?.message || "Failed to reject"}`);
-      }
-    } catch (err) {
-      setActionMessage("Network error rejecting assignment.");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleInfoSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!infoAssignmentId) return;
-
-    try {
-      setActionLoading(true);
-      const res = await fetch(`/api/assignments/${infoAssignmentId}/request-info`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-ngo-id": selectedNgoId,
-          "x-responder-id": responderId,
-        },
-        body: JSON.stringify({ info_text: infoText }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setActionMessage("Information request logged for coordinator.");
-        setInfoAssignmentId(null);
-        setInfoText("");
-        fetchAssignments();
-      } else {
-        setActionMessage(`Error: ${data.error?.message || "Failed to request info"}`);
-      }
-    } catch (err) {
-      setActionMessage("Network error requesting information.");
+    } catch {
+      setActionMessage({ type: "error", text: "Network error accepting assignment." });
     } finally {
       setActionLoading(false);
     }
@@ -192,6 +140,7 @@ export default function NGOResponderPage() {
   const handleEnRoute = async (assignmentId: string) => {
     try {
       setActionLoading(true);
+      setActionMessage(null);
       const res = await fetch(`/api/assignments/${assignmentId}/en-route`, {
         method: "POST",
         headers: {
@@ -199,17 +148,20 @@ export default function NGOResponderPage() {
           "x-ngo-id": selectedNgoId,
           "x-responder-id": responderId,
         },
-        body: JSON.stringify({ notes: "Response unit deployed" }),
+        body: JSON.stringify({
+          eta_minutes: 15,
+          vehicle_id: "DL-1V-8902",
+        }),
       });
       const data = await res.json();
       if (res.ok) {
-        setActionMessage("Status updated: En Route to location.");
+        setActionMessage({ type: "success", text: "Status updated: En Route to incident location." });
         fetchAssignments();
       } else {
-        setActionMessage(`Error: ${data.error?.message || "Failed to mark en route"}`);
+        setActionMessage({ type: "error", text: data.error?.message || "Failed to mark en route." });
       }
-    } catch (err) {
-      setActionMessage("Network error updating en route.");
+    } catch {
+      setActionMessage({ type: "error", text: "Network error marking en route." });
     } finally {
       setActionLoading(false);
     }
@@ -218,6 +170,7 @@ export default function NGOResponderPage() {
   const handleArrived = async (assignmentId: string) => {
     try {
       setActionLoading(true);
+      setActionMessage(null);
       const res = await fetch(`/api/assignments/${assignmentId}/arrived`, {
         method: "POST",
         headers: {
@@ -225,17 +178,17 @@ export default function NGOResponderPage() {
           "x-ngo-id": selectedNgoId,
           "x-responder-id": responderId,
         },
-        body: JSON.stringify({ notes: "Arrived at scene" }),
+        body: JSON.stringify({ notes: "Arrived at location. Initiating on-scene assessment." }),
       });
       const data = await res.json();
       if (res.ok) {
-        setActionMessage("Arrival confirmed on scene.");
+        setActionMessage({ type: "success", text: "Status updated: Responder arrived on scene." });
         fetchAssignments();
       } else {
-        setActionMessage(`Error: ${data.error?.message || "Failed to confirm arrival"}`);
+        setActionMessage({ type: "error", text: data.error?.message || "Failed to mark arrived." });
       }
-    } catch (err) {
-      setActionMessage("Network error confirming arrival.");
+    } catch {
+      setActionMessage({ type: "error", text: "Network error marking arrived." });
     } finally {
       setActionLoading(false);
     }
@@ -247,290 +200,310 @@ export default function NGOResponderPage() {
 
     try {
       setActionLoading(true);
-      const providedList = assistanceProvidedText
-        .split(/[,;\n]/)
+      setActionMessage(null);
+      const assistanceProvided = assistanceProvidedText
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const additionalNeeds = additionalNeedsText
+        .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
 
-      const additionalList = additionalNeedsText
-        .split(/[,;\n]/)
-        .map((s) => s.trim())
-        .filter(Boolean);
-
-      const res = await fetch(`/api/assignments/${interventionAssignmentId}/interventions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-ngo-id": selectedNgoId,
-          "x-responder-id": responderId,
-        },
-        body: JSON.stringify({
-          intervention_type: interventionType,
-          description: interventionDesc.trim(),
-          assistance_provided: providedList.length > 0 ? providedList : ["general_intervention"],
-          additional_needs: additionalList,
-        }),
-      });
-
+      const res = await fetch(
+        `/api/assignments/${interventionAssignmentId}/interventions`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-ngo-id": selectedNgoId,
+            "x-responder-id": responderId,
+          },
+          body: JSON.stringify({
+            intervention_type: interventionType,
+            description: interventionDesc.trim(),
+            assistance_provided: assistanceProvided,
+            additional_needs: additionalNeeds,
+            evidence_references: [
+              {
+                type: "image",
+                url: "https://example.com/field_intervention.jpg",
+                notes: "On-scene field verification photo",
+              },
+            ],
+          }),
+        }
+      );
       const data = await res.json();
       if (res.ok) {
-        setActionMessage("Field intervention recorded successfully!");
+        setActionMessage({
+          type: "success",
+          text: "Intervention recorded! Receiving handoff checkpoint updated.",
+        });
         setInterventionAssignmentId(null);
         setInterventionDesc("");
         setAssistanceProvidedText("");
         setAdditionalNeedsText("");
         fetchAssignments();
       } else {
-        setActionMessage(`Error: ${data.error?.message || "Failed to record intervention"}`);
+        setActionMessage({
+          type: "error",
+          text: data.error?.message || "Failed to record intervention.",
+        });
       }
-    } catch (err) {
-      setActionMessage("Network error recording intervention.");
+    } catch {
+      setActionMessage({ type: "error", text: "Network error recording intervention." });
     } finally {
       setActionLoading(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "CONTACTED":
-        return "bg-amber-50 text-amber-700 border-amber-200";
-      case "ACCEPTED":
-        return "bg-teal-50 text-teal-700 border-teal-200";
-      case "EN_ROUTE":
-        return "bg-blue-50 text-blue-700 border-blue-200";
-      case "ARRIVED":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200 font-bold";
-      case "INTERVENTION_RECORDED":
-        return "bg-cyan-50 text-cyan-700 border-cyan-200";
-      case "REJECTED":
-        return "bg-rose-50 text-rose-700 border-rose-200";
-      default:
-        return "bg-slate-50 text-slate-600 border-slate-200";
+  const handleRejectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectingAssignmentId) return;
+
+    try {
+      setActionLoading(true);
+      setActionMessage(null);
+      const res = await fetch(`/api/assignments/${rejectingAssignmentId}/reject`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-ngo-id": selectedNgoId,
+          "x-responder-id": responderId,
+        },
+        body: JSON.stringify({ reason: rejectionReason }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setActionMessage({ type: "success", text: "Assignment declined. Coordinator notified." });
+        setRejectingAssignmentId(null);
+        setRejectionReason("");
+        fetchAssignments();
+      } else {
+        setActionMessage({ type: "error", text: data.error?.message || "Failed to decline assignment." });
+      }
+    } catch {
+      setActionMessage({ type: "error", text: "Network error declining assignment." });
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const currentPersona = DEMO_NGO_PERSONAS.find((p) => p.id === selectedNgoId);
+  const activePersona = DEMO_NGO_PERSONAS.find((p) => p.id === selectedNgoId);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Top Header */}
-      <div>
-        <Link
-          href="/cases"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition mb-2"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          <span>Switch to Coordinator View</span>
-        </Link>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 shadow-sm">
-              <Building2 className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">NGO Responder Workspace</h1>
-              <p className="text-xs text-slate-500">
-                Live Field Dispatch & Response Terminal (Phase 5)
-              </p>
-            </div>
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Masthead */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-warm-grey-200">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-editorial text-2xl font-bold text-forest-800">
+              Field Operations Cockpit
+            </span>
+            <Badge variant="coral">Mobile-First Responder View</Badge>
           </div>
+          <p className="text-xs text-forest-700/80">
+            Field responder dispatch, GPS arrival, on-scene medical intervention, and clinical handoff confirmation.
+          </p>
         </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={fetchAssignments}
+          loading={loading}
+          icon={RefreshCw}
+        >
+          Refresh Feed
+        </Button>
       </div>
 
-      {/* Persona Switcher Banner */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <UserCheck className="h-4 w-4 text-teal-600" />
-          <span className="text-xs font-semibold text-slate-700">Operating Persona (Demo Simulation):</span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <select
-            value={selectedNgoId}
-            onChange={(e) => setSelectedNgoId(e.target.value)}
-            className="text-xs bg-slate-50 border border-slate-200 rounded-lg p-2 font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-900"
-          >
-            {DEMO_NGO_PERSONAS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.id})
-              </option>
-            ))}
-          </select>
-
-          <span className="text-xs px-2 py-1 bg-teal-50 text-teal-700 rounded border border-teal-200 font-mono">
-            {responderId}
-          </span>
-        </div>
-      </div>
-
-      {/* Notification banner */}
       {actionMessage && (
-        <div className="bg-teal-50 border border-teal-200 text-teal-900 px-4 py-3 rounded-lg text-xs flex items-center justify-between">
-          <span>{actionMessage}</span>
+        <div
+          className={`p-3.5 rounded-xl text-xs flex items-center justify-between ${
+            actionMessage.type === "success"
+              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+              : "bg-red-50 text-red-800 border border-red-200"
+          }`}
+        >
+          <span>{actionMessage.text}</span>
           <button
+            type="button"
             onClick={() => setActionMessage(null)}
-            className="text-teal-600 hover:text-teal-900 font-bold ml-4"
+            className="text-forest-600 hover:text-forest-900 font-bold"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* Incoming Assignments List */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-slate-900">
-            Assigned Tasks for {currentPersona?.name} ({assignments.length})
-          </h2>
-          <button
-            onClick={fetchAssignments}
-            className="text-xs text-indigo-600 hover:underline font-medium"
-          >
-            Refresh Inbox
-          </button>
+      {/* Responder Persona Selector */}
+      <Card elevation="subtle" padding="sm" className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Radio className="h-4 w-4 text-coral-500 animate-pulse" />
+            <span className="text-xs font-mono font-bold text-forest-800 uppercase tracking-wider">
+              Field Responder Persona
+            </span>
+          </div>
+          <span className="text-[11px] font-mono text-forest-600">
+            Simulating NGO Staff Authentication
+          </span>
         </div>
 
-        {loading ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400 text-sm">
-            Checking assignment inbox...
-          </div>
-        ) : assignments.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-12 text-center space-y-3">
-            <CheckCircle2 className="h-8 w-8 text-teal-400 mx-auto" />
-            <div className="text-sm font-semibold text-slate-700">Inbox Clear</div>
-            <p className="text-xs text-slate-500 max-w-md mx-auto">
-              No pending dispatch requests assigned to {currentPersona?.name}.
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {DEMO_NGO_PERSONAS.map((ngo) => (
+            <button
+              key={ngo.id}
+              type="button"
+              onClick={() => setSelectedNgoId(ngo.id)}
+              className={`p-3 rounded-xl border text-left transition-all ${
+                selectedNgoId === ngo.id
+                  ? "bg-forest-800 text-white border-forest-800 shadow-sm"
+                  : "bg-paper-surface hover:bg-forest-50 text-forest-800 border-warm-grey-200"
+              }`}
+            >
+              <div className="font-bold text-xs truncate">{ngo.name}</div>
+              <div
+                className={`text-[10px] ${
+                  selectedNgoId === ngo.id ? "text-sage-200" : "text-forest-600"
+                }`}
+              >
+                {ngo.category}
+              </div>
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      {/* Assignments List */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-mono uppercase font-bold text-forest-800 tracking-wider">
+            Active Assigned Field Tasks ({assignments.length})
+          </h3>
+          <span className="text-xs text-forest-600 font-mono">
+            {activePersona?.name}
+          </span>
+        </div>
+
+        {assignments.length === 0 ? (
+          <Card elevation="subtle" padding="lg" className="text-center space-y-3">
+            <Truck className="h-8 w-8 text-forest-400 mx-auto" />
+            <h4 className="text-sm font-bold text-forest-800">No Pending Field Tasks</h4>
+            <p className="text-xs text-forest-600 max-w-sm mx-auto">
+              No active assignments currently dispatched to {activePersona?.name}. Use Mission Control to assign a case to this organisation.
             </p>
-          </div>
+          </Card>
         ) : (
           <div className="space-y-4">
-            {assignments.map((asg) => (
-              <div
-                key={asg.assignment_id}
-                className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3 hover:border-slate-300 transition"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            {assignments.map((a) => (
+              <Card key={a.assignment_id} elevation="card" padding="md" className="space-y-4">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-warm-grey-100">
                   <div>
-                    <span className="font-mono text-xs font-bold text-slate-900">
-                      {asg.case_reference}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-mono uppercase text-forest-500 font-bold">
+                        Linked Case:
+                      </span>
+                      <Link
+                        href={`/cases/${a.case_reference}`}
+                        className="font-mono text-sm font-bold text-coral-600 hover:underline"
+                      >
+                        {a.case_reference}
+                      </Link>
+                    </div>
+                    <div className="text-xs font-semibold text-forest-800 mt-0.5">
+                      Requirement: <span className="font-mono text-forest-900">{a.requirement}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={a.status} />
+                    <span className="text-[11px] font-mono text-forest-600">
+                      Cycle {a.matching_cycle}
                     </span>
-                    <span className="text-xs text-slate-400 ml-2">Cycle {asg.matching_cycle}</span>
                   </div>
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border self-start ${getStatusBadge(
-                      asg.status
-                    )}`}
-                  >
-                    {asg.status}
+                </div>
+
+                {/* Primary Touch-Friendly Mobile Action Buttons */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-mono uppercase text-forest-600 font-bold block">
+                    Field Action Controls (Tap to Advance Stage)
                   </span>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <span className="text-slate-500 font-medium">Assigned Requirement:</span>
-                    <div className="font-bold text-slate-800 text-sm mt-0.5">{asg.requirement}</div>
-                    <div className="text-[11px] text-slate-400 mt-1">
-                      Assigned: {new Date(asg.assigned_at).toLocaleTimeString()}
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {a.status === "ASSIGNED" && (
+                      <>
+                        <Button
+                          variant="primary"
+                          size="md"
+                          loading={actionLoading}
+                          onClick={() => handleAccept(a.assignment_id)}
+                          icon={CheckCircle2}
+                          className="w-full"
+                        >
+                          Accept Assignment
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="md"
+                          onClick={() => setRejectingAssignmentId(a.assignment_id)}
+                          className="w-full text-red-800 border-red-300 hover:bg-red-50"
+                        >
+                          Decline
+                        </Button>
+                      </>
+                    )}
+
+                    {a.status === "ACCEPTED" && (
+                      <Button
+                        variant="primary"
+                        size="md"
+                        loading={actionLoading}
+                        onClick={() => handleEnRoute(a.assignment_id)}
+                        icon={Truck}
+                        className="w-full sm:col-span-3"
+                      >
+                        Mark En Route to Scene (ETA 15m)
+                      </Button>
+                    )}
+
+                    {a.status === "EN_ROUTE" && (
+                      <Button
+                        variant="primary"
+                        size="md"
+                        loading={actionLoading}
+                        onClick={() => handleArrived(a.assignment_id)}
+                        icon={MapPin}
+                        className="w-full sm:col-span-3"
+                      >
+                        Confirm On-Scene Arrival
+                      </Button>
+                    )}
+
+                    {(a.status === "ARRIVED" || a.status === "INTERVENTION_PROVIDED") && (
+                      <Button
+                        variant="primary"
+                        size="md"
+                        onClick={() => setInterventionAssignmentId(a.assignment_id)}
+                        icon={FileCheck}
+                        className="w-full sm:col-span-3"
+                      >
+                        Record Field Intervention & Evidence
+                      </Button>
+                    )}
                   </div>
-
-                  <div>
-                    <span className="text-slate-500 font-medium">Response Deadline:</span>
-                    <div className="font-semibold text-rose-600 mt-0.5">
-                      {new Date(asg.response_deadline).toLocaleString()}
-                    </div>
-                  </div>
                 </div>
 
-                {/* Privacy Safeguard Note */}
-                <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 text-[11px] text-slate-500 flex items-center gap-2">
-                  <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                  <span>
-                    Location details are restricted for beneficiary privacy. Full dispatch navigation unredacts upon
-                    acceptance.
-                  </span>
+                {/* Deadline & SLA */}
+                <div className="pt-2 border-t border-warm-grey-100 flex items-center justify-between text-[11px] font-mono text-forest-600">
+                  <span>Assigned: {new Date(a.assigned_at).toLocaleTimeString()}</span>
+                  <span>Response SLA Deadline: {new Date(a.response_deadline).toLocaleTimeString()}</span>
                 </div>
-
-                {/* Action Buttons based on status */}
-                <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                  {asg.status === "CONTACTED" && (
-                    <>
-                      <button
-                        onClick={() => {
-                          setRejectingAssignmentId(asg.assignment_id);
-                          setRejectionReason("");
-                        }}
-                        className="px-3 py-1.5 text-xs font-semibold rounded bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 transition"
-                      >
-                        Reject
-                      </button>
-                      <button
-                        onClick={() => {
-                          setInfoAssignmentId(asg.assignment_id);
-                          setInfoText("");
-                        }}
-                        className="px-3 py-1.5 text-xs font-semibold rounded bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 transition"
-                      >
-                        Request Info
-                      </button>
-                      <button
-                        onClick={() => handleAccept(asg.assignment_id)}
-                        disabled={actionLoading}
-                        className="px-4 py-1.5 text-xs font-semibold rounded bg-teal-600 text-white hover:bg-teal-700 transition"
-                      >
-                        Accept Assignment
-                      </button>
-                    </>
-                  )}
-
-                  {asg.status === "ACCEPTED" && (
-                    <>
-                      <button
-                        onClick={() => handleEnRoute(asg.assignment_id)}
-                        disabled={actionLoading}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-blue-600 text-white hover:bg-blue-700 transition"
-                      >
-                        <Truck className="h-3.5 w-3.5" />
-                        <span>Mark En Route</span>
-                      </button>
-                      <button
-                        onClick={() => handleArrived(asg.assignment_id)}
-                        disabled={actionLoading}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-emerald-600 text-white hover:bg-emerald-700 transition"
-                      >
-                        <MapPin className="h-3.5 w-3.5" />
-                        <span>Confirm Arrival</span>
-                      </button>
-                    </>
-                  )}
-
-                  {asg.status === "EN_ROUTE" && (
-                    <button
-                      onClick={() => handleArrived(asg.assignment_id)}
-                      disabled={actionLoading}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-emerald-600 text-white hover:bg-emerald-700 transition"
-                    >
-                      <MapPin className="h-3.5 w-3.5" />
-                      <span>Confirm Arrival on Scene</span>
-                    </button>
-                  )}
-
-                  {asg.status === "ARRIVED" && (
-                    <button
-                      onClick={() => {
-                        setInterventionAssignmentId(asg.assignment_id);
-                        setInterventionDesc("");
-                        setAssistanceProvidedText(asg.requirement);
-                        setAdditionalNeedsText("");
-                      }}
-                      className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded bg-indigo-600 text-white hover:bg-indigo-700 transition"
-                    >
-                      <FileCheck className="h-3.5 w-3.5" />
-                      <span>Record Intervention</span>
-                    </button>
-                  )}
-                </div>
-              </div>
+              </Card>
             ))}
           </div>
         )}
@@ -538,171 +511,132 @@ export default function NGOResponderPage() {
 
       {/* Record Intervention Modal */}
       {interventionAssignmentId && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-200">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-slate-900">Record Field Intervention</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-forest-950/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-modal border border-warm-grey-200">
+            <div className="flex items-center justify-between pb-3 border-b border-warm-grey-200">
+              <h3 className="text-base font-bold text-forest-800">
+                Record Field Intervention & Care
+              </h3>
               <button
+                type="button"
                 onClick={() => setInterventionAssignmentId(null)}
-                className="text-slate-400 hover:text-slate-600 font-bold"
+                className="text-forest-600 hover:text-forest-900"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleInterventionSubmit} className="space-y-4 text-xs">
+            <form onSubmit={handleInterventionSubmit} className="space-y-4">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Intervention Type:</label>
+                <label className="block text-xs font-bold text-forest-700 mb-1">
+                  Intervention Category
+                </label>
                 <select
                   value={interventionType}
                   onChange={(e) => setInterventionType(e.target.value)}
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  className="w-full text-xs p-2.5 rounded-xl border border-warm-grey-300 bg-white"
                 >
-                  <option value="first_aid_provided">First Aid Provided</option>
-                  <option value="veterinary_assessment">Veterinary Assessment</option>
-                  <option value="medical_assistance">Medical Assistance</option>
-                  <option value="transport_arranged">Transport Arranged</option>
-                  <option value="shelter_provided">Shelter Provided</option>
-                  <option value="food_provided">Food Provided</option>
-                  <option value="other">Other Field Action</option>
+                  <option value="first_aid_provided">Emergency First Aid Provided</option>
+                  <option value="patient_transported">Patient Transported to Hospital</option>
+                  <option value="temporary_shelter_arranged">Temporary Shelter Arranged</option>
+                  <option value="food_and_hydration">Food & Hydration Provided</option>
+                  <option value="veterinary_surgery_intake">Veterinary Surgical Intake Verified</option>
                 </select>
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Intervention Description (Observations & actions):
+                <label className="block text-xs font-bold text-forest-700 mb-1">
+                  Intervention Observations & Actions (Required)
                 </label>
                 <textarea
                   rows={3}
                   required
-                  placeholder="Detail condition found, immediate care provided, patient stabilization..."
                   value={interventionDesc}
                   onChange={(e) => setInterventionDesc(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  placeholder="e.g. Bandaged severe laceration on hind paw, administered pain relief, transferred via animal ambulance to Delhi Animal Hospital..."
+                  className="w-full text-xs p-2.5 rounded-xl border border-warm-grey-300 focus:outline-none focus:ring-2 focus:ring-forest-800"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Assistance Items Provided (comma-separated):
+                <label className="block text-xs font-bold text-forest-700 mb-1">
+                  Assistance Rendered (Comma-separated)
                 </label>
                 <input
                   type="text"
-                  required
-                  placeholder="wound_dressing, oral_hydration, pain_relief"
                   value={assistanceProvidedText}
                   onChange={(e) => setAssistanceProvidedText(e.target.value)}
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 font-mono"
+                  placeholder="wound_dressing, antiseptic, ambulance_transit"
+                  className="w-full text-xs p-2.5 rounded-xl border border-warm-grey-300 focus:outline-none focus:ring-2 focus:ring-forest-800"
                 />
               </div>
 
-              <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg space-y-1">
-                <label className="block font-semibold text-orange-900">
-                  Additional Needs Discovered (Triggers Recursive Follow-Up):
+              <div>
+                <label className="block text-xs font-bold text-amber-800 mb-1">
+                  Additional Needs Discovered (Trigger Follow-Up Cycle)
                 </label>
-                <p className="text-[11px] text-orange-700">
-                  If the beneficiary requires follow-up care that your organisation cannot provide, list them here:
-                </p>
                 <input
                   type="text"
-                  placeholder="orthopedic_surgery, long_term_shelter, inpatient_ward"
                   value={additionalNeedsText}
                   onChange={(e) => setAdditionalNeedsText(e.target.value)}
-                  className="w-full p-2 bg-white border border-orange-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 font-mono"
+                  placeholder="e.g. orthopedic_surgery, post_op_shelter"
+                  className="w-full text-xs p-2.5 rounded-xl border border-amber-300 bg-amber-50/40 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
+                <span className="text-[10px] text-forest-600 block mt-1">
+                  Specifying additional needs will automatically transition the case into <code>FOLLOW_UP_REQUIRED</code>.
+                </span>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                <button
+              <div className="flex justify-end gap-2 pt-2 border-t border-warm-grey-200">
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setInterventionAssignmentId(null)}
-                  className="px-3 py-1.5 text-slate-600 hover:text-slate-900"
                 >
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-4 py-1.5 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition disabled:opacity-50"
-                >
-                  {actionLoading ? "Submitting..." : "Submit Intervention"}
-                </button>
+                </Button>
+                <Button type="submit" variant="primary" size="sm" loading={actionLoading}>
+                  Submit Intervention
+                </Button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Reject Modal */}
+      {/* Reject Assignment Modal */}
       {rejectingAssignmentId && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-sm w-full p-6 space-y-4 shadow-xl border border-slate-200">
-            <h3 className="font-bold text-slate-900 text-sm">Reject Assignment</h3>
-            <form onSubmit={handleRejectSubmit} className="space-y-3 text-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-forest-950/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-modal border border-warm-grey-200">
+            <h3 className="text-base font-bold text-forest-800">Decline Assignment</h3>
+            <form onSubmit={handleRejectSubmit} className="space-y-4">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Reason for Rejection:</label>
+                <label className="block text-xs font-bold text-forest-700 mb-1">
+                  Decline Reason (Required)
+                </label>
                 <textarea
                   rows={3}
                   required
-                  placeholder="Resource constraints, vehicle maintenance, outside active hours..."
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
+                  placeholder="e.g. Ambulance currently en route to multi-vehicle accident; no available trauma staff for 45 minutes..."
+                  className="w-full text-xs p-2.5 rounded-xl border border-warm-grey-300 focus:outline-none focus:ring-2 focus:ring-forest-800"
                 />
               </div>
-              <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                <button
-                  type="button"
-                  onClick={() => setRejectingAssignmentId(null)}
-                  className="px-3 py-1 text-slate-600 hover:text-slate-900"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-3 py-1 bg-rose-600 text-white rounded-lg font-semibold hover:bg-rose-700 transition"
-                >
-                  Confirm Rejection
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {/* Info Request Modal */}
-      {infoAssignmentId && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-sm w-full p-6 space-y-4 shadow-xl border border-slate-200">
-            <h3 className="font-bold text-slate-900 text-sm">Request More Information</h3>
-            <form onSubmit={handleInfoSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Information Required:</label>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="Need details regarding access restrictions, landmark, or current condition..."
-                  value={infoText}
-                  onChange={(e) => setInfoText(e.target.value)}
-                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none"
-                />
-              </div>
-              <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                <button
+              <div className="flex justify-end gap-2 pt-2 border-t border-warm-grey-200">
+                <Button
                   type="button"
-                  onClick={() => setInfoAssignmentId(null)}
-                  className="px-3 py-1 text-slate-600 hover:text-slate-900"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRejectingAssignmentId(null)}
                 >
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-3 py-1 bg-slate-900 text-white rounded-lg font-semibold hover:bg-slate-800 transition"
-                >
-                  Send Request
-                </button>
+                </Button>
+                <Button type="submit" variant="danger" size="sm" loading={actionLoading}>
+                  Confirm Decline
+                </Button>
               </div>
             </form>
           </div>
