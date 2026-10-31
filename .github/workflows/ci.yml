@@ -1,0 +1,87 @@
+name: UMEED Quality & CI Pipeline
+
+on:
+  push:
+    branches: [main, parallel/*, feat/*, fix/*]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -------------------------------------------------------------
+  # Job 1: Core Platform Quality & Test Suite (Implemented)
+  # -------------------------------------------------------------
+  core-quality-check:
+    name: Node.js 24 Full Verification (Contracts & Web)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "npm"
+
+      - name: Clean Install Workspace Dependencies
+        run: npm ci
+
+      - name: Run Strict TypeScript Compilation Check
+        run: npm run typecheck
+
+      - name: Run ESLint Code Quality Verification
+        run: npm run lint
+
+      - name: Run Unit & Contract Tests (Vitest)
+        run: npm run test
+
+      - name: Verify Production Next.js Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_APP_VERSION: ${{ github.sha }}
+          NODE_ENV: production
+
+  # -------------------------------------------------------------
+  # Job 2: Discovery Crawler Verification (Planned - Phase 8)
+  # Conditionally executes only when requirements.txt is committed
+  # -------------------------------------------------------------
+  crawler-quality-check:
+    name: Python Discovery Crawler Quality (Phase 8 - Planned)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Check Crawler Implementation Readiness
+        id: check_crawler
+        run: |
+          if [ -f "services/discovery/requirements.txt" ]; then
+            echo "crawler_ready=true" >> $GITHUB_OUTPUT
+          else
+            echo "crawler_ready=false" >> $GITHUB_OUTPUT
+            echo "Notice: services/discovery/requirements.txt not yet initialized (Phase 8 Planned)."
+          fi
+
+      - name: Setup Python Runtime
+        if: steps:check_crawler.outputs.crawler_ready == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Crawler Dependencies
+        if: steps:check_crawler.outputs.crawler_ready == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r services/discovery/requirements.txt
+
+      - name: Run Crawler Typecheck & Pytest
+        if: steps:check_crawler.outputs.crawler_ready == 'true'
+        run: |
+          cd services/discovery
+          pytest tests/

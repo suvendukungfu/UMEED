@@ -1,0 +1,56 @@
+name: Feature Request
+description: Suggest an idea or enhancement for UMEED
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for proposing an enhancement to UMEED!
+        Please review `docs/PRODUCT_EXPERIENCE.md` and `docs/UX_GAPS.md` to check whether this capability is already planned or prioritized.
+  - type: dropdown
+    id: persona
+    attributes:
+      label: Which persona does this primarily benefit?
+      options:
+        - "Citizen / Reporting Bystander"
+        - "UMEED Coordinator"
+        - "NGO Responder / Field Team"
+        - "Platform Administrator"
+        - "Developer / Open Source Contributor"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem or operational limitation?
+      placeholder: I'm always frustrated when...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution & Experience
+      description: Describe what the user experience should look and feel like.
+      placeholder: Provide a clear description of the proposed workflow...
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Proposed Priority
+      options:
+        - "P0: Required for Core Closed-Loop Assistance"
+        - "P1: Post-Core Usability / Field Polish"
+        - "P2: Long-Term Architecture"
+    validations:
+      required: true
+  - type: checkboxes
+    id: a11y_ethics
+    attributes:
+      label: Accessibility & Ethics Alignment
+      options:
+        - label: This proposal adheres to WCAG 2.2 AA accessibility standards (keyboard, contrast, touch targets).
+          required: true
+        - label: This proposal respects ethical non-negotiables (no autonomous dispatch, no unverified medical diagnosis, zero public PII exposure).
+          required: true

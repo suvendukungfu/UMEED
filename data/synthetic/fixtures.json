@@ -1,0 +1,196 @@
+{
+  "$schema_comment": "UMEED Synthetic Evaluation Fixtures for HackCBS 9.0. Contains zero real PII or live rescue records.",
+  "is_synthetic": true,
+  "incidents": [
+    {
+      "schema_version": "1.0.0",
+      "source_type": "citizen_report",
+      "source_reference": "SYNTH-CITIZEN-REF-001",
+      "source_url": null,
+      "reported_at": "2026-10-31T09:15:00.000Z",
+      "incident_type": "injured_animal",
+      "subject_type": "animal",
+      "description": "Stray canine lying on road divider near Madhuban Chowk. Bleeding heavily from right hind leg after being hit by a vehicle. Whimpering in extreme pain.",
+      "evidence": [
+        {
+          "type": "image",
+          "url": "https://storage.umeed-synthetic.local/fixtures/canine_trauma_01.webp",
+          "timestamp": "2026-10-31T09:14:10.000Z",
+          "metadata": {
+            "is_synthetic": true,
+            "description": "Synthetic demonstration image of injured stray canine"
+          }
+        }
+      ],
+      "location": {
+        "latitude": 28.6972,
+        "longitude": 77.1350,
+        "address": "Outer Ring Road, Pillar 342, Madhuban Chowk, Pitampura",
+        "district": "North West Delhi",
+        "confidence": 0.96
+      },
+      "severity": {
+        "level": "critical",
+        "confidence": 0.94,
+        "reasoning": [
+          "Subject immobile near heavy vehicular traffic",
+          "Open compound fracture visible on limb",
+          "Immediate bleeding observed"
+        ]
+      },
+      "freshness": "current_confirmed_by_source",
+      "missing_information": [],
+      "requires_human_review": true
+    },
+    {
+      "schema_version": "1.0.0",
+      "source_type": "citizen_report",
+      "source_reference": "SYNTH-CITIZEN-REF-002",
+      "source_url": null,
+      "reported_at": "2026-10-31T11:30:00.000Z",
+      "incident_type": "abandoned_elderly_person",
+      "subject_type": "person",
+      "description": "Elderly gentleman sitting on concrete bench at Kashmere Gate bus shelter for over 24 hours. Appears disoriented, visibly shivering, no warm clothing or food.",
+      "evidence": [
+        {
+          "type": "image",
+          "url": "https://storage.umeed-synthetic.local/fixtures/elderly_care_01.webp",
+          "timestamp": "2026-10-31T11:28:45.000Z",
+          "metadata": {
+            "is_synthetic": true,
+            "description": "Synthetic demonstration image of disoriented senior citizen"
+          }
+        }
+      ],
+      "location": {
+        "latitude": 28.6675,
+        "longitude": 77.2285,
+        "address": "Kashmere Gate Metro Gate 3 Bus Shelter, Lothian Road",
+        "district": "North Delhi",
+        "confidence": 0.92
+      },
+      "severity": {
+        "level": "high",
+        "confidence": 0.89,
+        "reasoning": [
+          "Vulnerable senior exposed to cold weather",
+          "Signs of dehydration and mental disorientation",
+          "No guardian or shelter accessible"
+        ]
+      },
+      "freshness": "current_confirmed_by_source",
+      "missing_information": [
+        "subject_name",
+        "emergency_contact"
+      ],
+      "requires_human_review": true
+    },
+    {
+      "schema_version": "1.0.0",
+      "source_type": "social_media_discovery",
+      "source_reference": "SYNTH-SOCIAL-POST-9912",
+      "source_url": "https://social-sim.umeed.local/posts/9912",
+      "reported_at": "2026-10-31T13:00:00.000Z",
+      "incident_type": "medical_assistance",
+      "subject_type": "person",
+      "description": "Unhoused individual near Yamuna Bazar requires wound dressing for an infected foot lesion and clean bedding. Subject is conscious and requesting medical help.",
+      "evidence": [
+        {
+          "type": "image",
+          "url": "https://storage.umeed-synthetic.local/fixtures/homeless_welfare_01.webp",
+          "timestamp": "2026-10-31T12:45:00.000Z",
+          "metadata": {
+            "is_synthetic": true,
+            "description": "Synthetic demonstration image of infected foot lesion"
+          }
+        }
+      ],
+      "location": {
+        "latitude": 28.6590,
+        "longitude": 77.2340,
+        "address": "Pillar 12, Yamuna Bazar Flyover, Ring Road",
+        "district": "Central Delhi",
+        "confidence": 0.88
+      },
+      "severity": {
+        "level": "medium",
+        "confidence": 0.85,
+        "reasoning": [
+          "Chronic infected wound requiring antiseptic dressing",
+          "Subject sheltered under bridge, non-immediate life threat"
+        ]
+      },
+      "freshness": "potentially_recent",
+      "missing_information": [
+        "exact_name"
+      ],
+      "requires_human_review": true
+    }
+  ],
+  "synthetic_ngos": [
+    {
+      "id": "SYNTH-NGO-001",
+      "name": "Jan Seva Animal Emergency Ambulance [Synthetic]",
+      "registration_number": "SYNTH/DL/2024/0981",
+      "verification_status": "operationally_verified",
+      "capabilities": [
+        "injured_animal",
+        "animal_first_aid",
+        "field_ambulance"
+      ],
+      "operational_districts": [
+        "North West Delhi",
+        "North Delhi"
+      ],
+      "max_concurrent_cases": 5,
+      "active_cases": 1,
+      "contact": {
+        "phone": "+91-11-5555-0101",
+        "email": "dispatch@janseva-synth.org"
+      }
+    },
+    {
+      "id": "SYNTH-NGO-002",
+      "name": "Delhi Veterinary Surgical Trust & Shelter [Synthetic]",
+      "registration_number": "SYNTH/DL/2023/1142",
+      "verification_status": "operationally_verified",
+      "capabilities": [
+        "injured_animal",
+        "veterinary_surgery",
+        "inpatient_shelter"
+      ],
+      "operational_districts": [
+        "North West Delhi",
+        "North Delhi",
+        "West Delhi"
+      ],
+      "max_concurrent_cases": 8,
+      "active_cases": 3,
+      "contact": {
+        "phone": "+91-11-5555-0102",
+        "email": "inpatient@delhivetsurg-synth.org"
+      }
+    },
+    {
+      "id": "SYNTH-NGO-003",
+      "name": "Asha Senior Citizen Care & Shelter [Synthetic]",
+      "registration_number": "SYNTH/DL/2022/4481",
+      "verification_status": "operationally_verified",
+      "capabilities": [
+        "abandoned_elderly_person",
+        "elderly_shelter",
+        "medical_assistance"
+      ],
+      "operational_districts": [
+        "North Delhi",
+        "Central Delhi"
+      ],
+      "max_concurrent_cases": 6,
+      "active_cases": 2,
+      "contact": {
+        "phone": "+91-11-5555-0103",
+        "email": "helpline@ashacare-synth.org"
+      }
+    }
+  ]
+}

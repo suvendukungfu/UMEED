@@ -1,0 +1,65 @@
+name: Bug Report
+description: Create a report to help us improve UMEED
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue with UMEED.
+        Please ensure you do not include real personal phone numbers, vulnerable individual names, or sensitive credentials in this report.
+  - type: dropdown
+    id: role
+    attributes:
+      label: Which persona or subsystem did this occur in?
+      options:
+        - "Citizen Reporting Portal (/report, /track)"
+        - "Coordinator Triage Queue (/incidents)"
+        - "NGO Responder Portal (/responder)"
+        - "Platform Admin Console (/admin)"
+        - "Canonical Contracts (@umeed/contracts)"
+        - "Infrastructure & Database (MongoDB, Env, Outbox)"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe the problem clearly...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: How can maintainers reproduce this issue?
+      placeholder: |
+        1. Go to '/report'
+        2. Tap 'Detect Location'
+        3. Observe error...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment & Device Details
+      description: e.g., Node.js version, Chrome 122 on Android 14, iOS Safari, etc.
+      placeholder: Node.js 24.5.0, macOS 14.2, Safari 17.2
+    validations:
+      required: true
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Pre-Submission Checklist
+      options:
+        - label: I have verified that no private PII or API secrets are included in this report.
+          required: true
+        - label: I have checked that this issue has not already been reported.
+          required: true
