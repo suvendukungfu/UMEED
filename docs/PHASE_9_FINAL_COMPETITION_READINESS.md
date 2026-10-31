@@ -93,7 +93,9 @@ Injected Gate: Case resolution is blocked until Receiving Provider Acceptance is
 
 ## 6. Shared Build Datapack & Check T Status
 
-- **Status**: **BLOCKED — AWAITING SECOND CONTRIBUTOR SESSION**
+- **Check T Result**: **CHECK T BLOCKED — SECOND CONTRIBUTOR NOT AVAILABLE**
+- **Contributor A**: Punar Vashu (`aa61f228-ea5c-40b6-9940-fc64bfb645dc`) authenticated on `https://mcp.mekodata.ai/mcp`.
+- **Contributor B**: Second teammate joining the competition rehearsal.
 - **ADR Ledger**: 10 architectural decisions verified in code and documented in `docs/MEKO_BUILD_TIME_EVIDENCE.md`.
 - **Honest Disclosure**: Only one authenticated developer session (Punar Vashu) was active during this build. No artificial second contributor was fabricated.
 - **Completion Runbook**: Detailed 5-step onboarding guide provided in `docs/PHASE_9_CHECK_T_EVIDENCE.md` for live execution with a second teammate.

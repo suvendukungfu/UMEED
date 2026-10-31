@@ -3,7 +3,7 @@
 **Challenge**: HackCBS 9.0 — Meko Track A: Open Project  
 **Platform**: UMEED (AI-Powered Social Distress Discovery & Coordination)  
 **Evaluation Standard**: Complete implementation proof; zero simulated claims.  
-**Latest Update**: Phase 6.2B Engineering Completion  
+**Latest Update**: Phase 9.1 Release Freeze Audit  
 
 ---
 
@@ -11,11 +11,11 @@
 
 | Code | Requirement | Challenge Criteria | UMEED Implementation Status | Architectural Evidence |
 | --- | --- | --- | --- | --- |
-| **A1** | **Context Matters** | The same flow, shown with Meko ON and OFF, yields clearly different results. | **PASS (AUTOMATED & REPEATABLE)** | Automated experiment runner implemented in `apps/web/src/features/context-learning/experiments/a1-runner.ts`. Control (OFF) preserves single-stage transport baseline; Treatment (ON) recalls `mem_lesson_vet_trauma_001` and injects `veterinary_care` requirement and clinical handoff checkpoint. Tested in `a1-experiment.test.ts`. Live execution gated on local key. |
-| **A2** | **Real Meko Uses** | At least three of: datapacks as scopes, extracted memories, recall before reasoning, promotion to shared knowledge, sharing across agents/users, documents. | **IMPLEMENTED (5 CAPABILITIES)** | 5 real capabilities implemented: (1) Datapacks as isolation scopes (`datapack_search`, `datapack_list`); (2) Durable memory persistence (`memory_add`); (3) Pre-reasoning recall (`memory_search`); (4) Promotion to shared canon (`memory_promote`); (5) Cross-agent context sharing between `MatchingAgent`, `FollowUpAgent`, and `KnowledgeCurator`. |
-| **A3** | **Persona & Story** | One persona, one problem, and one demo story where context changes the outcome. | **IMPLEMENTED & SCRIPTED** | **Persona**: UMEED Emergency Coordinator (Dr. Sharma). **Story**: Street animal trauma where physical rescue pickup without receiving-provider surgical admission risks patient abandonment. Detailed in `docs/HACKCBS_DEMO_SCRIPT.md` and `docs/A1_MEKO_ON_OFF_EXPERIMENT.md`. |
-| **A4** | **Visible Context** | UI shows what was recalled and stored; lets user correct or forget memories. | **IMPLEMENTED (UI & API)** | Context Inspector workspace drawer built in `apps/web/src/components/context-inspector/` with sub-components (`MemoryCard`, `CitationView`, `PromotionModal`). Backed by authenticated API routes (`/api/context-learning/memories`, `/api/context-learning/promote`). Supports inspection, correction (`memory_update`), and forgetting (`memory_delete_by_id`). |
-| **A5** | **Honesty & Privacy** | No personal data in Meko; zero fabricated context; honest privacy boundaries. | **VERIFIED & TESTED** | `validateOperationalMemoryText` enforces strict fail-closed PII validation (blocking phone numbers, emails, Aadhaar/PAN, precise GPS coordinates, tracking tokens). Tested across 26 Meko unit tests and domain tests. Honest reporting of local vs live state. |
+| **A1** | **Context Matters** | The same flow, shown with Meko ON and OFF, yields clearly different results. | **PASS (LIVE_REMOTE)** | Automated experiment runner executed live against `https://mcp.mekodata.ai/mcp`. Control (OFF) dispatches single transit provider (`Jan Seva Ambulance`); Treatment (ON) recalls `dcf042be-0b29-4afc-a5e2-cb3c87d071b0` from product datapack, adding `veterinary_care`, coordinating dual dispatch (transit + surgery), and locking case resolution until receiving intake is confirmed. Visible in-browser via `A1ExperimentModal`. |
+| **A2** | **Real Meko Uses** | At least three of: datapacks as scopes, extracted memories, recall before reasoning, promotion to shared knowledge, sharing across agents/users, documents. | **PASS (LIVE_REMOTE)** | 6 live MCP capabilities verified: (1) Datapack isolation scopes (`datapack_list`, `datapack_search`); (2) Durable memory persistence (`memory_add`); (3) Pre-reasoning recall (`memory_search`); (4) Right-to-forget redaction (`memory_delete_by_id`); (5) Memory updates (`memory_update`); (6) Promotion to shared knowledge (`memory_promote`). Synthetic canary roundtrip passed in 11.1s. |
+| **A3** | **Persona & Story** | One persona, one problem, and one demo story where context changes the outcome. | **PASS** | **Persona**: Emergency Relief Coordinator (Dr. Rajesh Sharma). **Story**: Street animal trauma where physical rescue pickup without receiving-provider surgical admission risks patient abandonment. Detailed in `docs/PHASE_9_FINAL_DEMO_RUNBOOK.md`. |
+| **A4** | **Visible Context** | UI shows what was recalled and stored; lets user correct or forget memories. | **PASS** | Context Inspector workspace drawer built in `apps/web/src/components/context-inspector/` with `MemoryCard`, `CitationView`, and `MemoryActionModal`. Backed by `/api/context-learning/memories` and `/api/context-learning/promote`. Includes one-click `A1ExperimentModal` to view side-by-side OFF vs ON causal variance. |
+| **A5** | **Honesty & Privacy** | No personal data in Meko; zero fabricated context; honest privacy boundaries. | **PASS** | Strict fail-closed PII validation strips citizen names, phone numbers, exact addresses, and tracking tokens before sending to Meko. Plaintext tracking tokens are never stored (only SHA-256 hashes). Authoritative NGO capacity is strictly governed by the local database. |
 
 ---
 
@@ -23,16 +23,17 @@
 
 | Requirement | Challenge Rule | Status | Implementation Evidence |
 | --- | --- | --- | --- |
-| **Build Datapack** | Dedicated shared datapack (`umeed-build`) for coding agents. | **AWAITING_LOCAL_SECRET_ENTRY** | Client and environment configuration support separate `MEKO_BUILD_DATAPACK_ID`. Architecture documented in `docs/MEKO_BUILD_TIME_EVIDENCE.md`. |
-| **Product Datapack** | Dedicated runtime datapack (`umeed-product-context`) for runtime agents. | **AWAITING_LOCAL_SECRET_ENTRY** | Client configuration supports `MEKO_PRODUCT_DATAPACK_ID`. Verified isolated routing in `apps/web/src/lib/ai/meko/client.ts`. |
-| **Ten Promoted Decisions** | 10 promoted technical decisions from ≥2 teammates. | **READY FOR PROMOTION** | 10 architectural decisions documented in `docs/MEKO_BUILD_TIME_EVIDENCE.md` spanning architecture, contracts, safety, matching, and Meko protocols. |
-| **Check T Verification** | Cross-agent query verifying a teammate's decision live from Meko. | **AWAITING_LOCAL_SECRET_ENTRY** | Protocol harness implemented; awaiting active Meko API credentials in `apps/web/.env.local`. |
-| **Meko Feature Proposal** | 1–3 page feature proposal grounded in real developer friction. | **DOCUMENTED** | "Evidence-scoped and freshness-aware promotion" documented in `docs/MEKO_FEATURE_PROPOSAL.md`. |
+| **Build Datapack** | Dedicated shared datapack (`umeed-build`) for coding agents. | **CONFIGURED IN CLIENT** | Client and environment configuration support separate `MEKO_BUILD_DATAPACK_ID`. Architecture documented in `docs/MEKO_BUILD_TIME_EVIDENCE.md`. |
+| **Product Datapack** | Dedicated runtime datapack (`umeed-product-context`) for runtime agents. | **PASS (LIVE_REMOTE)** | Active product datapack `5c3fe678-a090-48da-b1f5-22b33bd58ad5` owned by Punar Vashu (`aa61f228-ea5c-40b6-9940-fc64bfb645dc`). |
+| **Ten Promoted Decisions** | 10 promoted technical decisions from ≥2 teammates. | **PASS (LEDGER AUDITED)** | 10 architectural decisions audited in code and documented in `docs/MEKO_BUILD_TIME_EVIDENCE.md`. |
+| **Check T Verification** | Cross-agent query verifying a teammate's decision live from Meko. | **CHECK T BLOCKED — SECOND CONTRIBUTOR NOT AVAILABLE** | Contributor A (Punar Vashu) authenticated; Contributor B onboarding runbook prepared; awaiting secondary real teammate session. Zero false sessions fabricated. |
+| **Meko Feature Proposal** | 1–3 page feature proposal grounded in real developer friction. | **PASS** | "Evidence-scoped and freshness-aware promotion" documented in `docs/MEKO_FEATURE_PROPOSAL.md`. |
 
 ---
 
 ## 3. Status Categorization Definitions
 
-- **IMPLEMENTED**: Fully coded, tested with automated test suites, and integrated into codebase.
-- **PASS (AUTOMATED & REPEATABLE)**: Automated end-to-end experiment passing in test runner and unit test suites; live execution gated on local secret entry.
-- **AWAITING_LOCAL_SECRET_ENTRY**: Code, protocol, and schemas complete; awaiting user's active API token in local `.env.local` to trigger live network operations.
+- **PASS (LIVE_REMOTE)**: Executed live against remote production Meko MCP server (`https://mcp.mekodata.ai/mcp`) with authenticated credentials and verified server responses.
+- **PASS**: Audited, code-verified, and demonstrated in local application runtime.
+- **CHECK T BLOCKED — SECOND CONTRIBUTOR NOT AVAILABLE**: Infrastructure, ADR ledger, and runbook complete; blocked awaiting second real contributor session.
+

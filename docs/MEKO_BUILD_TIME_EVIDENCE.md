@@ -39,6 +39,10 @@ Below is the structured ledger of 10 genuine engineering decisions made across t
 
 ## 3. Cross-Agent Verification & Check T Readiness
 
-- **Check T Requirement**: Verification of code changes across independent agent sessions.
-- **Protocol**: Coding agents connecting to `https://mcp.mekodata.ai/mcp` query `umeed-build` to ensure convention alignment before modifying shared contracts or state machines.
-- **Truthful Status**: Awaiting active team credentials in `.env.local` to trigger live session synchronization across teammates. Zero artificial promotions or false evidence logged.
+- **Check T Requirement**: Cross-agent retrieval of an architectural decision promoted by Teammate A by Teammate B's independent coding agent.
+- **Contributor A**: Punar Vashu (`aa61f228-ea5c-40b6-9940-fc64bfb645dc`, `punar.vashu@adypu.edu.in`) authenticated on `https://mcp.mekodata.ai/mcp`.
+- **Contributor B**: Second teammate joining the competition rehearsal.
+- **Check T Result**: **CHECK T BLOCKED — SECOND CONTRIBUTOR NOT AVAILABLE**.
+- **Runbook**: Complete 5-step onboarding and cross-agent query instructions documented in `docs/PHASE_9_CHECK_T_EVIDENCE.md`.
+- **Integrity Guarantee**: Zero artificial contributor sessions, fabricated user IDs, or simulated tool responses logged.
+
