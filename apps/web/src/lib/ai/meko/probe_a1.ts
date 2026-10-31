@@ -10,6 +10,10 @@ async function main() {
   console.log('Treatment Recalled Citations:', res.treatmentRun.recalledMemoryCitations.length);
   console.log('Variance Detected:', res.varianceAnalysis.differenceDetected);
   console.log('Variance Requirements:', res.varianceAnalysis.requirementsDifference);
+  console.log('Dual Dispatch Planned:', res.varianceAnalysis.dualProviderPlan.isDualDispatchPlanned);
+  console.log('Transit Provider:', res.varianceAnalysis.dualProviderPlan.transitProvider.providerName, `[${res.varianceAnalysis.dualProviderPlan.transitProvider.providerId}] Score:`, res.varianceAnalysis.dualProviderPlan.transitProvider.score);
+  console.log('Surgical Provider:', res.varianceAnalysis.dualProviderPlan.surgicalProvider?.providerName, `[${res.varianceAnalysis.dualProviderPlan.surgicalProvider?.providerId}] Score:`, res.varianceAnalysis.dualProviderPlan.surgicalProvider?.score);
+  console.log('Authoritative Verification:', res.varianceAnalysis.dualProviderPlan.authoritativeVerification);
   console.log('Integrity Verified:', res.varianceAnalysis.integrityVerified);
 }
 

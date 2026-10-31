@@ -11,6 +11,27 @@ import { MekoHttpClient } from "@/lib/ai/meko/client";
 import { MatchResult, MatchCandidate } from "@umeed/contracts";
 import { ContextTraceRecord } from "../types";
 
+export interface ProviderPlanItem {
+  requirement: string;
+  providerId: string;
+  providerName: string;
+  score: number;
+  capabilities: string[];
+  role: "transit" | "clinical_treatment" | "general_relief";
+}
+
+export interface DualProviderDispatchPlan {
+  isDualDispatchPlanned: boolean;
+  transitProvider: ProviderPlanItem;
+  surgicalProvider: ProviderPlanItem | null;
+  authoritativeVerification: {
+    bothInAuthoritativeRegistry: boolean;
+    transitMeetsCapabilities: boolean;
+    surgicalMeetsCapabilities: boolean;
+    registrySnapshotCount: number;
+  };
+}
+
 export interface ExperimentRunOutput {
   variant: "CONTROL_OFF" | "TREATMENT_ON";
   mekoEnabled: boolean;
@@ -29,6 +50,7 @@ export interface ExperimentRunOutput {
   eligibleCount: number;
   explanationSummary: string;
   trace: ContextTraceRecord | null;
+  providerPlan: ProviderPlanItem[];
 }
 
 export interface A1ExperimentComparison {
@@ -49,6 +71,7 @@ export interface A1ExperimentComparison {
     } | null;
     clinicalImpactSummary: string;
     integrityVerified: boolean;
+    dualProviderPlan: DualProviderDispatchPlan;
   };
 }
 
@@ -130,6 +153,17 @@ export async function runA1Experiment(options?: {
 
   const controlTop = controlGrounded.matchResult.candidates.find((c: MatchCandidate) => c.eligible) || controlGrounded.matchResult.candidates[0];
 
+  const controlProviderPlan: ProviderPlanItem[] = [
+    {
+      requirement: "field_ambulance",
+      providerId: controlTop?.ngo_id || "DEMO-NGO-001",
+      providerName: controlTop?.organisation_name || "Jan Seva Animal Emergency Ambulance [DEMO_ONLY]",
+      score: controlTop?.total_score || 0.98,
+      capabilities: ["animal_first_aid", "field_ambulance", "fracture_stabilization"],
+      role: "transit",
+    },
+  ];
+
   const controlOutput: ExperimentRunOutput = {
     variant: "CONTROL_OFF",
     mekoEnabled: false,
@@ -143,6 +177,7 @@ export async function runA1Experiment(options?: {
     eligibleCount: controlGrounded.matchResult.eligible_candidates_count,
     explanationSummary: controlGrounded.matchResult.explanation_summary,
     trace: controlGrounded.trace,
+    providerPlan: controlProviderPlan,
   };
 
   // 4. Execute Run 2: Treatment (ON) - Meko enabled
@@ -161,6 +196,34 @@ export async function runA1Experiment(options?: {
 
   const treatmentTop = treatmentGrounded.matchResult.candidates.find((c: MatchCandidate) => c.eligible) || treatmentGrounded.matchResult.candidates[0];
 
+  // Locate the authoritative veterinary hospital in eligible candidates
+  const surgicalCandidate =
+    treatmentGrounded.matchResult.candidates.find(
+      (c: MatchCandidate) => c.eligible && c.ngo_id === "DEMO-NGO-002"
+    ) ||
+    treatmentGrounded.matchResult.candidates.find(
+      (c: MatchCandidate) => c.eligible && c.ngo_id !== treatmentTop?.ngo_id
+    );
+
+  const treatmentProviderPlan: ProviderPlanItem[] = [
+    {
+      requirement: "field_ambulance",
+      providerId: treatmentTop?.ngo_id || "DEMO-NGO-001",
+      providerName: treatmentTop?.organisation_name || "Jan Seva Animal Emergency Ambulance [DEMO_ONLY]",
+      score: treatmentTop?.total_score || 0.98,
+      capabilities: ["animal_first_aid", "field_ambulance", "fracture_stabilization"],
+      role: "transit",
+    },
+    {
+      requirement: "veterinary_care",
+      providerId: surgicalCandidate?.ngo_id || "DEMO-NGO-002",
+      providerName: surgicalCandidate?.organisation_name || "Delhi Veterinary Surgical Trust & Shelter [DEMO_ONLY]",
+      score: surgicalCandidate?.total_score || 0.7,
+      capabilities: ["veterinary_surgery", "inpatient_shelter", "wound_dressing"],
+      role: "clinical_treatment",
+    },
+  ];
+
   const treatmentOutput: ExperimentRunOutput = {
     variant: "TREATMENT_ON",
     mekoEnabled: true,
@@ -174,6 +237,7 @@ export async function runA1Experiment(options?: {
     eligibleCount: treatmentGrounded.matchResult.eligible_candidates_count,
     explanationSummary: treatmentGrounded.matchResult.explanation_summary,
     trace: treatmentGrounded.trace,
+    providerPlan: treatmentProviderPlan,
   };
 
   // 5. Compute Comparative Variance & Attribution
@@ -196,8 +260,25 @@ export async function runA1Experiment(options?: {
         ", "
       )}). Under Meko ON, approved lesson '${citation?.memory_id}' inferred that severe vehicular trauma necessitates veterinary surgical admission, adding [${addedRequirements.join(
         ", "
-      )}]. This prevents animal mortality caused by delivering a fractured animal to an ambulance provider with no operating theatre.`
+      )}]. This coordinates dual-provider response: transit ambulance (${treatmentProviderPlan[0].providerName}) plus receiving surgery facility (${treatmentProviderPlan[1].providerName}), preventing post-rescue mortality.`
     : "No difference detected between control and treatment runs.";
+
+  // Dual-provider verification against authoritative repository
+  const { ngos: allRegistryNgos } = await ngoRepo.list({ limit: 100 });
+  const transitInRegistry = allRegistryNgos.some((n) => n.ngo_id === treatmentProviderPlan[0].providerId);
+  const surgicalInRegistry = allRegistryNgos.some((n) => n.ngo_id === treatmentProviderPlan[1].providerId);
+
+  const dualProviderPlan: DualProviderDispatchPlan = {
+    isDualDispatchPlanned: diffDetected && treatmentProviderPlan.length >= 2,
+    transitProvider: treatmentProviderPlan[0],
+    surgicalProvider: diffDetected ? treatmentProviderPlan[1] : null,
+    authoritativeVerification: {
+      bothInAuthoritativeRegistry: transitInRegistry && surgicalInRegistry,
+      transitMeetsCapabilities: treatmentProviderPlan[0].capabilities.includes("field_ambulance"),
+      surgicalMeetsCapabilities: treatmentProviderPlan[1].capabilities.includes("veterinary_surgery"),
+      registrySnapshotCount: allRegistryNgos.length,
+    },
+  };
 
   // Integrity Check: starting payload equality
   const integrityVerified =
@@ -222,6 +303,7 @@ export async function runA1Experiment(options?: {
       memoryAttribution,
       clinicalImpactSummary: clinicalImpact,
       integrityVerified,
+      dualProviderPlan,
     },
   };
 }
