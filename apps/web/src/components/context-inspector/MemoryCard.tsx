@@ -152,3 +152,4 @@ export function MemoryCard({ trace, onEdit, onDelete, onPromote }: MemoryCardPro
     </div>
   );
 }
+

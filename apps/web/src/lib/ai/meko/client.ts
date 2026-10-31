@@ -85,6 +85,26 @@ export class MekoHttpClient {
     this.fetchFn = config.fetchFn ?? fetch;
   }
 
+  private async parseResponseBody(response: Response): Promise<MekoJsonRpcResponse> {
+    const contentType = response.headers && typeof response.headers.get === "function"
+      ? response.headers.get("content-type") || ""
+      : "";
+    if (contentType.includes("text/event-stream")) {
+      const text = await response.text();
+      const lines = text.split("\n");
+      for (const line of lines) {
+        if (line.startsWith("data:")) {
+          const jsonStr = line.replace(/^data:\s*/, "").trim();
+          if (jsonStr) {
+            return JSON.parse(jsonStr) as MekoJsonRpcResponse;
+          }
+        }
+      }
+      throw new MekoError(`Failed to parse SSE data line from event stream: ${text.substring(0, 150)}`, "MEKO_PROTOCOL_ERROR");
+    }
+    return (await response.json()) as MekoJsonRpcResponse;
+  }
+
   public isConfigured(): boolean {
     return Boolean(this.apiKey && this.apiKey.trim().length > 0 && !this.apiKey.includes("<"));
   }
@@ -121,6 +141,7 @@ export class MekoHttpClient {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Accept: "application/json, text/event-stream",
           Authorization: `Bearer ${this.apiKey}`,
           "User-Agent": this.userAgent,
         },
@@ -145,7 +166,7 @@ export class MekoHttpClient {
         this.sessionId = returnedSessionId;
       }
 
-      const json = (await response.json()) as MekoJsonRpcResponse;
+      const json = await this.parseResponseBody(response);
       const rpcError = extractMekoRpcError(json);
       if (rpcError) throw rpcError;
 
@@ -153,6 +174,7 @@ export class MekoHttpClient {
       const initNotification = buildMekoInitializedNotification();
       const notifHeaders: Record<string, string> = {
         "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
         Authorization: `Bearer ${this.apiKey}`,
         "User-Agent": this.userAgent,
       };
@@ -187,6 +209,7 @@ export class MekoHttpClient {
     try {
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
         Authorization: `Bearer ${this.apiKey}`,
         "User-Agent": this.userAgent,
       };
@@ -211,7 +234,7 @@ export class MekoHttpClient {
         throw new MekoError(`HTTP ${response.status}: ${errorText}`, "MEKO_HTTP_ERROR", response.status);
       }
 
-      const json = (await response.json()) as MekoJsonRpcResponse;
+      const json = await this.parseResponseBody(response);
       const rpcError = extractMekoRpcError(json);
       if (rpcError) throw rpcError;
 
@@ -234,6 +257,7 @@ export class MekoHttpClient {
       await this.fetchFn(this.endpoint, {
         method: "DELETE",
         headers: {
+          Accept: "application/json, text/event-stream",
           Authorization: `Bearer ${this.apiKey}`,
           "Mcp-Session-Id": this.sessionId,
           "User-Agent": this.userAgent,
@@ -281,6 +305,7 @@ export class MekoHttpClient {
       try {
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
+          Accept: "application/json, text/event-stream",
           Authorization: `Bearer ${this.apiKey}`,
           "User-Agent": this.userAgent,
         };
@@ -323,7 +348,7 @@ export class MekoHttpClient {
           this.sessionId = returnedSessionId;
         }
 
-        const json = (await response.json()) as MekoJsonRpcResponse;
+        const json = await this.parseResponseBody(response);
         const rpcError = extractMekoRpcError(json);
         if (rpcError) {
           throw rpcError;
@@ -391,7 +416,7 @@ export class MekoHttpClient {
 
   public async listDatapacks(conversationId?: string): Promise<MekoDatapack[]> {
     const validArgs = DatapackListArgsSchema.parse({
-      conversation_id: conversationId || `conv_${crypto.randomUUID()}`,
+      conversation_id: conversationId || crypto.randomUUID(),
       limit: 50,
     });
 
@@ -408,7 +433,7 @@ export class MekoHttpClient {
   public async searchDatapacks(query: string, conversationId?: string): Promise<MekoDatapack[]> {
     const validArgs = DatapackSearchArgsSchema.parse({
       query,
-      conversation_id: conversationId || `conv_${crypto.randomUUID()}`,
+      conversation_id: conversationId || crypto.randomUUID(),
       limit: 20,
     });
 
@@ -439,10 +464,14 @@ export class MekoHttpClient {
 
     const validArgs = MemoryAddArgsSchema.parse({
       text,
-      conversation_id: options?.conversationId || `conv_${crypto.randomUUID()}`,
+      conversation_id: options?.conversationId || crypto.randomUUID(),
       agent_id: options?.agentId || "umeed_agent",
       datapack_id: options?.datapackId || this.productDatapackId,
-      metadata: options?.metadata,
+      metadata: options?.metadata
+        ? typeof options.metadata === "string"
+          ? options.metadata
+          : JSON.stringify(options.metadata)
+        : undefined,
     });
 
     const result = await this.executeToolCall<{ results?: MekoMemoryResult[] } | MekoMemoryResult>(
@@ -472,7 +501,7 @@ export class MekoHttpClient {
   ): Promise<MekoSearchResult[]> {
     const validArgs = MemorySearchArgsSchema.parse({
       query,
-      conversation_id: options?.conversationId || `conv_${crypto.randomUUID()}`,
+      conversation_id: options?.conversationId || crypto.randomUUID(),
       agent_id: options?.agentId || "umeed_agent",
       datapack_id: options?.datapackId || this.productDatapackId,
       limit: options?.limit ?? 10,
@@ -495,7 +524,7 @@ export class MekoHttpClient {
   ): Promise<MekoMemory | null> {
     const validArgs = MemoryGetByIdArgsSchema.parse({
       memory_id: memoryId,
-      conversation_id: options?.conversationId || `conv_${crypto.randomUUID()}`,
+      conversation_id: options?.conversationId || crypto.randomUUID(),
       agent_id: options?.agentId || "umeed_agent",
       datapack_id: options?.datapackId || this.productDatapackId,
     });
@@ -543,7 +572,7 @@ export class MekoHttpClient {
     const validArgs = MemoryUpdateArgsSchema.parse({
       memory_id: memoryId,
       text,
-      conversation_id: options?.conversationId || `conv_${crypto.randomUUID()}`,
+      conversation_id: options?.conversationId || crypto.randomUUID(),
       agent_id: options?.agentId || "umeed_agent",
       datapack_id: options?.datapackId || this.productDatapackId,
     });
@@ -561,7 +590,7 @@ export class MekoHttpClient {
   ): Promise<boolean> {
     const validArgs = MemoryDeleteByIdArgsSchema.parse({
       memory_id: memoryId,
-      conversation_id: options?.conversationId || `conv_${crypto.randomUUID()}`,
+      conversation_id: options?.conversationId || crypto.randomUUID(),
       agent_id: options?.agentId || "umeed_agent",
       datapack_id: options?.datapackId || this.productDatapackId,
     });
@@ -579,7 +608,7 @@ export class MekoHttpClient {
   ): Promise<{ inserted_ids: string[]; updated_ids: string[]; not_found_ids: string[] }> {
     const validArgs = MemoryPromoteArgsSchema.parse({
       memory_ids: memoryIds,
-      conversation_id: options?.conversationId || `conv_${crypto.randomUUID()}`,
+      conversation_id: options?.conversationId || crypto.randomUUID(),
       agent_id: options?.agentId || "umeed_curator",
       datapack_id: options?.datapackId || this.productDatapackId,
     });
@@ -612,7 +641,7 @@ export class MekoHttpClient {
     const validArgs = KnowledgebaseSearchArgsSchema.parse({
       query,
       datapack_id: datapackId,
-      conversation_id: options?.conversationId || `conv_${crypto.randomUUID()}`,
+      conversation_id: options?.conversationId || crypto.randomUUID(),
       agent_id: options?.agentId || "umeed_agent",
       limit: options?.limit ?? 10,
     });
@@ -634,7 +663,7 @@ export class MekoHttpClient {
 
   public async runCanaryTest(
     agentId = "umeed_canary_agent",
-    conversationId = `conv_${crypto.randomUUID()}`
+    conversationId = crypto.randomUUID()
   ): Promise<CanaryResult> {
     const startTime = Date.now();
     let canaryId: string | undefined;

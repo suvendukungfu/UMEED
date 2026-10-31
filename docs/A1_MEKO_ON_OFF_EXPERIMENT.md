@@ -90,3 +90,4 @@ To switch the execution mode from `MOCK_UNIT_EVALUATION` to `LIVE_REMOTE`:
 1. Populate `MEKO_API_KEY` in `apps/web/.env.local`.
 2. Populate `MEKO_PRODUCT_DATAPACK_ID` in `apps/web/.env.local`.
 3. Run the API call or canary suite. The runner automatically detects live credentials and executes against `https://mcp.mekodata.ai/mcp`.
+

@@ -67,7 +67,8 @@ export const MemoryAddArgsSchema = z.object({
   agent_id: z.string().optional(),
   datapack_id: z.string().optional(),
   run_id: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  metadata: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+  messages: z.string().optional(),
 }).strict();
 
 export const MemorySearchArgsSchema = z.object({

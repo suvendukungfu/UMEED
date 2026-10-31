@@ -368,7 +368,8 @@ export class ResponderService {
 
     // Calculate unresolved requirements:
     // Subtract what was provided, add newly discovered additional needs
-    const providedSet = new Set(input.assistance_provided.map((s) => s.toLowerCase()));
+    const provided = input.assistance_provided || [];
+    const providedSet = new Set(provided.map((s) => s.toLowerCase()));
     let remaining = caseRecord.unresolved_requirements.filter(
       (req) => !providedSet.has(req.toLowerCase())
     );

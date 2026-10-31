@@ -16,6 +16,7 @@ export const A1_APPROVED_LESSON = {
 
 export function createA1SyntheticIncident(variant: "CONTROL_OFF" | "TREATMENT_ON"): IncidentDocument {
   const publicRef = variant === "CONTROL_OFF" ? "UMD-A1-OFF" : "UMD-A1-ON";
+  const now = "2026-10-31T20:00:00.000Z";
 
   return {
     _id: `inc_a1_${variant.toLowerCase()}`,
@@ -23,17 +24,17 @@ export function createA1SyntheticIncident(variant: "CONTROL_OFF" | "TREATMENT_ON
     source_type: "citizen_report",
     source_reference: `a1_exp_${variant.toLowerCase()}`,
     source_url: null,
-    reported_at: "2026-10-31T20:00:00.000Z",
+    reported_at: now,
     incident_type: "injured_animal",
     subject_type: "animal",
     description:
       "Large stray dog hit by a two-wheeler. Deep laceration and compound leg fracture. Animal is immobile, bleeding, and in severe distress on the side of the road.",
     evidence: [],
     location: {
-      latitude: 28.698,
-      longitude: 77.138,
       address: "Near Pitampura Metro Station, Outer Ring Road, Delhi",
       district: "North West Delhi",
+      latitude: 28.698,
+      longitude: 77.138,
       confidence: 0.95,
       geo: {
         type: "Point",
@@ -41,9 +42,9 @@ export function createA1SyntheticIncident(variant: "CONTROL_OFF" | "TREATMENT_ON
       },
     },
     severity: {
-      level: "high",
-      confidence: 0.9,
-      reasoning: ["Compound fracture with active bleeding reported"],
+      level: "critical",
+      confidence: 0.95,
+      reasoning: ["Severe bleeding", "Compound limb fracture"],
     },
     freshness: "current_confirmed_by_source",
     missing_information: [],
@@ -52,29 +53,35 @@ export function createA1SyntheticIncident(variant: "CONTROL_OFF" | "TREATMENT_ON
     is_suspected_duplicate: false,
     suspected_duplicate_ids: [],
     public_reference: publicRef,
-    tracking_token_hash: "hash_a1_synthetic_eval",
+    tracking_token_hash: `hash_a1_synthetic_${variant.toLowerCase()}`,
     triage_analysis: {
-      analysis_id: "00000000-0000-4000-8000-000000000001",
+      analysis_id: `3f7394c8-356b-4e11-807d-9486c2aa260a`,
       incident_id: `inc_a1_${variant.toLowerCase()}`,
       model_id: "gemini-2.0-flash",
-      prompt_version: "v1.0.0",
+      prompt_version: "v1.2",
       category_recommendation: "injured_animal",
       subject_type: "animal",
-      observable_evidence: [],
+      observable_evidence: [
+        {
+          observation: "Severe canine vehicular trauma requiring immediate field transit and fracture stabilization.",
+          evidence_reference: "citizen_text_description",
+          confidence: 0.95,
+        },
+      ],
       possible_assistance: ["field_ambulance", "fracture_stabilization"],
       urgency: {
         level: "urgent",
-        reasoning: ["Severe bleeding and acute canine vehicular trauma"],
+        reasoning: ["Compound fracture, active blood loss"],
         requires_human_review: true,
       },
-      location_candidates: ["North West Delhi"],
+      location_candidates: ["Pitampura Outer Ring Road"],
       missing_information: [],
       limitations: [],
-      confidence: 0.92,
+      confidence: 0.95,
       analysis_status: "SUCCESS",
-      created_at: "2026-10-31T20:00:00.000Z",
+      created_at: now,
     },
-    created_at: "2026-10-31T20:00:00.000Z",
-    updated_at: "2026-10-31T20:00:00.000Z",
+    created_at: now,
+    updated_at: now,
   };
 }

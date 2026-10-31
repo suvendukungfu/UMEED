@@ -73,7 +73,6 @@ describe("Workstream G: Complete End-to-End Citizen-to-Resolution Journey", () =
     };
 
     await incidentRepo.create(citizenIncident);
-    
 
     // -------------------------------------------------------------------------
     // Step 2: Coordinator reviews incident and creates operational case
@@ -138,7 +137,7 @@ describe("Workstream G: Complete End-to-End Citizen-to-Resolution Journey", () =
 
     await responderService.confirmArrival(assignmentId, responderActor);
 
-    const caseAfterIntervention = await responderService.recordIntervention(
+    const resultAfterIntervention = await responderService.recordIntervention(
       assignmentId,
       {
         intervention_type: "first_aid_provided",
@@ -151,9 +150,10 @@ describe("Workstream G: Complete End-to-End Citizen-to-Resolution Journey", () =
       },
       responderActor
     );
+    const caseAfterIntervention = resultAfterIntervention.case;
 
-    expect(caseAfterIntervention.case.interventions).toHaveLength(1);
-    expect(caseAfterIntervention.case.case_status).toBe("FOLLOW_UP_REQUIRED");
+    expect(caseAfterIntervention.interventions).toHaveLength(1);
+    expect(caseAfterIntervention.case_status).toBe("FOLLOW_UP_REQUIRED");
 
     // -------------------------------------------------------------------------
     // Step 6: Handoff Verification Checkpoint Inspection
@@ -178,7 +178,7 @@ describe("Workstream G: Complete End-to-End Citizen-to-Resolution Journey", () =
       currentCycle: 1,
       completedInterventions: [
         {
-          interventionId: caseAfterIntervention.case.interventions[0].intervention_id,
+          interventionId: caseAfterIntervention.interventions[0].intervention_id,
           type: "rescue_and_transport",
           providerName: topCandidate!.organisation_name,
           completedAt: now,
@@ -224,7 +224,7 @@ describe("Workstream G: Complete End-to-End Citizen-to-Resolution Journey", () =
       currentCycle: 1,
       completedInterventions: [
         {
-          interventionId: caseAfterIntervention.case.interventions[0].intervention_id,
+          interventionId: caseAfterIntervention.interventions[0].intervention_id,
           type: "rescue_and_transport",
           providerName: topCandidate!.organisation_name,
           completedAt: now,
