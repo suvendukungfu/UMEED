@@ -19,8 +19,10 @@ export async function GET(
   const proxyRes = await tryForwardToBackend(request);
   if (proxyRes) return proxyRes;
 
+  let resolvedRef = "";
   try {
     const { publicReference } = await params;
+    resolvedRef = publicReference;
     const clientIp = extractClientIp(request);
 
     // 1. Rate Limiting Protection (Brute-Force Defense: Max 10 attempts/min)
@@ -128,10 +130,9 @@ export async function GET(
           const { InMemoryIncidentRepository, getIncidentRepository } = await import("@/features/incidents/repositories");
           const fallbackRepo = getIncidentRepository(new InMemoryIncidentRepository());
           const fallbackService = new IncidentService(fallbackRepo);
-          const { publicReference } = await params;
           const trackingToken = extractTrackingToken(request);
-          if (trackingToken) {
-            const incident = await fallbackService.authenticateTrackingAccess(publicReference, trackingToken);
+          if (trackingToken && resolvedRef) {
+            const incident = await fallbackService.authenticateTrackingAccess(resolvedRef, trackingToken);
             if (incident) {
               return NextResponse.json({
                 status: "success",
