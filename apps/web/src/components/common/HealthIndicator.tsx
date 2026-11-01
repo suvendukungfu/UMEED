@@ -7,6 +7,9 @@ interface HealthData {
   status?: string;
   uptime_seconds?: number;
   database?: string;
+  environment?: {
+    storage_type?: string;
+  };
   services?: {
     core_engine?: { status?: string };
     database?: { status?: string; message?: string };

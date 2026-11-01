@@ -10,6 +10,20 @@ export async function GET(request: NextRequest) {
   const proxyRes = await tryForwardToBackend(request);
   if (proxyRes) return proxyRes;
 
+  const searchParams = request.nextUrl.searchParams;
+  const filterStatus = searchParams.get("status") as IncidentStatus | undefined;
+  const incidentType = searchParams.get("incident_type") as IncidentType | undefined;
+  const sourceType = searchParams.get("source_type") as IncidentSourceType | undefined;
+  const isSuspectedDuplicate = searchParams.has("is_suspected_duplicate")
+    ? searchParams.get("is_suspected_duplicate") === "true"
+    : undefined;
+  const limit = searchParams.has("limit")
+    ? Math.min(parseInt(searchParams.get("limit")!, 10), 100)
+    : 50;
+  const offset = searchParams.has("offset")
+    ? parseInt(searchParams.get("offset")!, 10)
+    : 0;
+
   try {
     // 1. Enforce Coordinator Privileges
     const auth = verifyCoordinatorAuth(request);
@@ -27,24 +41,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const searchParams = request.nextUrl.searchParams;
-
-    const status = searchParams.get("status") as IncidentStatus | undefined;
-    const incidentType = searchParams.get("incident_type") as IncidentType | undefined;
-    const sourceType = searchParams.get("source_type") as IncidentSourceType | undefined;
-    const isSuspectedDuplicate = searchParams.has("is_suspected_duplicate")
-      ? searchParams.get("is_suspected_duplicate") === "true"
-      : undefined;
-    const limit = searchParams.has("limit")
-      ? Math.min(parseInt(searchParams.get("limit")!, 10), 100)
-      : 50;
-    const offset = searchParams.has("offset")
-      ? parseInt(searchParams.get("offset")!, 10)
-      : 0;
-
     const service = new IncidentService();
     const result = await service.listIncidents({
-      status,
+      status: filterStatus,
       incident_type: incidentType,
       source_type: sourceType,
       is_suspected_duplicate: isSuspectedDuplicate,
@@ -84,7 +83,7 @@ export async function GET(request: NextRequest) {
           const fallbackRepo = getIncidentRepository(new InMemoryIncidentRepository());
           const fallbackService = new IncidentService(fallbackRepo);
           const fallbackResult = await fallbackService.listIncidents({
-            status,
+            status: filterStatus,
             incident_type: incidentType,
             source_type: sourceType,
             is_suspected_duplicate: isSuspectedDuplicate,
