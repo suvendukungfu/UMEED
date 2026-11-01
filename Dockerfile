@@ -16,7 +16,6 @@ COPY package.json package-lock.json ./
 COPY packages/contracts/package.json ./packages/contracts/
 COPY apps/backend/package.json ./apps/backend/
 COPY apps/web/package.json ./apps/web/
-COPY apps/web/package.json ./apps/web/
 
 # Install all dependencies (including devDependencies for build)
 RUN npm ci

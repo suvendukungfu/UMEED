@@ -11,6 +11,9 @@ const MAX_BODY_BYTES = 1024 * 1024; // 1 MB limit
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
+  const env = getServerEnv();
+  const allowFallback = process.env.ALLOW_INMEMORY_FALLBACK === "true" || env.ALLOW_INMEMORY_FALLBACK === true;
+  let rawBody: unknown;
 
   try {
     // Check if dedicated Fly.io Mumbai backend is configured
@@ -20,9 +23,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 0. Fail-Closed Production Storage Guard:
-    // In production, distress intake is strictly disabled without verified MongoDB persistence.
-    const env = getServerEnv();
-    if (env.NODE_ENV === "production" && !isMongoConfigured(env.MONGODB_URI)) {
+    // In production, distress intake is strictly disabled without verified MongoDB persistence,
+    // unless explicit ALLOW_INMEMORY_FALLBACK is configured for resilient demo/event continuity.
+    if (env.NODE_ENV === "production" && !isMongoConfigured(env.MONGODB_URI) && !allowFallback) {
       return NextResponse.json(
         {
           error: {
@@ -91,7 +94,6 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Parse JSON Body
-    let rawBody: unknown;
     try {
       rawBody = await request.json();
     } catch {
@@ -188,7 +190,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for database persistence or connectivity failures (Fail-Closed)
+    // Check for database persistence or connectivity failures (Fail-Closed unless fallback enabled)
     const errorMsg = (err as Error).message || "";
     if (
       errorMsg.includes("ECONNREFUSED") ||
@@ -196,8 +198,30 @@ export async function POST(request: NextRequest) {
       errorMsg.includes("MongoDB client is unavailable") ||
       errorMsg.includes("MongoDB is not configured") ||
       errorMsg.includes("Production environment requires a configured") ||
-      errorMsg.includes("Fallback to in-memory repository is strictly prohibited")
+      errorMsg.includes("Fallback to in-memory repository is strictly prohibited") ||
+      errorMsg.includes("SSL alert number 80") ||
+      errorMsg.includes("alert internal error") ||
+      errorMsg.includes("tlsv1 alert internal error")
     ) {
+      if (allowFallback) {
+        logger.warn("Primary MongoDB connection unavailable during ingestion; falling back to in-memory repository", "INGESTION_API");
+        try {
+          const { InMemoryIncidentRepository, getIncidentRepository } = await import("@/features/incidents/repositories");
+          const fallbackRepo = getIncidentRepository(new InMemoryIncidentRepository());
+          const fallbackService = new IncidentService(fallbackRepo);
+          const fallbackResult = await fallbackService.ingestIncident(rawBody, request.headers);
+          return NextResponse.json(
+            {
+              status: "success",
+              data: fallbackResult,
+            },
+            { status: 201 }
+          );
+        } catch (fallbackErr) {
+          logger.error("Fallback in-memory ingestion also encountered error", fallbackErr, "INGESTION_API");
+        }
+      }
+
       logger.error("Database persistence failure during ingestion", err, "INGESTION_API");
       return NextResponse.json(
         {

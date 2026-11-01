@@ -24,11 +24,12 @@ export async function GET() {
   const isAiConfigured = isGeminiConfigured();
 
   // Determine Overall Health State
-  // Production requires persistent MongoDB Atlas; unconfigured/disconnected DB fails readiness.
-  const isDatabaseUnhealthyInProd = isProd && !dbStatus.connected;
+  // Production requires persistent MongoDB Atlas; unconfigured/disconnected DB fails readiness unless ALLOW_INMEMORY_FALLBACK is enabled.
+  const allowFallback = process.env.ALLOW_INMEMORY_FALLBACK === "true" || env.ALLOW_INMEMORY_FALLBACK === true;
+  const isDatabaseUnhealthyInProd = isProd && !dbStatus.connected && !allowFallback;
   const overallStatus = isDatabaseUnhealthyInProd
     ? "unhealthy"
-    : isInMemory
+    : (!dbStatus.connected || isInMemory)
     ? "healthy_demo_mode"
     : "healthy";
 
@@ -60,12 +61,18 @@ export async function GET() {
         connected: dbStatus.connected,
         status: dbStatus.connected
           ? "operational"
+          : allowFallback
+          ? "demo_fallback"
           : dbStatus.configured
           ? "unavailable"
           : "unconfigured",
-        storage_engine: isInMemory ? "InMemoryIncidentRepository (Development/Demo Only)" : "MongoIncidentRepository",
+        storage_engine: dbStatus.connected
+          ? "MongoIncidentRepository"
+          : isInMemory || allowFallback
+          ? "InMemoryIncidentRepository (Development/Demo Mode)"
+          : "MongoIncidentRepository",
         database_name: dbStatus.databaseName,
-        failover_policy: isProd ? "fail_closed_strict" : "ephemeral_demo_fallback",
+        failover_policy: allowFallback ? "ephemeral_demo_fallback" : isProd ? "fail_closed_strict" : "ephemeral_demo_fallback",
         ...(dbStatus.error ? { error_diagnostic: dbStatus.error } : {}),
       },
       gemini_ai: {

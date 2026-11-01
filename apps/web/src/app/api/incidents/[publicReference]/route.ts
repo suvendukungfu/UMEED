@@ -110,6 +110,41 @@ export async function GET(
       data: sanitizeIncidentForPublic(incident),
     });
   } catch (err) {
+    const errorMsg = (err as Error).message || "";
+    if (
+      errorMsg.includes("ECONNREFUSED") ||
+      errorMsg.includes("Server selection timed out") ||
+      errorMsg.includes("MongoDB client is unavailable") ||
+      errorMsg.includes("MongoDB is not configured") ||
+      errorMsg.includes("Production environment requires a configured") ||
+      errorMsg.includes("Fallback to in-memory repository is strictly prohibited") ||
+      errorMsg.includes("SSL alert number 80") ||
+      errorMsg.includes("alert internal error")
+    ) {
+      const { getServerEnv } = await import("@/lib/config/env");
+      const allowFallback = process.env.ALLOW_INMEMORY_FALLBACK === "true" || getServerEnv().ALLOW_INMEMORY_FALLBACK === true;
+      if (allowFallback) {
+        try {
+          const { InMemoryIncidentRepository, getIncidentRepository } = await import("@/features/incidents/repositories");
+          const fallbackRepo = getIncidentRepository(new InMemoryIncidentRepository());
+          const fallbackService = new IncidentService(fallbackRepo);
+          const { publicReference } = await params;
+          const trackingToken = extractTrackingToken(request);
+          if (trackingToken) {
+            const incident = await fallbackService.authenticateTrackingAccess(publicReference, trackingToken);
+            if (incident) {
+              return NextResponse.json({
+                status: "success",
+                data: sanitizeIncidentForPublic(incident),
+              });
+            }
+          }
+        } catch {
+          // fall through to error response
+        }
+      }
+    }
+
     return NextResponse.json(
       {
         error: {

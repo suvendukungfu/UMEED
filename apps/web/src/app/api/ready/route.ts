@@ -43,8 +43,9 @@ export async function GET(request: NextRequest) {
   const dbStatus = await checkDatabaseReadiness();
   const isProd = env.NODE_ENV === "production";
 
+  const allowFallback = process.env.ALLOW_INMEMORY_FALLBACK === "true" || env.ALLOW_INMEMORY_FALLBACK === true;
   const isReady = isProd
-    ? dbStatus.connected && isMongoConfigured(env.MONGODB_URI)
+    ? (dbStatus.connected && isMongoConfigured(env.MONGODB_URI)) || allowFallback
     : true;
 
   if (!isReady) {

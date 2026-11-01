@@ -54,9 +54,17 @@ export function HealthIndicator() {
     );
   }
 
-  const isHealthy = data?.status === "healthy";
+  const isHealthy = data?.status === "healthy" || data?.status === "healthy_demo_mode";
   const dbStatus = data?.database || data?.services?.database?.status || "disconnected";
-  const isDbConnected = dbStatus === "connected";
+  const isDbConnected = dbStatus === "connected" || dbStatus === "operational";
+  const isDemo = data?.status === "healthy_demo_mode" || data?.environment?.storage_type === "in_memory_ephemeral" || dbStatus === "demo_fallback";
+
+  let dbLabel = "Atlas Standby";
+  if (isDbConnected) {
+    dbLabel = "Atlas Online";
+  } else if (isDemo) {
+    dbLabel = "Demo Storage";
+  }
 
   return (
     <div className="flex items-center gap-3">
@@ -75,16 +83,18 @@ export function HealthIndicator() {
         className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${
           isDbConnected
             ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+            : isDemo
+            ? "bg-blue-50 text-blue-700 border-blue-200"
             : "bg-slate-100 text-slate-600 border-slate-200"
         }`}
       >
         <span
           className={`h-2 w-2 rounded-full ${
-            isDbConnected ? "bg-emerald-500" : "bg-slate-400"
+            isDbConnected ? "bg-emerald-500" : isDemo ? "bg-blue-400" : "bg-slate-400"
           }`}
         />
         <span>
-          DB: {isDbConnected ? "Atlas Online" : "Atlas Standby"}
+          DB: {dbLabel}
         </span>
       </div>
     </div>

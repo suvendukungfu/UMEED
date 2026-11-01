@@ -4,6 +4,7 @@ import { IncidentService } from "@/features/incidents/services/incident.service"
 import { IncidentStatus, IncidentType, IncidentSourceType } from "@umeed/contracts";
 import { verifyCoordinatorAuth } from "@/lib/security/authorization";
 import { sanitizeIncidentForCoordinator } from "@/features/incidents/services/privacy.service";
+import { getServerEnv } from "@/lib/config/env";
 
 export async function GET(request: NextRequest) {
   const proxyRes = await tryForwardToBackend(request);
@@ -71,8 +72,40 @@ export async function GET(request: NextRequest) {
       errorMsg.includes("MongoDB client is unavailable") ||
       errorMsg.includes("MongoDB is not configured") ||
       errorMsg.includes("Production environment requires a configured") ||
-      errorMsg.includes("Fallback to in-memory repository is strictly prohibited")
+      errorMsg.includes("Fallback to in-memory repository is strictly prohibited") ||
+      errorMsg.includes("SSL alert number 80") ||
+      errorMsg.includes("alert internal error") ||
+      errorMsg.includes("tlsv1 alert internal error")
     ) {
+      const allowFallback = process.env.ALLOW_INMEMORY_FALLBACK === "true" || getServerEnv().ALLOW_INMEMORY_FALLBACK === true;
+      if (allowFallback) {
+        try {
+          const { InMemoryIncidentRepository, getIncidentRepository } = await import("@/features/incidents/repositories");
+          const fallbackRepo = getIncidentRepository(new InMemoryIncidentRepository());
+          const fallbackService = new IncidentService(fallbackRepo);
+          const fallbackResult = await fallbackService.listIncidents({
+            status,
+            incident_type: incidentType,
+            source_type: sourceType,
+            is_suspected_duplicate: isSuspectedDuplicate,
+            limit,
+            offset,
+          });
+          const sanitized = fallbackResult.incidents.map(sanitizeIncidentForCoordinator);
+          return NextResponse.json({
+            status: "success",
+            data: {
+              incidents: sanitized,
+              total: fallbackResult.total,
+              limit,
+              offset,
+            },
+          });
+        } catch {
+          // Continue to 503 response below
+        }
+      }
+
       return NextResponse.json(
         {
           error: {
