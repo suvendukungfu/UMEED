@@ -12,6 +12,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "test": "npm run test:umeed",
     "dev:umeed": "npm run dev --workspace=apps/web",
     "build:umeed": "npm run build --workspaces --if-present",
     "lint:umeed": "npm run lint --workspaces --if-present",
