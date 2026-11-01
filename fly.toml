@@ -1,0 +1,73 @@
+# ==============================================================================
+# Fly.io Configuration for UMEED Humanitarian Operations Backend
+# App: umeed-api
+# Region: bom (Mumbai, India)
+# Target DB: MongoDB Atlas (AWS ap-south-1 Mumbai)
+# Process Groups: api (HTTP server) & worker (Asynchronous Outbox & Tasks)
+# ==============================================================================
+
+app = "umeed-api"
+primary_region = "bom"
+kill_signal = "SIGTERM"
+kill_timeout = "10s"
+
+[build]
+  dockerfile = "apps/backend/Dockerfile"
+
+# Process Groups: Separate HTTP API from background outbox/escalation tasks
+[processes]
+  api = "node apps/backend/dist/server.js"
+  worker = "node apps/backend/dist/worker.js"
+
+# Environment Variables (Public/Non-secret configuration only)
+[env]
+  NODE_ENV = "production"
+  PORT = "8080"
+  HOST = "0.0.0.0"
+  FLY_REGION = "bom"
+
+# HTTP Service configuration for the 'api' process group
+[http_service]
+  processes = ["api"]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+  [[http_service.checks]]
+    grace_period = "5s"
+    interval = "15s"
+    method = "GET"
+    timeout = "3s"
+    path = "/health"
+    protocol = "http"
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "20s"
+    method = "GET"
+    timeout = "5s"
+    path = "/ready"
+    protocol = "http"
+
+# Machine sizing and resource limits
+[[vm]]
+  processes = ["api"]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[[vm]]
+  processes = ["worker"]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+

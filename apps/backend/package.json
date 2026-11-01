@@ -1,0 +1,33 @@
+{
+  "name": "@umeed/backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "UMEED — Dedicated Humanitarian Operations Backend API & Background Worker",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "dev:worker": "tsx watch src/worker.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "start:worker": "node dist/worker.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/cors": "^11.3.1",
+    "@fastify/sensible": "^6.0.4",
+    "@google/genai": "^2.32.0",
+    "@umeed/contracts": "*",
+    "fastify": "^5.2.7",
+    "mongodb": "^6.13.0",
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "4.1.12"
+  }
+}
+
