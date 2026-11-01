@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/layout/AppShell";
+import { AuthProvider } from "@/features/auth/context/auth-context";
+import { ToastProvider } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
   title: "UMEED — Every Report Deserves a Verified Handoff",
@@ -24,7 +26,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased bg-paper text-forest-800">
-        <AppShell>{children}</AppShell>
+        <AuthProvider>
+          <ToastProvider>
+            <AppShell>{children}</AppShell>
+          </ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   );

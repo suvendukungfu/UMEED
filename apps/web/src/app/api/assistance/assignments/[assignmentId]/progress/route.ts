@@ -1,3 +1,4 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { CaseLifecycleService } from "@/features/assistance-engine/services/case-lifecycle.service";
 import { verifyResponderAuth } from "@/lib/security/authorization";
@@ -6,6 +7,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ assignmentId: string }> }
 ): Promise<NextResponse> {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   const auth = verifyResponderAuth(request);
   if (!auth.authorized || !auth.actor) {
     return NextResponse.json(

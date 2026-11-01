@@ -1,3 +1,4 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { NGOService } from "@/features/ngos/services/ngo.service";
 import { sanitizeNGOForPublic } from "@/features/ngos/services/privacy.service";
@@ -8,6 +9,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ ngoId: string }> }
 ) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
     const { ngoId } = await params;
     const service = new NGOService();
@@ -68,6 +72,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ ngoId: string }> }
 ) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
     const auth = verifyCoordinatorAuth(request);
     if (!auth.authorized) {

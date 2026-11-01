@@ -1,8 +1,12 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { verifyCoordinatorAuth } from "@/lib/security/authorization";
-import { MockNotificationAdapter } from "@/features/notifications/adapters/mock.adapter";
+import { getNotificationAdapter } from "@/features/notifications/adapters";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   const auth = verifyCoordinatorAuth(request);
   if (!auth.authorized) {
     return NextResponse.json(
@@ -11,7 +15,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const adapter = new MockNotificationAdapter();
+  const adapter = getNotificationAdapter();
 
   return NextResponse.json({
     status: "success",

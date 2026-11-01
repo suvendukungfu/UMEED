@@ -1,3 +1,4 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { getCandidateRepository } from "@/features/discovery/extraction/candidate.repository";
 
@@ -5,6 +6,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ candidateId: string }> }
 ) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
     const { candidateId } = await params;
     const repo = getCandidateRepository();

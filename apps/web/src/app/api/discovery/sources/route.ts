@@ -1,9 +1,13 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { getSourceRepository } from "@/features/discovery/crawler/repositories/source.repository";
 import { DiscoverySourceSchema } from "@umeed/contracts";
 import { verifyCoordinatorAuth } from "@/lib/security/authorization";
 
 export async function GET(request: NextRequest) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
     const { searchParams } = new URL(request.url);
     const approvedOnly = searchParams.get("approvedOnly") === "true";
@@ -25,6 +29,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
     const coordAuth = verifyCoordinatorAuth(request);
     if (!coordAuth.authorized) {

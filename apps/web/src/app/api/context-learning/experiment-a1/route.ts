@@ -1,3 +1,4 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { runA1Experiment } from "@/features/context-learning/experiments/a1-runner";
 import { verifyCoordinatorAuth } from "@/lib/security/authorization";
@@ -10,9 +11,12 @@ export const dynamic = "force-dynamic";
  * Executes the A1 Controlled Meko ON/OFF Experiment.
  * Protected by coordinator authorization.
  */
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
-    const auth = verifyCoordinatorAuth(req);
+    const auth = verifyCoordinatorAuth(request);
     if (!auth.authorized) {
       return NextResponse.json(
         { error: "Unauthorized: Coordinator authorization required to run A1 experiment." },
@@ -20,7 +24,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json().catch(() => ({}));
+    const body = await request.json().catch(() => ({}));
     const useLive = Boolean(body.useLiveMekoIfAvailable ?? true);
 
     const result = await runA1Experiment({ useLiveMekoIfAvailable: useLive });
@@ -45,8 +49,11 @@ export async function POST(req: NextRequest) {
  * GET /api/context-learning/experiment-a1
  * Returns current experiment specification and latest result status.
  */
-export async function GET(req: NextRequest) {
-  const auth = verifyCoordinatorAuth(req);
+export async function GET(request: NextRequest) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
+  const auth = verifyCoordinatorAuth(request);
   if (!auth.authorized) {
     return NextResponse.json(
       { error: "Unauthorized: Coordinator authorization required." },

@@ -9,25 +9,22 @@ import {
   AlertTriangle,
   Copy,
   Lock,
-  Loader2,
   Sparkles,
   ArrowRight,
   ArrowLeft,
   ShieldCheck,
   Search,
-  Eye,
-  Info,
-  Clock,
-  Heart,
-  User,
+  ExternalLink,
   Shield,
-  Truck,
-  CheckCircle2,
+  Layers,
+  Heart,
+  Navigation,
 } from "lucide-react";
 import { ContinuityLine, ContinuityStage } from "@/components/common/ContinuityLine";
 import { Button } from "@/components/ui/Button";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import { useToast } from "@/components/ui/Toast";
 import type { IncidentType } from "@umeed/contracts";
 
 const DELHI_DISTRICTS = [
@@ -110,6 +107,7 @@ const INCIDENT_CATEGORIES: {
 ];
 
 export default function ReportPage() {
+  const { success, warning, error: toastError } = useToast();
   const [activeTab, setActiveTab] = useState<"submit" | "track">("submit");
 
   // Multi-step progression (1 to 5)
@@ -130,7 +128,26 @@ export default function ReportPage() {
   const [isLocating, setIsLocating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [copiedCode, setCopiedCode] = useState(false);
+  const [isServiceUnavailable, setIsServiceUnavailable] = useState(false);
+  const [serviceNotice, setServiceNotice] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    fetch("/api/health")
+      .then((res) => {
+        if (!res.ok) {
+          setIsServiceUnavailable(true);
+          setServiceNotice(
+            "Notice: Public distress intake is temporarily paused while durable database maintenance is in progress. Submissions cannot be recorded at this moment. For urgent life-safety distress, please contact official emergency services directly."
+          );
+        }
+      })
+      .catch(() => {
+        setIsServiceUnavailable(true);
+        setServiceNotice(
+          "Notice: Service readiness verification failed. Distress reporting intake is paused to prevent lost reports."
+        );
+      });
+  }, []);
 
   // Success result
   const [successData, setSuccessData] = useState<{
@@ -141,29 +158,27 @@ export default function ReportPage() {
     created_at: string;
   } | null>(null);
 
-  // Track Mode State
-  const [trackRef, setTrackRef] = useState("");
-  const [trackToken, setTrackToken] = useState("");
-  const [trackLoading, setTrackLoading] = useState(false);
-  const [trackError, setTrackError] = useState<string | null>(null);
-  const [trackedIncident, setTrackedIncident] = useState<any | null>(null);
-
   const handleDetectLocation = () => {
     if (!navigator.geolocation) {
       setErrorMsg("Geolocation is not supported by your browser.");
+      toastError("Location Error", "Browser geolocation is unavailable.");
       return;
     }
     setIsLocating(true);
     setErrorMsg(null);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLatitude(Number(pos.coords.latitude.toFixed(6)));
-        setLongitude(Number(pos.coords.longitude.toFixed(6)));
+        const lat = Number(pos.coords.latitude.toFixed(6));
+        const lng = Number(pos.coords.longitude.toFixed(6));
+        setLatitude(lat);
+        setLongitude(lng);
         setIsLocating(false);
+        success("GPS Pin Fixed", `Coordinates acquired: ${lat}, ${lng}`);
       },
       (err) => {
         setIsLocating(false);
         setErrorMsg(`Unable to retrieve GPS coordinates: ${err.message}. Please select your district manually.`);
+        warning("Manual Location Required", "Could not fetch GPS. Please confirm district and address.");
       },
       { timeout: 10000, enableHighAccuracy: true }
     );
@@ -252,74 +267,19 @@ export default function ReportPage() {
       }
 
       setSuccessData(data.data);
+      success("Report Dispatched", `Public reference code: ${data.data.public_reference}`);
     } catch (err) {
-      setErrorMsg((err as Error).message);
+      const msg = (err as Error).message;
+      setErrorMsg(msg);
+      toastError("Submission Failed", msg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleLookupIncident = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setTrackError(null);
-    setTrackedIncident(null);
-
-    const cleanRef = trackRef.trim().toUpperCase();
-    const cleanToken = trackToken.trim();
-
-    if (!cleanRef || !cleanToken) {
-      setTrackError("Both public reference code (UMD-XXXX-YYYY) and tracking token are required.");
-      return;
-    }
-
-    setTrackLoading(true);
-    try {
-      const res = await fetch(`/api/incidents/${cleanRef}`, {
-        method: "GET",
-        headers: {
-          "X-Tracking-Token": cleanToken,
-        },
-      });
-
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error?.message || "Incident not found or invalid tracking token.");
-      }
-
-      setTrackedIncident(json.data);
-    } catch (err) {
-      setTrackError((err as Error).message);
-    } finally {
-      setTrackLoading(false);
-    }
-  };
-
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2000);
-  };
-
-  // Map incident status to Continuity Line stage
-  const mapStatusToStage = (status: string): ContinuityStage => {
-    switch (status) {
-      case "REPORTED":
-        return "REPORT";
-      case "TRIAGED":
-        return "TRIAGE";
-      case "APPROVED":
-      case "MATCHED":
-        return "COORDINATION";
-      case "ASSIGNED":
-      case "IN_PROGRESS":
-        return "RESCUE";
-      case "HANDOFF_PENDING":
-        return "HANDOFF";
-      case "RESOLVED":
-        return "VERIFIED_COMPLETION";
-      default:
-        return "REPORT";
-    }
+    success("Copied to Clipboard", `${label} saved.`);
   };
 
   return (
@@ -331,11 +291,10 @@ export default function ReportPage() {
           <span>Confidential Citizen Portal</span>
         </div>
         <h1 className="font-editorial text-3xl sm:text-5xl font-bold text-forest-800 tracking-tight">
-          {activeTab === "submit" ? "Report Distress" : "Track Assistance Progress"}
+          Report Distress & Mobilize Care
         </h1>
         <p className="text-xs sm:text-sm text-forest-700/80 max-w-lg mx-auto">
-          Every submission is triaged by multimodal AI, matched to accredited NGOs, and verified
-          at receiving medical or shelter facilities.
+          Every submission is verified by AI triage, dispatched to accredited local NGOs, and tracked through facility handoff.
         </p>
 
         {/* Tab Switcher */}
@@ -355,48 +314,55 @@ export default function ReportPage() {
             >
               Submit New Distress Report
             </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("track")}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                activeTab === "track"
-                  ? "bg-forest-800 text-white shadow-xs"
-                  : "text-forest-700 hover:text-forest-900"
-              }`}
+            <Link
+              href="/track"
+              className="px-4 py-2 rounded-lg text-xs font-bold text-forest-700 hover:text-forest-900 transition-all flex items-center gap-1"
             >
-              Track Existing Report
-            </button>
+              <span>Track Existing Report</span>
+              <ExternalLink className="h-3 w-3" />
+            </Link>
           </div>
         </div>
       </div>
+
+      {/* Service Availability Warning Banner */}
+      {isServiceUnavailable && serviceNotice && (
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-sm flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold">Distress Intake Temporarily Paused</p>
+            <p className="text-xs text-amber-800 mt-0.5">{serviceNotice}</p>
+          </div>
+        </div>
+      )}
 
       {/* =========================================================================
           TAB 1: SUBMIT REPORT
           ========================================================================= */}
       {activeTab === "submit" && !successData && (
-        <Card elevation="card" padding="lg" className="space-y-6">
+        <Card elevation="card" padding="lg" className="space-y-6 card-hover">
           {/* Progress Indicator */}
           <div className="border-b border-warm-grey-200 pb-5">
             <div className="flex items-center justify-between text-xs font-mono font-bold text-forest-700 mb-2">
-              <span>STEP {step} OF 5</span>
-              <span>
+              <span className="text-coral-600">STEP {step} OF 5</span>
+              <span className="text-forest-800 uppercase">
                 {step === 1 && "NATURE OF DISTRESS"}
                 {step === 2 && "GEOGRAPHIC LOCATION"}
                 {step === 3 && "OBSERVATIONS & EVIDENCE"}
                 {step === 4 && "CITIZEN PRIVACY & CONSENT"}
-                {step === 5 && "REVIEW & SUBMIT"}
+                {step === 5 && "REVIEW & DISPATCH"}
               </span>
             </div>
             <div className="w-full h-1.5 bg-warm-grey-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-coral-500 transition-all duration-300"
+                className="h-full bg-coral-500 transition-all duration-300 ease-out"
                 style={{ width: `${(step / 5) * 100}%` }}
               />
             </div>
           </div>
 
           {errorMsg && (
-            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-2">
+            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-2 animate-fade-in">
               <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
               <span>{errorMsg}</span>
             </div>
@@ -492,7 +458,7 @@ export default function ReportPage() {
                   <select
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-warm-grey-300 text-forest-800 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-warm-grey-300 text-forest-800 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-500"
                   >
                     {DELHI_DISTRICTS.map((d) => (
                       <option key={d} value={d}>
@@ -511,13 +477,17 @@ export default function ReportPage() {
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="e.g. Near Metro Pillar 384, Rohini Sector 11"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-warm-grey-300 text-forest-800 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
-                  />
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-warm-grey-300 text-forest-800 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-500"
+                  >
+                  </input>
                 </div>
 
                 <div className="p-4 rounded-xl bg-paper-surface border border-warm-grey-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="space-y-1">
-                    <span className="text-xs font-bold text-forest-800 block">Precise GPS Pin (Optional)</span>
+                    <span className="text-xs font-bold text-forest-800 flex items-center gap-1.5">
+                      <Navigation className="h-3.5 w-3.5 text-coral-500" />
+                      Precise GPS Pin (Optional)
+                    </span>
                     <span className="text-[11px] text-forest-600 block">
                       {latitude && longitude
                         ? `Captured: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
@@ -559,11 +529,11 @@ export default function ReportPage() {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="e.g. Medium-sized stray dog lying on roadside with injured hind leg, unable to walk, bleeding near paw, seems alert but scared..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-warm-grey-300 text-forest-800 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-warm-grey-300 text-forest-800 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-500"
                   />
                   <div className="flex justify-between items-center text-[11px] text-forest-600 mt-1">
-                    <span>Be as descriptive as possible to assist Gemini AI triage.</span>
-                    <span className={description.trim().length < 10 ? "text-amber-700 font-bold" : "text-emerald-700"}>
+                    <span>Be descriptive to assist multimodal AI triage and emergency prioritization.</span>
+                    <span className={description.trim().length < 10 ? "text-amber-700 font-bold" : "text-emerald-700 font-bold"}>
                       {description.trim().length} chars
                     </span>
                   </div>
@@ -578,7 +548,7 @@ export default function ReportPage() {
                     value={evidenceUrl}
                     onChange={(e) => setEvidenceUrl(e.target.value)}
                     placeholder="https://example.com/photo.jpg or cloud storage link"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-warm-grey-300 text-forest-800 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-warm-grey-300 text-forest-800 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral-500"
                   />
                   <span className="text-[11px] text-forest-600 block mt-1">
                     Direct image URLs allow Gemini vision to extract condition severity before responder arrival.
@@ -691,10 +661,11 @@ export default function ReportPage() {
                 variant="primary"
                 size="lg"
                 loading={isSubmitting}
+                disabled={isSubmitting || isServiceUnavailable}
                 onClick={handleSubmit}
                 icon={CheckCircle}
               >
-                Submit Distress Report
+                {isServiceUnavailable ? "Intake Temporarily Unavailable" : "Submit Distress Report"}
               </Button>
             )}
           </div>
@@ -705,7 +676,7 @@ export default function ReportPage() {
           SUCCESS RECEIPT STATE
           ========================================================================= */}
       {activeTab === "submit" && successData && (
-        <Card elevation="elevated" padding="lg" className="space-y-6">
+        <Card elevation="elevated" padding="lg" className="space-y-6 card-hover">
           <div className="flex items-center gap-3 pb-4 border-b border-warm-grey-200">
             <div className="h-12 w-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
               <CheckCircle className="h-6 w-6" />
@@ -730,11 +701,11 @@ export default function ReportPage() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => copyToClipboard(successData.public_reference)}
+                  onClick={() => copyToClipboard(successData.public_reference, "Public Reference")}
                   className="text-xs text-coral-600 hover:text-coral-700 font-semibold flex items-center gap-1"
                 >
                   <Copy className="h-3.5 w-3.5" />
-                  <span>{copiedCode ? "Copied" : "Copy"}</span>
+                  <span>Copy</span>
                 </button>
               </div>
             </div>
@@ -751,7 +722,7 @@ export default function ReportPage() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(successData.tracking_token!)}
+                    onClick={() => copyToClipboard(successData.tracking_token!, "Tracking Token")}
                     className="text-xs text-coral-600 hover:text-coral-700 font-semibold flex items-center gap-1 shrink-0"
                   >
                     <Copy className="h-3.5 w-3.5" />
@@ -776,19 +747,13 @@ export default function ReportPage() {
           </div>
 
           <div className="pt-2 flex flex-col sm:flex-row gap-3">
-            <Button
-              type="button"
-              variant="primary"
-              size="md"
-              onClick={() => {
-                setTrackRef(successData.public_reference);
-                setTrackToken(successData.tracking_token || "");
-                setActiveTab("track");
-              }}
-              icon={Search}
+            <Link
+              href="/track"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-forest-900 text-white font-bold text-xs uppercase tracking-wider hover:bg-forest-800 transition-colors shadow-xs"
             >
-              Track This Case Now
-            </Button>
+              <Search className="h-4 w-4" />
+              <span>Track This Case in Citizen Hub</span>
+            </Link>
             <Button
               type="button"
               variant="outline"
@@ -803,120 +768,6 @@ export default function ReportPage() {
               Submit Another Report
             </Button>
           </div>
-        </Card>
-      )}
-
-      {/* =========================================================================
-          TAB 2: TRACK EXISTING REPORT
-          ========================================================================= */}
-      {activeTab === "track" && (
-        <Card elevation="card" padding="lg" className="space-y-6">
-          <div className="space-y-1 pb-4 border-b border-warm-grey-200">
-            <h3 className="text-lg font-bold text-forest-800">
-              Look Up Incident Status
-            </h3>
-            <p className="text-xs text-forest-600">
-              Enter the Public Reference and Confidential Tracking Token provided during submission.
-            </p>
-          </div>
-
-          {trackError && (
-            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
-              <span>{trackError}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleLookupIncident} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold uppercase text-forest-700 font-mono mb-1.5">
-                  Public Reference (e.g. UMD-XXXX-YYYY)
-                </label>
-                <input
-                  type="text"
-                  value={trackRef}
-                  onChange={(e) => setTrackRef(e.target.value)}
-                  placeholder="UMD-82F1-94A0"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-warm-grey-300 text-forest-800 font-mono text-sm uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase text-forest-700 font-mono mb-1.5">
-                  Confidential Tracking Token
-                </label>
-                <input
-                  type="text"
-                  value={trackToken}
-                  onChange={(e) => setTrackToken(e.target.value)}
-                  placeholder="trk_..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-warm-grey-300 text-forest-800 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
-                />
-              </div>
-            </div>
-
-            <Button type="submit" variant="primary" size="md" loading={trackLoading} icon={Search}>
-              Verify & Retrieve Status
-            </Button>
-          </form>
-
-          {/* Tracked Result Display */}
-          {trackedIncident && (
-            <div className="mt-6 pt-6 border-t border-warm-grey-200 space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4 rounded-xl bg-paper-surface border border-warm-grey-200">
-                <div>
-                  <span className="text-[11px] font-mono text-forest-600 block">INCIDENT CASE</span>
-                  <span className="font-mono text-base font-bold text-forest-800">
-                    {trackedIncident.public_reference}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <StatusBadge status={trackedIncident.status} />
-                  <span className="text-xs text-forest-600 font-mono">
-                    {trackedIncident.location?.district || "Delhi NCR"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Continuity Line Progress */}
-              <div className="space-y-2">
-                <span className="text-xs font-mono uppercase font-bold text-forest-700 block">
-                  Assistance Lifecycle Stage
-                </span>
-                <div className="p-4 rounded-2xl bg-white border border-warm-grey-200 shadow-2xs">
-                  <ContinuityLine
-                    currentStage={mapStatusToStage(trackedIncident.status)}
-                    variant="timeline"
-                  />
-                </div>
-              </div>
-
-              {/* Sanitized Public Information */}
-              <div className="p-4 rounded-xl bg-white border border-warm-grey-200 space-y-2 text-xs">
-                <div className="flex justify-between py-1 border-b border-warm-grey-100">
-                  <span className="text-forest-600 font-medium">Category:</span>
-                  <span className="font-bold text-forest-800">{trackedIncident.incident_type}</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-warm-grey-100">
-                  <span className="text-forest-600 font-medium">Reported At:</span>
-                  <span className="font-mono text-forest-800">
-                    {new Date(trackedIncident.reported_at).toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-warm-grey-100">
-                  <span className="text-forest-600 font-medium">District Coverage:</span>
-                  <span className="text-forest-800">{trackedIncident.location?.district}</span>
-                </div>
-                <div className="py-1">
-                  <span className="text-forest-600 font-medium block mb-1">Description:</span>
-                  <p className="text-forest-900 leading-relaxed bg-paper-surface p-2.5 rounded-lg border border-warm-grey-100">
-                    {trackedIncident.description}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </Card>
       )}
     </div>

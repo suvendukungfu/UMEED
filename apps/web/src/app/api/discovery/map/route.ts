@@ -1,7 +1,11 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { getCandidateRepository } from "@/features/discovery/extraction/candidate.repository";
 
 export async function GET(request: NextRequest) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");

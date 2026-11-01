@@ -1,3 +1,4 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { IncidentTypeSchema } from "@umeed/contracts";
@@ -28,6 +29,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ publicReference: string }> }
 ) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
     // 1. Enforce Coordinator Privileges
     const auth = verifyCoordinatorAuth(request);

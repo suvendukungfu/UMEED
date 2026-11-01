@@ -1,3 +1,4 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { OutreachService } from "@/features/assistance-engine/services/outreach.service";
 import { EscalationService } from "@/features/assistance-engine/services/escalation.service";
@@ -8,6 +9,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ attemptId: string }> }
 ): Promise<NextResponse> {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   const auth = verifyResponderAuth(request);
   if (!auth.authorized || !auth.actor) {
     return NextResponse.json(

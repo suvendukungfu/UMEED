@@ -1,7 +1,11 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { getRunRepository } from "@/features/discovery/crawler/repositories/run.repository";
 
 export async function GET(request: NextRequest) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
     const { searchParams } = new URL(request.url);
     const limit = Number(searchParams.get("limit")) || 25;

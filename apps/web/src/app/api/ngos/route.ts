@@ -6,6 +6,11 @@ import { ApiError } from "@/lib/errors";
 import { IncidentType, IncidentSubjectType, VerificationStatus } from "@umeed/contracts";
 
 export async function GET(request: NextRequest) {
+  if (process.env.UMEED_BACKEND_URL) {
+    const { forwardToBackend } = await import("@/lib/proxy/backend-proxy");
+    return forwardToBackend(request, "/v1/ngos");
+  }
+
   try {
     const service = new NGOService();
     // Seed demo organizations if database is empty on first query
@@ -79,6 +84,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (process.env.UMEED_BACKEND_URL) {
+    const { forwardToBackend } = await import("@/lib/proxy/backend-proxy");
+    return forwardToBackend(request, "/v1/ngos");
+  }
+
   try {
     const auth = verifyCoordinatorAuth(request);
     if (!auth.authorized) {

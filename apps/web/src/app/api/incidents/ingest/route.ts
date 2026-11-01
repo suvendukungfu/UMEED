@@ -4,6 +4,8 @@ import { ApiError } from "@/lib/errors";
 import { logger } from "@/lib/logging";
 import { extractClientIp } from "@/lib/security/authorization";
 import { ingestionRateLimiter } from "@/lib/security/rate-limit";
+import { getServerEnv } from "@/lib/config/env";
+import { isMongoConfigured } from "@/lib/db/mongodb";
 
 const MAX_BODY_BYTES = 1024 * 1024; // 1 MB limit
 
@@ -11,7 +13,30 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // 0. Rate Limiting Protection (Intake Flooding Defense)
+    // Check if dedicated Fly.io Mumbai backend is configured
+    if (process.env.UMEED_BACKEND_URL) {
+      const { forwardToBackend } = await import("@/lib/proxy/backend-proxy");
+      return forwardToBackend(request, "/v1/incidents/ingest");
+    }
+
+    // 0. Fail-Closed Production Storage Guard:
+    // In production, distress intake is strictly disabled without verified MongoDB persistence.
+    const env = getServerEnv();
+    if (env.NODE_ENV === "production" && !isMongoConfigured(env.MONGODB_URI)) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "SERVICE_UNAVAILABLE",
+            message: "Database service is unavailable. The distress report could not be permanently persisted. Distress reporting intake is temporarily unavailable while durable database connectivity is being restored.",
+            status: 503,
+            timestamp: new Date().toISOString(),
+          },
+        },
+        { status: 503 }
+      );
+    }
+
+    // 1. Rate Limiting Protection (Intake Flooding Defense)
     const clientIp = extractClientIp(request);
     const rateCheck = ingestionRateLimiter.check(clientIp);
     if (!rateCheck.allowed) {

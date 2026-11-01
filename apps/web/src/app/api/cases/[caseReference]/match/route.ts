@@ -1,3 +1,4 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { CaseService } from "@/features/cases";
 import { ExplainableMatchingService } from "@/features/matching/services/matching.service";
@@ -8,6 +9,9 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ caseReference: string }> }
 ): Promise<NextResponse> {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   const caseService = new CaseService();
   const matchingService = new ExplainableMatchingService();
   try {

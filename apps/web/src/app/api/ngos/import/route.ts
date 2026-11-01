@@ -1,9 +1,13 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { NGOService } from "@/features/ngos/services/ngo.service";
 import { verifyCoordinatorAuth } from "@/lib/security/authorization";
 import { ApiError } from "@/lib/errors";
 
 export async function POST(request: NextRequest) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
     const auth = verifyCoordinatorAuth(request);
     if (!auth.authorized) {

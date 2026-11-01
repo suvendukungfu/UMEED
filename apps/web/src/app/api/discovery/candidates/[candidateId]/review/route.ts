@@ -1,3 +1,4 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { getCandidateRepository } from "@/features/discovery/extraction/candidate.repository";
 import { verifyCoordinatorAuth } from "@/lib/security/authorization";
@@ -7,6 +8,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ candidateId: string }> }
 ) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
     const coordAuth = verifyCoordinatorAuth(request);
     if (!coordAuth.authorized) {

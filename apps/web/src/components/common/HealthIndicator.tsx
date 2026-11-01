@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
 
 interface HealthData {
-  status: string;
-  uptime_seconds: number;
-  services: {
-    core_engine: { status: string };
-    database: { status: string; message?: string };
+  status?: string;
+  uptime_seconds?: number;
+  database?: string;
+  services?: {
+    core_engine?: { status?: string };
+    database?: { status?: string; message?: string };
   };
 }
 
@@ -17,15 +18,22 @@ export function HealthIndicator() {
   const [loading, setLoading] = useState(true);
 
   const fetchHealth = async () => {
-    setLoading(true);
     try {
       const res = await fetch("/api/health", { cache: "no-store" });
       if (res.ok) {
         const json = await res.json();
         setData(json);
+      } else {
+        // Even when 503, parse the returned JSON if available
+        try {
+          const errJson = await res.json();
+          setData(errJson);
+        } catch {
+          setData({ status: "unhealthy", database: "disconnected" });
+        }
       }
     } catch {
-      setData(null);
+      setData({ status: "unhealthy", database: "disconnected" });
     } finally {
       setLoading(false);
     }
@@ -47,7 +55,8 @@ export function HealthIndicator() {
   }
 
   const isHealthy = data?.status === "healthy";
-  const dbStatus = data?.services.database.status;
+  const dbStatus = data?.database || data?.services?.database?.status || "disconnected";
+  const isDbConnected = dbStatus === "connected";
 
   return (
     <div className="flex items-center gap-3">
@@ -64,18 +73,18 @@ export function HealthIndicator() {
       {/* Database status badge */}
       <div
         className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${
-          dbStatus === "connected"
+          isDbConnected
             ? "bg-emerald-50 text-emerald-700 border-emerald-200"
             : "bg-slate-100 text-slate-600 border-slate-200"
         }`}
       >
         <span
           className={`h-2 w-2 rounded-full ${
-            dbStatus === "connected" ? "bg-emerald-500" : "bg-slate-400"
+            isDbConnected ? "bg-emerald-500" : "bg-slate-400"
           }`}
         />
         <span>
-          DB: {dbStatus === "connected" ? "Atlas Online" : "Atlas Standby"}
+          DB: {isDbConnected ? "Atlas Online" : "Atlas Standby"}
         </span>
       </div>
     </div>

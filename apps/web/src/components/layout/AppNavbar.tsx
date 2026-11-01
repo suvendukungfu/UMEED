@@ -24,7 +24,8 @@ interface AppNavbarProps {
 }
 
 export function AppNavbar({ onOpenA1Modal }: AppNavbarProps) {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname || "";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -90,11 +91,18 @@ export function AppNavbar({ onOpenA1Modal }: AppNavbarProps) {
         {/* Right CTA Actions */}
         <div className="hidden sm:flex items-center gap-3">
           <Link
-            href="/cases"
+            href="/track"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-forest-800 hover:bg-forest-100/60 transition-colors"
+          >
+            <span>Track</span>
+          </Link>
+
+          <Link
+            href="/auth/sign-in"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-forest-800 hover:bg-forest-100/60 transition-colors border border-warm-grey-300"
           >
             <ShieldAlert className="h-3.5 w-3.5 text-forest-700" />
-            <span>Mission Control</span>
+            <span>Portal Login</span>
           </Link>
 
           <Link

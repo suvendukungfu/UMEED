@@ -1,3 +1,4 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { RecursiveAssistanceEngine } from "@/features/cases";
 import { verifyCoordinatorAuth } from "@/lib/security/authorization";
@@ -7,6 +8,9 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ caseReference: string }> }
 ): Promise<NextResponse> {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   const recursiveEngine = new RecursiveAssistanceEngine();
   try {
     const auth = verifyCoordinatorAuth(request);

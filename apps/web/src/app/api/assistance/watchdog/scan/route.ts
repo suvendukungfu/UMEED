@@ -1,8 +1,12 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { NoColdCaseWatchdog } from "@/features/assistance-engine/services/watchdog.service";
 import { verifyCoordinatorAuth } from "@/lib/security/authorization";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   const auth = verifyCoordinatorAuth(request);
   if (!auth.authorized) {
     return NextResponse.json(

@@ -1,3 +1,4 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { IncidentService } from "@/features/incidents/services/incident.service";
 import {
@@ -15,6 +16,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ publicReference: string }> }
 ) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
     const { publicReference } = await params;
     const clientIp = extractClientIp(request);

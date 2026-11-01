@@ -1,8 +1,12 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { crawlEngine } from "@/features/discovery/crawler/crawl-engine";
 import { verifyCoordinatorAuth } from "@/lib/security/authorization";
 
 export async function POST(request: NextRequest) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
     const coordAuth = verifyCoordinatorAuth(request);
     if (!coordAuth.authorized) {

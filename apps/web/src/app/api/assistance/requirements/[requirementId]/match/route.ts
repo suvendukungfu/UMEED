@@ -1,3 +1,4 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { getAssistanceRequirementRepository } from "@/features/assistance-engine/repositories";
 import { GeospatialDiscoveryService } from "@/features/assistance-engine/services/geospatial-discovery.service";
@@ -7,6 +8,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ requirementId: string }> }
 ): Promise<NextResponse> {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   const auth = verifyCoordinatorAuth(request);
   if (!auth.authorized) {
     return NextResponse.json(

@@ -6,6 +6,11 @@ import { ApiError } from "@/lib/errors";
 import { logger } from "@/lib/logging";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  if (process.env.UMEED_BACKEND_URL) {
+    const { forwardToBackend } = await import("@/lib/proxy/backend-proxy");
+    return forwardToBackend(request, "/v1/cases");
+  }
+
   const caseService = new CaseService();
   try {
     const auth = verifyCoordinatorAuth(request);
@@ -50,6 +55,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  if (process.env.UMEED_BACKEND_URL) {
+    const { forwardToBackend } = await import("@/lib/proxy/backend-proxy");
+    return forwardToBackend(request, "/v1/cases");
+  }
+
   const caseService = new CaseService();
   try {
     const { searchParams } = new URL(request.url);

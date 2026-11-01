@@ -1,3 +1,4 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { ExplainableMatchingService } from "@/features/matching/services/matching.service";
 import { verifyCoordinatorAuth } from "@/lib/security/authorization";
@@ -7,6 +8,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ incidentReference: string }> }
 ) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
     const auth = verifyCoordinatorAuth(request);
     if (!auth.authorized) {

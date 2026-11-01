@@ -1,3 +1,4 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { getIncidentRepository } from "@/features/incidents/repositories";
 import { stripBinaryExif } from "@/features/incidents/services/privacy.service";
@@ -10,9 +11,12 @@ import { logger } from "@/lib/logging";
  * Private storage URLs and raw original files are never exposed to the public.
  */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ publicReference: string; index: string }> }
 ) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
     const { publicReference, index } = await params;
     const evidenceIndex = parseInt(index, 10);

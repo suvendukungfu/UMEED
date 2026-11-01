@@ -10,12 +10,18 @@ import { A1ExperimentModal } from "@/components/context-inspector/A1ExperimentMo
 import { X } from "lucide-react";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname || "";
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [a1ModalOpen, setA1ModalOpen] = useState(false);
 
   // Determine if this is a public citizen/landing page or an operational mission control view
-  const isPublicPage = pathname === "/" || pathname === "/report";
+  const isPublicPage =
+    !pathname ||
+    pathname === "/" ||
+    pathname === "/report" ||
+    pathname === "/track" ||
+    pathname.startsWith("/auth/");
 
   if (isPublicPage) {
     return (

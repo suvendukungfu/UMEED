@@ -1,9 +1,13 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { verifyCoordinatorAuth } from "@/lib/security/authorization";
 import { runTriageEvaluation, GeminiTriageService } from "@/lib/ai/gemini";
 import { ApiError } from "@/lib/errors";
 
 export async function GET(request: NextRequest) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
     // 1. Enforce Coordinator Privileges
     const auth = verifyCoordinatorAuth(request);

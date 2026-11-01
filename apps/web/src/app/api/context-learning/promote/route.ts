@@ -1,3 +1,4 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { KnowledgeCurator } from "@/features/context-learning/services/knowledge-curator";
 import { verifyCoordinatorAuth } from "@/lib/security/authorization";
@@ -10,9 +11,12 @@ export const dynamic = "force-dynamic";
  * Promotes private memory to shared knowledge via Meko memory_promote.
  * Requires explicit coordinator confirmation notes.
  */
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
-    const auth = verifyCoordinatorAuth(req);
+    const auth = verifyCoordinatorAuth(request);
     if (!auth.authorized) {
       return NextResponse.json(
         { error: "Unauthorized: Coordinator privileges required to promote memory.", reason: auth.reason },
@@ -20,7 +24,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const body = await request.json();
     const { memory_id, coordinator_id, confirmation_notes } = body;
 
     if (!memory_id || typeof memory_id !== "string") {

@@ -1,3 +1,4 @@
+import { tryForwardToBackend } from "@/lib/proxy/proxy-forwarder";
 import { NextRequest, NextResponse } from "next/server";
 import { contextTraceService } from "@/features/context-learning/services/context-trace.service";
 import { MekoHttpClient } from "@/lib/ai/meko/client";
@@ -11,9 +12,12 @@ export const dynamic = "force-dynamic";
  * GET /api/context-learning/memories
  * Returns context learning traces and Meko connection status for the Context Inspector.
  */
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
-    const { searchParams } = new URL(req.url);
+    const { searchParams } = new URL(request.url);
     const caseRef = searchParams.get("caseReference");
     const incidentRef = searchParams.get("incidentReference");
 
@@ -56,9 +60,12 @@ export async function GET(req: NextRequest) {
  * Corrects/updates an existing operational memory via Meko memory_update.
  * Protected: Coordinator Authorization Required.
  */
-export async function PATCH(req: NextRequest) {
+export async function PATCH(request: NextRequest) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
-    const auth = verifyCoordinatorAuth(req);
+    const auth = verifyCoordinatorAuth(request);
     if (!auth.authorized) {
       return NextResponse.json(
         { error: "Unauthorized: Coordinator privileges required to update memory.", reason: auth.reason },
@@ -66,7 +73,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const body = await request.json();
     const { memory_id, new_text, case_reference, coordinator_id } = body;
 
     if (!memory_id || typeof memory_id !== "string") {
@@ -127,9 +134,12 @@ export async function PATCH(req: NextRequest) {
  * Purges/forgets an operational memory via Meko memory_delete_by_id.
  * Protected: Coordinator Authorization Required.
  */
-export async function DELETE(req: NextRequest) {
+export async function DELETE(request: NextRequest) {
+  const proxyRes = await tryForwardToBackend(request);
+  if (proxyRes) return proxyRes;
+
   try {
-    const auth = verifyCoordinatorAuth(req);
+    const auth = verifyCoordinatorAuth(request);
     if (!auth.authorized) {
       return NextResponse.json(
         { error: "Unauthorized: Coordinator privileges required to delete memory.", reason: auth.reason },
@@ -137,7 +147,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const body = await request.json();
     const { memory_id, case_reference, coordinator_id, reason } = body;
 
     if (!memory_id || typeof memory_id !== "string") {
