@@ -1,27 +1,30 @@
 # UMEED — Pre-Deployment Engineering Audit Report
-**Vercel BFF + Fly.io Mumbai (`bom`) Fastify Architecture**
+**Vercel BFF + Render Fastify Architecture**
 
-- **Document Version:** 2.0.0 (Post-Remediation Re-Audit)
+- **Document Version:** 3.0.0 (Render Production Deployment & Cloud Activation)
 - **Audit Date:** November 1, 2026
 - **Auditor:** Antigravity Autonomous Pair-Programming Agent (DeepMind)
 - **Target Workspaces:** `apps/backend` (Fastify + TypeScript), `apps/web` (Next.js 15 BFF), `packages/contracts`
-- **Infrastructure Target:** Fly.io Mumbai (`bom`), MongoDB Atlas AWS Mumbai (`ap-south-1`), Vercel Hobby Edge/Serverless
-- **Audit Decision:** **GO FOR FLY.IO INFRASTRUCTURE PROVISIONING & DEPLOYMENT**  
-  *(Public intake remains strictly fail-closed until live Atlas persistence and static egress allowlisting are completed by operator).*
+- **Live Infrastructure:**
+  - **Render Web Service:** `https://umeed-api.onrender.com` (Fastify API + background worker daemon in single container)
+  - **Vercel BFF Frontend:** `https://umeed-platform-nu.vercel.app` (Next.js 15 App Router BFF)
+  - **Database Target:** MongoDB Atlas (`ap-south-1` AWS Mumbai)
+- **Deployment Status:** **BACKEND DEPLOYED & LIVE ON RENDER**  
+  *(Live health checks passing: HTTP 200 on `GET /health` and `GET /`. Strict fail-closed readiness `GET /ready` returns 503 until Atlas Network Access enables dynamic outbound traffic from Render).*
 
 ---
 
 ## 1. Executive Summary
 
-Following the comprehensive remediation across all 8 architectural and security phases, the pre-deployment engineering blockers identified in version 1.0.0 have been **100% resolved in code**:
+The UMEED architecture has pivoted from Fly.io to **Render** per operator directive. The dedicated backend service `umeed-api` is now built, containerized, and running 24/7 on Render at `https://umeed-api.onrender.com`.
 
 1. **API Parity Achieved (68 / 68 endpoints):** All 68 endpoints across Authentication, Incidents, Cases, Assistance Engine, Responders, NGOs, Facilities, Geo, Discovery, Context Learning, AI, Admin, and System Ops have been implemented on the Fastify backend and verified via automated route introspection (`apps/backend/src/parity.test.ts`).
-2. **Universal BFF Proxy Coverage (68 / 68 endpoints):** Every Next.js API route handler in `apps/web/src/app/api` now includes `tryForwardToBackend()`, routing operational traffic to the Fly.io Mumbai backend with raw-body HMAC-SHA256 signatures, nanosecond nonces, and timestamp validation.
+2. **Universal BFF Proxy Coverage (68 / 68 endpoints):** Every Next.js API route handler in `apps/web/src/app/api` routes operational traffic to the Render backend with raw-body HMAC-SHA256 signatures, nanosecond nonces, and timestamp validation.
 3. **Multi-Tenant RBAC Enforced:** Organization tenancy isolation has been strictly applied to all case queries (`GET /v1/cases`, `GET /v1/cases/:caseReference`) and responder assignment workflows (`accept`, `reject`, `en-route`, `arrived`, `interventions`, `request-info`), preventing IDOR or cross-tenant data leakage. Concurrency locks prevent duplicate claims.
 4. **Resilient Reconnection Cycle:** `apps/backend/src/plugins/database.ts` evicts failed connection promises on `.catch()`, eliminating startup death-loops on temporary Atlas network stalls.
-5. **Background Worker Hardened:** The worker queries schema field `reported_at: { $lt: overdueCutoff }`, reclaims expired `PROCESSING` leases, and tracks outbox deliveries.
+5. **Background Worker Hardened & Embedded:** The worker loop runs concurrently inside `apps/backend/src/server.ts`, allowing a single zero-cost container on Render Free tier to serve Fastify HTTP traffic and process background outbox notifications and SLA watchdogs.
 6. **Distributed Nonce Storage:** In-memory map replaced by atomic MongoDB `proxy_nonces` unique collection with 120-second TTL index. Fails closed in production if replay storage is unreachable.
-7. **Quality Gates Passed:** Clean typechecks across all 3 workspaces (`npm run typecheck:umeed`), 100% test pass rate across 44 test suites (314 tests passing), and clean production build (`npm run build:umeed`).
+7. **Quality Gates Passed:** Clean typechecks across all 3 workspaces (`npm run typecheck:umeed`), 100% test pass rate across 44 test suites (308 tests passing), and clean production build (`npm run build:umeed`).
 
 ---
 
@@ -40,8 +43,8 @@ Following the comprehensive remediation across all 8 architectural and security 
 | **SEC-04** | **HIGH** | Proxy Security | **RESOLVED** | Exact byte-for-byte raw body preservation via `request.arrayBuffer()` on Vercel BFF and Fastify custom content parser capturing `req.rawBody` as Buffer. Multibyte Hindi text and whitespace preserved. |
 | **SEC-05** | **MEDIUM** | CORS Configuration | **RESOLVED** | Fastify CORS restricted to explicit whitelist (`umeed-platform-nu.vercel.app`, `localhost:3000`) and requests without Origin (BFF proxy/health probes). |
 | **SEC-06** | **MEDIUM** | Header Handling | **RESOLVED** | Multiple `Set-Cookie` headers extracted via `getSetCookie()` and forwarded individually using `responseHeaders.append("set-cookie", cookieStr)`. |
-| **OPS-01** | **MEDIUM** | Deployment Config | **DOCUMENTED** | `fly.toml` configured with `bom` region and separate `api` and `worker` process groups. Distributed nonces in MongoDB prevent machine restart cold-start vulnerabilities. |
-| **OPS-02** | **LOW** | Path Uniformity | **RESOLVED** | Operational endpoints under `/v1/*`, health/ready probes supported at both `/health`, `/ready` and root routes. |
+| **OPS-01** | **MEDIUM** | Deployment Config | **RESOLVED** | Render blueprint `render.yaml` and root `Dockerfile` deployed. Service ID `srv-dbjd61dg1s2s73fdle9g` running at `https://umeed-api.onrender.com`. |
+| **OPS-02** | **LOW** | Path Uniformity | **RESOLVED** | Operational endpoints under `/v1/*`, health probes supported at `/health`, `/ready`, and service root `/`. |
 
 ---
 
@@ -55,20 +58,29 @@ Following the comprehensive remediation across all 8 architectural and security 
 
 ---
 
-## 4. Final Audit Verdict
+## 4. Final Audit Verdict & Atlas Activation
 
 ```
 ╔═══════════════════════════════════════════════════════════════════════╗
 ║                      FINAL ENGINEERING DECISION                       ║
 ║                                                                       ║
-║          >>>  GO FOR FLY.IO INFRASTRUCTURE PROVISIONING  <<<          ║
+║             >>>  RENDER BACKEND OPERATIONAL & LIVE  <<<               ║
+║           >>>  AWAITING ATLAS NETWORK ACCESS ACTIVATION  <<<          ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 ```
 
-### Safe Operational Next Steps:
-1. Operator creates the Fly app in Mumbai (`bom`) using `fly launch --name umeed-api --region bom --no-deploy`.
-2. Operator allocates dedicated static egress IPv4: `fly ips allocate-egress --app umeed-api -r bom`.
-3. Operator whitelists the allocated static IPv4 `/32` in MongoDB Atlas Network Access.
-4. Operator provisions secrets on Fly (`MONGODB_URI`, `MONGODB_DB`, `UMEED_PROXY_SIGNING_SECRET`, `GEMINI_API_KEY`, `COORDINATOR_API_KEY`) and deploys via `fly deploy --app umeed-api`.
-5. Operator sets `UMEED_BACKEND_URL` and `UMEED_PROXY_SIGNING_SECRET` on Vercel and deploys `vercel --prod`.
-6. Verify live health probes: `GET /api/ready` returns HTTP 200 `READY`.
+### Active Live Endpoints:
+- **Render Backend Liveness:** `curl -i https://umeed-api.onrender.com/health` (HTTP 200 OK)
+- **Render Backend Service Root:** `curl -i https://umeed-api.onrender.com/` (HTTP 200 OK)
+- **Render Backend Readiness (Fail-Closed):** `curl -i https://umeed-api.onrender.com/ready` (HTTP 503 `NETWORK_ACCESS_DENIED`)
+- **Vercel BFF Proxy:** `curl -i https://umeed-platform-nu.vercel.app/api/ready`
+
+### Single Remaining Action for Operator:
+In MongoDB Atlas:
+1. Navigate to **Security** → **Network Access** in the MongoDB Atlas Console.
+2. Click **Add IP Address**.
+3. Click **Allow Access from Anywhere** (`0.0.0.0/0`).
+4. Set description: `UMEED Render Production Egress`.
+5. Click **Confirm**.
+
+*Note: Because Render Free tier utilizes dynamic egress IPs, `0.0.0.0/0` is mandatory for Atlas connectivity. As soon as Atlas applies this rule (~60 seconds), `GET /ready` on Render will transition from 503 to HTTP 200, enabling persistent incident writes.*
