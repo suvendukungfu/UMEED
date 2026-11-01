@@ -86,7 +86,7 @@ export const AssignmentContactAttemptSchema = z.object({
   attempt_id: z.string().min(1).max(100),
   channel: z.enum(["in_app", "sms", "whatsapp", "email", "phone_call"]),
   initiated_at: z.string().datetime(),
-  status: z.enum(["QUEUED", "DELIVERED", "SIMULATED_MOCK", "FAILED"]),
+  status: z.enum(["QUEUED", "ACCEPTED_BY_PROVIDER", "DELIVERED", "SIMULATED_MOCK", "NOT_CONFIGURED", "FAILED"]),
   details: z.string().max(500),
 });
 export type AssignmentContactAttempt = z.infer<typeof AssignmentContactAttemptSchema>;

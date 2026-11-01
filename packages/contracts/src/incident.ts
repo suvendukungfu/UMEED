@@ -177,7 +177,23 @@ export const IncidentTriageAnalysisSchema = z.object({
   missing_information: z.array(z.string().max(300)).max(10),
   limitations: z.array(z.string().max(500)).max(10),
   confidence: z.number().min(0).max(1),
-  analysis_status: z.enum(["SUCCESS", "MANUAL_REVIEW_REQUIRED", "FAILED_FALLBACK"]),
+  analysis_status: z.enum([
+    "SUCCESS",
+    "LIVE_AI_SUCCESS",
+    "MANUAL_REVIEW_REQUIRED",
+    "MANUAL_FALLBACK",
+    "FAILED_FALLBACK",
+    "AI_PROVIDER_ERROR",
+    "PENDING_REVIEW",
+  ]),
+  triage_classification: z
+    .enum([
+      "LIVE_AI_SUCCESS",
+      "MANUAL_FALLBACK",
+      "AI_PROVIDER_ERROR",
+      "PENDING_REVIEW",
+    ])
+    .optional(),
   raw_response_summary: z.string().max(1000).optional(),
   created_at: z.string().datetime(),
   human_review_status: z

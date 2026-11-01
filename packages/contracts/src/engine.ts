@@ -375,10 +375,13 @@ export type EngineCaseEvent = z.infer<typeof EngineCaseEventSchema>;
 
 export const OutboxStatusSchema = z.enum([
   "PENDING",
+  "QUEUED",
+  "PROCESSING",
   "SENT",
   "DELIVERED",
   "FAILED",
   "PERMANENTLY_FAILED",
+  "SIMULATED",
 ]);
 export type OutboxStatus = z.infer<typeof OutboxStatusSchema>;
 
