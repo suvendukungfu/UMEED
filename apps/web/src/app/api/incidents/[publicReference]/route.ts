@@ -139,6 +139,17 @@ export async function GET(
                 data: sanitizeIncidentForPublic(incident),
               });
             }
+            return NextResponse.json(
+              {
+                error: {
+                  code: "NOT_FOUND",
+                  message: "Incident not found or invalid tracking credential.",
+                  status: 404,
+                  timestamp: new Date().toISOString(),
+                },
+              },
+              { status: 404 }
+            );
           }
         } catch {
           // fall through to error response
