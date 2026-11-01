@@ -6,6 +6,16 @@ const APP_VERSION = "1.0.0";
 const START_TIME = Date.now();
 
 export async function healthRoutes(fastify: FastifyInstance) {
+  // Service Root Probe
+  fastify.all("/", async (_request, reply) => {
+    return reply.status(200).send({
+      service: "UMEED_BACKEND_API",
+      status: "operational",
+      version: APP_VERSION,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   // Liveness Probe (process is alive and accepting connections)
   fastify.get("/health", async (_request, reply) => {
     const env = getBackendEnv();
