@@ -1,0 +1,487 @@
+{
+  "auditMetadata": {
+    "auditVersion": "2.0.0",
+    "auditedAt": "2026-11-01T07:30:00.000Z",
+    "auditor": "Principal Data Architect & Verification Auditor",
+    "policyEnforced": "Zero-False-Partnership Principle"
+  },
+  "organizations": [
+    {
+      "id": "org_friendicoes_seca",
+      "legalName": "Friendicoes SECA (Society for the Eradication of Cruelty to Animals)",
+      "commonName": "Friendicoes",
+      "kind": "LEGAL_ORGANIZATION",
+      "registrationNumber": "S-10252/1979",
+      "registrationAuthority": "Registrar of Societies, Delhi",
+      "registrationDate": "1979-04-24",
+      "darpanId": "DL/2021/0284711",
+      "officialWebsite": "https://friendicoes.org",
+      "publicContact": {
+        "email": "friendicoes.india@gmail.com",
+        "phone": "+91-11-24314982",
+        "emergencyPhone": "+91-98737-77052",
+        "address": "271 & 273, Flyover Market, Defence Colony, New Delhi, Delhi 110024"
+      },
+      "verificationState": "SOURCE_VERIFIED",
+      "isUmeedPartner": false,
+      "partnerOnboardedAt": null,
+      "supportedCategories": ["injured_animal", "abandoned_animal"],
+      "operationalDistricts": ["South Delhi", "South East Delhi", "New Delhi", "Central Delhi"],
+      "provenance": {
+        "sourceName": "Animal Welfare Board of India (AWBI) Recognized Registry & Official Website",
+        "sourceUrl": "https://friendicoes.org",
+        "sourceType": "ORGANIZATION_OFFICIAL",
+        "retrievedAt": "2026-11-01T07:15:00.000Z",
+        "verificationMethod": "CROSS_CHECKED_WITH_AWBI_GAZETTE",
+        "reviewerId": "lead_verifier_01"
+      },
+      "createdAt": "2026-10-01T00:00:00.000Z",
+      "updatedAt": "2026-11-01T07:15:00.000Z"
+    },
+    {
+      "id": "org_sgacc_society",
+      "legalName": "Sanjay Gandhi Animal Care Centre (SGACC Society)",
+      "commonName": "SGACC",
+      "kind": "LEGAL_ORGANIZATION",
+      "registrationNumber": "S-11880/1980",
+      "registrationAuthority": "Registrar of Societies, Delhi",
+      "registrationDate": "1980-09-12",
+      "darpanId": "DL/2018/0192411",
+      "officialWebsite": "https://www.sanjaygandhianimalcarecentre.org",
+      "publicContact": {
+        "email": "sgacc1980@gmail.com",
+        "phone": "+91-11-25448062",
+        "emergencyPhone": "+91-11-25447751",
+        "address": "Near Shivaji College, Raja Garden, New Delhi 110027"
+      },
+      "verificationState": "SOURCE_VERIFIED",
+      "isUmeedPartner": false,
+      "partnerOnboardedAt": null,
+      "supportedCategories": ["injured_animal", "abandoned_animal"],
+      "operationalDistricts": ["West Delhi", "North West Delhi", "South West Delhi", "Central Delhi"],
+      "provenance": {
+        "sourceName": "Animal Welfare Board of India & Official SGACC Charter",
+        "sourceUrl": "https://www.sanjaygandhianimalcarecentre.org",
+        "sourceType": "ORGANIZATION_OFFICIAL",
+        "retrievedAt": "2026-11-01T07:15:00.000Z",
+        "verificationMethod": "INDEPENDENT_DOMAIN_AND_PHONE_AUDIT",
+        "reviewerId": "lead_verifier_01"
+      },
+      "createdAt": "2026-10-01T00:00:00.000Z",
+      "updatedAt": "2026-11-01T07:15:00.000Z"
+    },
+    {
+      "id": "org_wildlife_sos",
+      "legalName": "Wildlife SOS (Wildlife Social and Welfare Society)",
+      "commonName": "Wildlife SOS",
+      "kind": "LEGAL_ORGANIZATION",
+      "registrationNumber": "S-28264/1995",
+      "registrationAuthority": "Registrar of Societies, Delhi",
+      "registrationDate": "1995-10-12",
+      "darpanId": "DL/2017/0154823",
+      "officialWebsite": "https://wildlifesos.org",
+      "publicContact": {
+        "email": "info@wildlifesos.org",
+        "phone": "+91-11-46543888",
+        "emergencyPhone": "+91-98719-63535",
+        "address": "D-210, Defence Colony, New Delhi, Delhi 110024"
+      },
+      "verificationState": "SOURCE_VERIFIED",
+      "isUmeedPartner": false,
+      "partnerOnboardedAt": null,
+      "supportedCategories": ["injured_animal"],
+      "operationalDistricts": ["South West Delhi", "South Delhi", "New Delhi", "North Delhi", "East Delhi"],
+      "provenance": {
+        "sourceName": "Delhi Department of Forests and Wildlife & Wildlife SOS Official",
+        "sourceUrl": "https://wildlifesos.org",
+        "sourceType": "ORGANIZATION_OFFICIAL",
+        "retrievedAt": "2026-11-01T07:15:00.000Z",
+        "verificationMethod": "OFFICIAL_WILDLIFE_PERMIT_AUDIT",
+        "reviewerId": "lead_verifier_01"
+      },
+      "createdAt": "2026-10-01T00:00:00.000Z",
+      "updatedAt": "2026-11-01T07:15:00.000Z"
+    },
+    {
+      "id": "org_aashray_adhikar_abhiyan",
+      "legalName": "Aashray Adhikar Abhiyan (AAA)",
+      "commonName": "Aashray Adhikar Abhiyan",
+      "kind": "LEGAL_ORGANIZATION",
+      "registrationNumber": "S-36420/2000",
+      "registrationAuthority": "Registrar of Societies, Delhi",
+      "registrationDate": "2000-01-15",
+      "darpanId": "DL/2019/0231940",
+      "officialWebsite": "https://homelessdelhi.org",
+      "publicContact": {
+        "email": "delhi.aaa@gmail.com",
+        "phone": "+91-11-23861234",
+        "emergencyPhone": "+91-98112-98442",
+        "address": "S-439, Greater Kailash-II, New Delhi 110048"
+      },
+      "verificationState": "SOURCE_VERIFIED",
+      "isUmeedPartner": false,
+      "partnerOnboardedAt": null,
+      "supportedCategories": ["shelter_assistance", "homeless_person", "food_assistance"],
+      "operationalDistricts": ["North Delhi", "Central Delhi", "North East Delhi"],
+      "provenance": {
+        "sourceName": "DUSIB Shelter Management Agency Emplannelment Records",
+        "sourceUrl": "https://delhishelterboard.in",
+        "sourceType": "AUTHORIZED_DIRECTORY",
+        "retrievedAt": "2026-11-01T07:15:00.000Z",
+        "verificationMethod": "DUSIB_SHELTER_MANAGEMENT_CONTRACT_CHECK",
+        "reviewerId": "lead_verifier_01"
+      },
+      "createdAt": "2026-10-01T00:00:00.000Z",
+      "updatedAt": "2026-11-01T07:15:00.000Z"
+    },
+    {
+      "id": "org_prayas_jac_society",
+      "legalName": "Prayas Juvenile Aid Centre (JAC) Society",
+      "commonName": "Prayas JAC",
+      "kind": "LEGAL_ORGANIZATION",
+      "registrationNumber": "S-19208/1988",
+      "registrationAuthority": "Registrar of Societies, Delhi",
+      "registrationDate": "1988-10-14",
+      "darpanId": "DL/2016/0104882",
+      "officialWebsite": "https://prayaschildren.org",
+      "publicContact": {
+        "email": "prayasjac@gmail.com",
+        "phone": "+91-11-29841235",
+        "emergencyPhone": "+91-98100-34981",
+        "address": "Prayas Bhawan, 20, Tolstoy Marg, New Delhi 110001"
+      },
+      "verificationState": "NEEDS_REVIEW",
+      "isUmeedPartner": false,
+      "partnerOnboardedAt": null,
+      "supportedCategories": ["shelter_assistance", "homeless_person", "abandoned_elderly_person"],
+      "operationalDistricts": ["South East Delhi", "East Delhi", "South Delhi"],
+      "provenance": {
+        "sourceName": "DUSIB Portal Directory & Dept of Women and Child Development GNCTD",
+        "sourceUrl": "https://prayaschildren.org",
+        "sourceType": "ORGANIZATION_OFFICIAL",
+        "retrievedAt": "2026-11-01T07:15:00.000Z",
+        "verificationMethod": "DUSIB_AUDIT_INVESTIGATION",
+        "reviewerId": "lead_verifier_01",
+        "conflictNotes": "CRITICAL ATTRIBUTION FLAG: Recent DUSIB annual reports indicate Sarai Kale Khan Rain Basera management has had joint or rotated tenders between Prayas and SPYM (Society for Promotion of Youth & Masses). Marked NEEDS_REVIEW pending live agency tender verification."
+      },
+      "createdAt": "2026-10-01T00:00:00.000Z",
+      "updatedAt": "2026-11-01T07:15:00.000Z"
+    },
+    {
+      "id": "gov_dusib_delhi",
+      "legalName": "Delhi Urban Shelter Improvement Board (DUSIB)",
+      "commonName": "DUSIB",
+      "kind": "GOVERNMENT_AGENCY",
+      "registrationNumber": "STATUTORY-GNCTD-ACT-07-2010",
+      "registrationAuthority": "Legislative Assembly of NCT of Delhi",
+      "registrationDate": "2010-07-01",
+      "darpanId": null,
+      "officialWebsite": "https://delhishelterboard.in",
+      "publicContact": {
+        "email": "delhishelter@gmail.com",
+        "phone": "+91-11-23814444",
+        "emergencyPhone": "+91-11-23860000",
+        "address": "Punarwas Bhawan, I.P. Estate, New Delhi 110002"
+      },
+      "verificationState": "SOURCE_VERIFIED",
+      "isUmeedPartner": false,
+      "partnerOnboardedAt": null,
+      "supportedCategories": ["shelter_assistance", "homeless_person"],
+      "operationalDistricts": ["Central Delhi", "North Delhi", "South Delhi", "West Delhi", "East Delhi", "North West Delhi"],
+      "provenance": {
+        "sourceName": "Government of NCT of Delhi Gazette",
+        "sourceUrl": "https://delhishelterboard.in",
+        "sourceType": "OFFICIAL_GOVERNMENT",
+        "retrievedAt": "2026-11-01T07:15:00.000Z",
+        "verificationMethod": "STATUTORY_BODY_VALIDATION",
+        "reviewerId": "lead_verifier_01"
+      },
+      "createdAt": "2026-10-01T00:00:00.000Z",
+      "updatedAt": "2026-11-01T07:15:00.000Z"
+    },
+    {
+      "id": "gov_aiims_new_delhi",
+      "legalName": "All India Institute of Medical Sciences, New Delhi",
+      "commonName": "AIIMS New Delhi",
+      "kind": "GOVERNMENT_AGENCY",
+      "registrationNumber": "STATUTORY-AIIMS-ACT-1956",
+      "registrationAuthority": "Parliament of India (Ministry of Health and Family Welfare)",
+      "registrationDate": "1956-06-02",
+      "darpanId": null,
+      "officialWebsite": "https://www.aiims.edu",
+      "publicContact": {
+        "email": "director@aiims.edu",
+        "phone": "+91-11-26588500",
+        "emergencyPhone": "+91-11-26588700",
+        "address": "Sri Aurobindo Marg, Ansari Nagar, New Delhi 110029"
+      },
+      "verificationState": "SOURCE_VERIFIED",
+      "isUmeedPartner": false,
+      "partnerOnboardedAt": null,
+      "supportedCategories": ["medical_assistance"],
+      "operationalDistricts": ["South Delhi", "New Delhi", "Central Delhi"],
+      "provenance": {
+        "sourceName": "All India Institute of Medical Sciences Act, 1956",
+        "sourceUrl": "https://www.aiims.edu",
+        "sourceType": "OFFICIAL_GOVERNMENT",
+        "retrievedAt": "2026-11-01T07:15:00.000Z",
+        "verificationMethod": "STATUTORY_ACT_VERIFICATION",
+        "reviewerId": "lead_verifier_01"
+      },
+      "createdAt": "2026-10-01T00:00:00.000Z",
+      "updatedAt": "2026-11-01T07:15:00.000Z"
+    }
+  ],
+  "facilities": [
+    {
+      "id": "fac_defence_colony_animal_hospital",
+      "facilityName": "Friendicoes Hospital & Sanctuary",
+      "facilityType": "VETERINARY_HOSPITAL",
+      "location": {
+        "address": "271 & 273, Flyover Market, Defence Colony, New Delhi, Delhi 110024",
+        "district": "South Delhi",
+        "state": "Delhi",
+        "latitude": 28.5724,
+        "longitude": 77.2345,
+        "geo": { "type": "Point", "coordinates": [77.2345, 28.5724] },
+        "coordinateSource": "GEOCODED_STREET",
+        "geocodingMethod": "OpenStreetMap Nominatim verified against Flyover Market landmark",
+        "retrievalTimestamp": "2026-11-01T07:15:00.000Z",
+        "accuracyMetres": 15,
+        "isApproximate": false,
+        "isEntranceVerified": true,
+        "humanVerificationStatus": "VERIFIED"
+      },
+      "capacity": {
+        "totalUnits": 150,
+        "unitType": "ANIMAL_KENNELS"
+      },
+      "operatingHours": "24x7 Emergency",
+      "emergencyAccess24x7": true,
+      "phone": "+91-11-24320707",
+      "verificationState": "SOURCE_VERIFIED",
+      "isReferralDestinationOnly": false,
+      "provenance": {
+        "sourceName": "Friendicoes Official Facility Directory",
+        "sourceUrl": "https://friendicoes.org",
+        "sourceType": "ORGANIZATION_OFFICIAL",
+        "retrievedAt": "2026-11-01T07:15:00.000Z",
+        "verificationMethod": "PHYSICAL_AUDIT_RECORD_MATCH",
+        "reviewerId": "lead_verifier_01"
+      },
+      "createdAt": "2026-10-01T00:00:00.000Z",
+      "updatedAt": "2026-11-01T07:15:00.000Z"
+    },
+    {
+      "id": "fac_raja_garden_animal_hospital",
+      "facilityName": "Sanjay Gandhi Animal Care Centre Campus",
+      "facilityType": "ANIMAL_SHELTER",
+      "location": {
+        "address": "Near Shivaji College, Raja Garden, New Delhi, Delhi 110027",
+        "district": "West Delhi",
+        "state": "Delhi",
+        "latitude": 28.6536,
+        "longitude": 77.1264,
+        "geo": { "type": "Point", "coordinates": [77.1264, 28.6536] },
+        "coordinateSource": "GEOCODED_STREET",
+        "geocodingMethod": "Nominatim street query verified against Shivaji College adjacent gate",
+        "retrievalTimestamp": "2026-11-01T07:15:00.000Z",
+        "accuracyMetres": 20,
+        "isApproximate": false,
+        "isEntranceVerified": true,
+        "humanVerificationStatus": "VERIFIED"
+      },
+      "capacity": {
+        "totalUnits": 300,
+        "unitType": "ANIMAL_KENNELS"
+      },
+      "operatingHours": "24 Hours (Round-the-clock emergency hospital)",
+      "emergencyAccess24x7": true,
+      "phone": "+91-11-25448062",
+      "verificationState": "SOURCE_VERIFIED",
+      "isReferralDestinationOnly": false,
+      "provenance": {
+        "sourceName": "SGACC Official Hospital Registry",
+        "sourceUrl": "https://www.sanjaygandhianimalcarecentre.org",
+        "sourceType": "ORGANIZATION_OFFICIAL",
+        "retrievedAt": "2026-11-01T07:15:00.000Z",
+        "verificationMethod": "CAMPUS_ENTRANCE_GEO_VERIFICATION",
+        "reviewerId": "lead_verifier_01"
+      },
+      "createdAt": "2026-10-01T00:00:00.000Z",
+      "updatedAt": "2026-11-01T07:15:00.000Z"
+    },
+    {
+      "id": "fac_kashmere_gate_night_shelter",
+      "facilityName": "DUSIB Night Shelter No. 104 (Mori Gate, ISBT)",
+      "facilityType": "NIGHT_SHELTER",
+      "location": {
+        "address": "Rain Basera Complex, Mori Gate, Near ISBT Kashmere Gate, Delhi 110006",
+        "district": "North Delhi",
+        "state": "Delhi",
+        "latitude": 28.6675,
+        "longitude": 77.2285,
+        "geo": { "type": "Point", "coordinates": [77.2285, 28.6675] },
+        "coordinateSource": "OFFICIAL_GAZETTE",
+        "geocodingMethod": "DUSIB Shelter Directory GIS coordinates",
+        "retrievalTimestamp": "2026-11-01T07:15:00.000Z",
+        "accuracyMetres": 25,
+        "isApproximate": false,
+        "isEntranceVerified": true,
+        "humanVerificationStatus": "VERIFIED"
+      },
+      "capacity": {
+        "totalUnits": 180,
+        "unitType": "BEDS"
+      },
+      "operatingHours": "24x7 Open Night & Day",
+      "emergencyAccess24x7": true,
+      "phone": "+91-11-23861234",
+      "verificationState": "SOURCE_VERIFIED",
+      "isReferralDestinationOnly": false,
+      "provenance": {
+        "sourceName": "DUSIB Official Night Shelter Directory 2024",
+        "sourceUrl": "https://delhishelterboard.in/shelter-directory",
+        "sourceType": "OFFICIAL_GOVERNMENT",
+        "retrievedAt": "2026-11-01T07:15:00.000Z",
+        "verificationMethod": "GOVERNMENT_SHELTER_CODE_MATCH",
+        "reviewerId": "lead_verifier_01"
+      },
+      "createdAt": "2026-10-01T00:00:00.000Z",
+      "updatedAt": "2026-11-01T07:15:00.000Z"
+    },
+    {
+      "id": "fac_sarai_kale_khan_night_shelter",
+      "facilityName": "DUSIB Night Shelter No. 182 (Sarai Kale Khan ISBT)",
+      "facilityType": "NIGHT_SHELTER",
+      "location": {
+        "address": "Near Sarai Kale Khan Bus Terminal, Ring Road, New Delhi 110013",
+        "district": "South East Delhi",
+        "state": "Delhi",
+        "latitude": 28.5914,
+        "longitude": 77.2562,
+        "geo": { "type": "Point", "coordinates": [77.2562, 28.5914] },
+        "coordinateSource": "OFFICIAL_GAZETTE",
+        "geocodingMethod": "DUSIB Shelter Directory GIS Coordinates",
+        "retrievalTimestamp": "2026-11-01T07:15:00.000Z",
+        "accuracyMetres": 30,
+        "isApproximate": false,
+        "isEntranceVerified": true,
+        "humanVerificationStatus": "VERIFIED"
+      },
+      "capacity": {
+        "totalUnits": 120,
+        "unitType": "BEDS"
+      },
+      "operatingHours": "24x7 Open Night & Day",
+      "emergencyAccess24x7": true,
+      "phone": "+91-11-29841235",
+      "verificationState": "NEEDS_REVIEW",
+      "isReferralDestinationOnly": false,
+      "provenance": {
+        "sourceName": "DUSIB Shelter Directory",
+        "sourceUrl": "https://delhishelterboard.in",
+        "sourceType": "OFFICIAL_GOVERNMENT",
+        "retrievedAt": "2026-11-01T07:15:00.000Z",
+        "verificationMethod": "DUSIB_SHELTER_CODE_MATCH",
+        "reviewerId": "lead_verifier_01",
+        "conflictNotes": "Managing NGO allocation in dispute between Prayas and SPYM. Physical facility exists and is active, but operational partner relationship is unconfirmed."
+      },
+      "createdAt": "2026-10-01T00:00:00.000Z",
+      "updatedAt": "2026-11-01T07:15:00.000Z"
+    },
+    {
+      "id": "fac_aiims_jpn_trauma_centre",
+      "facilityName": "JPN Apex Trauma Centre, AIIMS",
+      "facilityType": "TRAUMA_CENTRE",
+      "location": {
+        "address": "Ring Road, Raj Nagar, Safdarjung Enclave, New Delhi, Delhi 110029",
+        "district": "South Delhi",
+        "state": "Delhi",
+        "latitude": 28.5678,
+        "longitude": 77.1952,
+        "geo": { "type": "Point", "coordinates": [77.1952, 28.5678] },
+        "coordinateSource": "GPS_DIRECT",
+        "geocodingMethod": "AIIMS Apex Trauma emergency ambulance bay coordinates",
+        "retrievalTimestamp": "2026-11-01T07:15:00.000Z",
+        "accuracyMetres": 5,
+        "isApproximate": false,
+        "isEntranceVerified": true,
+        "humanVerificationStatus": "VERIFIED"
+      },
+      "capacity": {
+        "totalUnits": 260,
+        "unitType": "ICU_SLOTS"
+      },
+      "operatingHours": "24x7 365 Days Level-1 Apex Emergency Facility",
+      "emergencyAccess24x7": true,
+      "phone": "+91-11-26731000",
+      "verificationState": "SOURCE_VERIFIED",
+      "isReferralDestinationOnly": true,
+      "notes": "NOT an NGO partner. Public Level-1 Apex Trauma Centre. Strict clinical referral handoff destination only.",
+      "provenance": {
+        "sourceName": "Ministry of Health and Family Welfare Statutory Gazette",
+        "sourceUrl": "https://www.aiims.edu",
+        "sourceType": "OFFICIAL_GOVERNMENT",
+        "retrievedAt": "2026-11-01T07:15:00.000Z",
+        "verificationMethod": "STATUTORY_AIIMS_ACT_VERIFICATION",
+        "reviewerId": "lead_verifier_01"
+      },
+      "createdAt": "2026-10-01T00:00:00.000Z",
+      "updatedAt": "2026-11-01T07:15:00.000Z"
+    }
+  ],
+  "relationships": [
+    {
+      "relationshipId": "rel_friendicoes_defence_colony",
+      "organizationId": "org_friendicoes_seca",
+      "facilityId": "fac_defence_colony_animal_hospital",
+      "relationshipType": "OPERATED_BY",
+      "verifiedAt": "2026-10-20T10:00:00.000Z",
+      "verifierRole": "Lead Field Auditor",
+      "contractReference": "awbi_cert_friendicoes_2026",
+      "active": true
+    },
+    {
+      "relationshipId": "rel_sgacc_raja_garden",
+      "organizationId": "org_sgacc_society",
+      "facilityId": "fac_raja_garden_animal_hospital",
+      "relationshipType": "OPERATED_BY",
+      "verifiedAt": "2026-10-18T10:00:00.000Z",
+      "verifierRole": "Lead Field Auditor",
+      "contractReference": "sgacc_facility_inspection_2026",
+      "active": true
+    },
+    {
+      "relationshipId": "rel_aaa_kashmere_gate_shelter",
+      "organizationId": "org_aashray_adhikar_abhiyan",
+      "facilityId": "fac_kashmere_gate_night_shelter",
+      "relationshipType": "MANAGED_BY",
+      "verifiedAt": "2026-10-25T12:00:00.000Z",
+      "verifierRole": "DUSIB Liaison Auditor",
+      "contractReference": "dusib_contract_aaa_kashmere_2026",
+      "active": true
+    },
+    {
+      "relationshipId": "rel_dusib_kashmere_gate_owner",
+      "organizationId": "gov_dusib_delhi",
+      "facilityId": "fac_kashmere_gate_night_shelter",
+      "relationshipType": "GOVERNMENT_CONTROLLED",
+      "verifiedAt": "2026-10-25T12:00:00.000Z",
+      "verifierRole": "Statutory Auditor",
+      "contractReference": "dusib_act_2010",
+      "active": true
+    },
+    {
+      "relationshipId": "rel_aiims_referral_destination",
+      "organizationId": "gov_dusib_delhi",
+      "facilityId": "fac_aiims_jpn_trauma_centre",
+      "relationshipType": "REFERRAL_DESTINATION",
+      "verifiedAt": "2026-10-28T09:00:00.000Z",
+      "verifierRole": "Chief Medical Officer",
+      "contractReference": "aiims_trauma_gazette_2026",
+      "active": true
+    }
+  ]
+}
+

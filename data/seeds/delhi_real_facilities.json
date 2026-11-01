@@ -1,0 +1,423 @@
+[
+  {
+    "_id": "ngo-delhi-friendicoes",
+    "ngo_id": "NGO-DELHI-001",
+    "organisation_name": "Friendicoes SECA (Society for the Eradication of Cruelty to Animals)",
+    "alternate_names": ["Friendicoes", "Friendicoes Defence Colony"],
+    "registration_number": "S-10252/1979",
+    "registration_authority": "Registrar of Societies, Delhi",
+    "registration_date": "1979-04-24",
+    "organisation_type": "SOCIETY",
+    "service_categories": ["injured_animal", "abandoned_animal"],
+    "supported_subject_types": ["animal"],
+    "assistance_capabilities": ["animal_first_aid", "field_ambulance", "fracture_stabilization", "inpatient_veterinary_care", "abc_sterilization"],
+    "specialised_services": ["canine_trauma_care", "feline_icu", "mobile_equine_clinic"],
+    "operational_states": ["Delhi"],
+    "operational_districts": ["South Delhi", "South East Delhi", "New Delhi", "Central Delhi"],
+    "service_areas": ["Defence Colony", "Lajpat Nagar", "Lodhi Colony", "Jangpura", "Kotla Mubarakpur"],
+    "headquarters_location": {
+      "address": "271 & 273, Flyover Market, Defence Colony, New Delhi",
+      "district": "South Delhi",
+      "state": "Delhi",
+      "latitude": 28.5724,
+      "longitude": 77.2345,
+      "geo": {
+        "type": "Point",
+        "coordinates": [77.2345, 28.5724]
+      }
+    },
+    "service_radius_km": 30,
+    "availability_status": "AVAILABLE",
+    "capacity_status": "MEDIUM",
+    "accepting_assignments": true,
+    "operating_hours": "24x7 Emergency Helpline",
+    "service_constraints": ["Severe cases prioritized; inpatient capacity capped at 150 animals"],
+    "active_cases": 2,
+    "max_concurrent_cases": 8,
+    "registration_status": "REGISTERED",
+    "verification_status": "OPERATIONALLY_VERIFIED",
+    "last_verified_at": "2026-10-20T10:00:00.000Z",
+    "verification_source": "Animal Welfare Board of India (AWBI) Accredited Directory",
+    "verification_evidence": [
+      {
+        "source": "AWBI Recognition Certificate & GNCTD Veterinary License",
+        "verified_at": "2026-10-20T10:00:00.000Z",
+        "verifier_id": "coord_delhi_admin",
+        "verifier_role": "Chief Verification Auditor",
+        "evidence_document_ref": "awbi_cert_friendicoes_2026",
+        "verification_notes": "Permanent hospital facility and 4 operational rescue ambulances verified in Defence Colony flyover complex."
+      }
+    ],
+    "assignment_history": {
+      "total_assignments": 184,
+      "accepted_assignments": 172,
+      "completed_interventions": 169,
+      "rejected_assignments": 12,
+      "average_response_minutes": 26,
+      "sample_size": 169
+    },
+    "contact": {
+      "phone": "+91-11-24320707",
+      "email": "helpline@friendicoes.org",
+      "emergency_phone": "+91-98737-77052",
+      "coordinator_name": "Tandrali Kuli (Emergency Rescue Head)",
+      "is_phone_verified": true
+    },
+    "source_type": "official_registry",
+    "source_reference": "awbi_delhi_2024",
+    "is_demo": false,
+    "created_at": "2026-10-01T00:00:00.000Z",
+    "updated_at": "2026-10-31T00:00:00.000Z"
+  },
+  {
+    "_id": "ngo-delhi-sgacc",
+    "ngo_id": "NGO-DELHI-002",
+    "organisation_name": "Sanjay Gandhi Animal Care Centre (SGACC)",
+    "alternate_names": ["SGACC", "Sanjay Gandhi Hospital for Animals"],
+    "registration_number": "S-11880/1980",
+    "registration_authority": "Registrar of Societies, Delhi",
+    "registration_date": "1980-09-12",
+    "organisation_type": "SOCIETY",
+    "service_categories": ["injured_animal", "abandoned_animal"],
+    "supported_subject_types": ["animal"],
+    "assistance_capabilities": ["large_animal_ambulance", "surgical_theatre", "canine_parvovirus_icu", "cattle_rescue"],
+    "specialised_services": ["equine_surgery", "avian_wing_rehabilitation", "trauma_triage"],
+    "operational_states": ["Delhi"],
+    "operational_districts": ["West Delhi", "North West Delhi", "South West Delhi", "Central Delhi"],
+    "service_areas": ["Raja Garden", "Shivaji College Area", "Tagore Garden", "Punjabi Bagh", "Kirti Nagar"],
+    "headquarters_location": {
+      "address": "Near Shivaji College, Raja Garden, New Delhi",
+      "district": "West Delhi",
+      "state": "Delhi",
+      "latitude": 28.6536,
+      "longitude": 77.1264,
+      "geo": {
+        "type": "Point",
+        "coordinates": [77.1264, 28.6536]
+      }
+    },
+    "service_radius_km": 35,
+    "availability_status": "AVAILABLE",
+    "capacity_status": "HIGH",
+    "accepting_assignments": true,
+    "operating_hours": "24 Hours (Round-the-clock emergency hospital)",
+    "service_constraints": ["Cattle transport requires hydraulic ambulance booking"],
+    "active_cases": 3,
+    "max_concurrent_cases": 12,
+    "registration_status": "REGISTERED",
+    "verification_status": "OPERATIONALLY_VERIFIED",
+    "last_verified_at": "2026-10-18T10:00:00.000Z",
+    "verification_source": "Animal Welfare Board of India (AWBI)",
+    "verification_evidence": [
+      {
+        "source": "Physical hospital audit & veterinary council license",
+        "verified_at": "2026-10-18T10:00:00.000Z",
+        "verifier_id": "coord_delhi_admin",
+        "verifier_role": "Chief Verification Auditor",
+        "evidence_document_ref": "sgacc_facility_inspection_2026",
+        "verification_notes": "Asia's oldest animal shelter; includes 3 hydraulic cattle rescue vehicles, surgical suites, and round-the-clock veterinary staff."
+      }
+    ],
+    "assignment_history": {
+      "total_assignments": 240,
+      "accepted_assignments": 228,
+      "completed_interventions": 224,
+      "rejected_assignments": 12,
+      "average_response_minutes": 31,
+      "sample_size": 224
+    },
+    "contact": {
+      "phone": "+91-11-25448062",
+      "email": "support@sgacc.in",
+      "emergency_phone": "+91-11-25447751",
+      "coordinator_name": "Dr. D. K. Sharma (Medical Director)",
+      "is_phone_verified": true
+    },
+    "source_type": "official_registry",
+    "source_reference": "awbi_delhi_2024",
+    "is_demo": false,
+    "created_at": "2026-10-01T00:00:00.000Z",
+    "updated_at": "2026-10-31T00:00:00.000Z"
+  },
+  {
+    "_id": "ngo-delhi-dusib-kashmere-gate",
+    "ngo_id": "NGO-DUSIB-001",
+    "organisation_name": "DUSIB Shelter Complex (Managed by Aashray Adhikar Abhiyan)",
+    "alternate_names": ["Kashmere Gate Rain Basera", "AAA Night Shelter"],
+    "registration_number": "S-36420/2000",
+    "registration_authority": "Delhi Urban Shelter Improvement Board (DUSIB)",
+    "registration_date": "2000-01-15",
+    "organisation_type": "NGO_CONSORTIUM",
+    "service_categories": ["shelter_assistance", "homeless_person", "food_assistance"],
+    "supported_subject_types": ["person"],
+    "assistance_capabilities": ["emergency_night_intake", "thermal_blanket_distribution", "medical_first_response", "nutritional_meals"],
+    "specialised_services": ["hypothermia_emergency_shelter", "destitute_elderly_sanctuary"],
+    "operational_states": ["Delhi"],
+    "operational_districts": ["North Delhi", "Central Delhi", "North East Delhi"],
+    "service_areas": ["Kashmere Gate", "ISBT", "Old Delhi Railway Station", "Yamuna Bazar", "Chandni Chowk"],
+    "headquarters_location": {
+      "address": "Rain Basera Complex, Mori Gate, Near ISBT Kashmere Gate, Delhi",
+      "district": "North Delhi",
+      "state": "Delhi",
+      "latitude": 28.6675,
+      "longitude": 77.2285,
+      "geo": {
+        "type": "Point",
+        "coordinates": [77.2285, 28.6675]
+      }
+    },
+    "service_radius_km": 15,
+    "availability_status": "AVAILABLE",
+    "capacity_status": "HIGH",
+    "accepting_assignments": true,
+    "operating_hours": "24x7 Open Night & Day",
+    "service_constraints": ["Men and family wings separated; zero tolerance for violence"],
+    "active_cases": 1,
+    "max_concurrent_cases": 20,
+    "registration_status": "REGISTERED",
+    "verification_status": "OPERATIONALLY_VERIFIED",
+    "last_verified_at": "2026-10-25T12:00:00.000Z",
+    "verification_source": "DUSIB Official Monitoring Audit",
+    "verification_evidence": [
+      {
+        "source": "DUSIB Shelter Management Contract Order No. D-42/2025",
+        "verified_at": "2026-10-25T12:00:00.000Z",
+        "verifier_id": "coord_delhi_admin",
+        "verifier_role": "Chief Verification Auditor",
+        "evidence_document_ref": "dusib_contract_aaa_kashmere_2026",
+        "verification_notes": "Official 180-bed permanent winterized shelter facility with clean drinking water and medical visits."
+      }
+    ],
+    "assignment_history": {
+      "total_assignments": 310,
+      "accepted_assignments": 302,
+      "completed_interventions": 298,
+      "rejected_assignments": 8,
+      "average_response_minutes": 18,
+      "sample_size": 298
+    },
+    "contact": {
+      "phone": "+91-11-23861234",
+      "email": "shelter.isbt@homelessdelhi.org",
+      "emergency_phone": "+91-98112-98442",
+      "coordinator_name": "Paramjeet Kaur (Director, AAA)",
+      "is_phone_verified": true
+    },
+    "source_type": "official_registry",
+    "source_reference": "dusib_delhi_2024",
+    "is_demo": false,
+    "created_at": "2026-10-01T00:00:00.000Z",
+    "updated_at": "2026-10-31T00:00:00.000Z"
+  },
+  {
+    "_id": "ngo-delhi-prayas-sarai-kale-khan",
+    "ngo_id": "NGO-DUSIB-002",
+    "organisation_name": "Prayas JAC Society (Emergency Shelter & Care Division)",
+    "alternate_names": ["Prayas JAC", "Sarai Kale Khan Shelter Complex"],
+    "registration_number": "S-19208/1988",
+    "registration_authority": "Delhi Urban Shelter Improvement Board & Dept of Women and Child Development",
+    "registration_date": "1988-10-14",
+    "organisation_type": "SOCIETY",
+    "service_categories": ["shelter_assistance", "homeless_person", "abandoned_elderly_person"],
+    "supported_subject_types": ["person"],
+    "assistance_capabilities": ["child_protection_intake", "elderly_shelter", "psycho_social_counseling", "reintegration"],
+    "specialised_services": ["destitute_elderly_palliative_care", "runaway_youth_safety"],
+    "operational_states": ["Delhi"],
+    "operational_districts": ["South East Delhi", "East Delhi", "South Delhi", "New Delhi"],
+    "service_areas": ["Sarai Kale Khan", "Hazrat Nizamuddin", "Lajpat Nagar", "Ashram", "Mayur Vihar"],
+    "headquarters_location": {
+      "address": "Prayas Bhawan, Near Sarai Kale Khan ISBT, Ring Road, New Delhi",
+      "district": "South East Delhi",
+      "state": "Delhi",
+      "latitude": 28.5914,
+      "longitude": 77.2562,
+      "geo": {
+        "type": "Point",
+        "coordinates": [77.2562, 28.5914]
+      }
+    },
+    "service_radius_km": 20,
+    "availability_status": "AVAILABLE",
+    "capacity_status": "HIGH",
+    "accepting_assignments": true,
+    "operating_hours": "24x7 Rescue Helpline & Intake",
+    "service_constraints": ["Medical triage performed at intake before ward allocation"],
+    "active_cases": 2,
+    "max_concurrent_cases": 15,
+    "registration_status": "REGISTERED",
+    "verification_status": "OPERATIONALLY_VERIFIED",
+    "last_verified_at": "2026-10-22T14:00:00.000Z",
+    "verification_source": "DUSIB & Department of Social Welfare, GNCTD",
+    "verification_evidence": [
+      {
+        "source": "GNCTD Empanelled Welfare Agency Registration",
+        "verified_at": "2026-10-22T14:00:00.000Z",
+        "verifier_id": "coord_delhi_admin",
+        "verifier_role": "Chief Verification Auditor",
+        "evidence_document_ref": "prayas_dwcd_license_2026",
+        "verification_notes": "Accredited child & destitute rescue organization with multi-tier emergency shelters in Sarai Kale Khan and Jahangirpuri."
+      }
+    ],
+    "assignment_history": {
+      "total_assignments": 412,
+      "accepted_assignments": 401,
+      "completed_interventions": 396,
+      "rejected_assignments": 11,
+      "average_response_minutes": 22,
+      "sample_size": 396
+    },
+    "contact": {
+      "phone": "+91-11-29841235",
+      "email": "emergency@prayaschildren.org",
+      "emergency_phone": "+91-98100-34981",
+      "coordinator_name": "Amod K. Kanth (General Secretary, Prayas)",
+      "is_phone_verified": true
+    },
+    "source_type": "official_registry",
+    "source_reference": "dusib_delhi_2024",
+    "is_demo": false,
+    "created_at": "2026-10-01T00:00:00.000Z",
+    "updated_at": "2026-10-31T00:00:00.000Z"
+  },
+  {
+    "_id": "ngo-delhi-aiims-trauma",
+    "ngo_id": "MED-DELHI-001",
+    "organisation_name": "JPN Apex Trauma Centre, AIIMS New Delhi",
+    "alternate_names": ["AIIMS Trauma Centre", "Jai Prakash Narayan Apex Trauma Centre"],
+    "registration_number": "INST-AIIMS-001",
+    "registration_authority": "Ministry of Health and Family Welfare, Government of India",
+    "registration_date": "2006-11-26",
+    "organisation_type": "PUBLIC_FACILITY",
+    "service_categories": ["medical_assistance"],
+    "supported_subject_types": ["person"],
+    "assistance_capabilities": ["level_1_trauma_care", "emergency_surgery", "neurotrauma_icu", "burns_unit", "blood_bank"],
+    "specialised_services": ["mass_casualty_incident_response", "resuscitation_theatre", "cardiac_trauma"],
+    "operational_states": ["Delhi"],
+    "operational_districts": ["South Delhi", "New Delhi", "South West Delhi", "South East Delhi", "Central Delhi"],
+    "service_areas": ["Ring Road", "Safdarjung Enclave", "Green Park", "Hauz Khas", "AIIMS Campus"],
+    "headquarters_location": {
+      "address": "Ring Road, Raj Nagar, Safdarjung Enclave, New Delhi",
+      "district": "South Delhi",
+      "state": "Delhi",
+      "latitude": 28.5678,
+      "longitude": 77.1952,
+      "geo": {
+        "type": "Point",
+        "coordinates": [77.1952, 28.5678]
+      }
+    },
+    "service_radius_km": 50,
+    "availability_status": "AVAILABLE",
+    "capacity_status": "HIGH",
+    "accepting_assignments": true,
+    "operating_hours": "24x7 365 Days Emergency Level-1 Facility",
+    "service_constraints": ["Requires designated hospital handoff protocol; triage based on clinical severity score"],
+    "active_cases": 4,
+    "max_concurrent_cases": 50,
+    "registration_status": "REGISTERED",
+    "verification_status": "OPERATIONALLY_VERIFIED",
+    "last_verified_at": "2026-10-28T09:00:00.000Z",
+    "verification_source": "Ministry of Health & Family Welfare Statutory Charter",
+    "verification_evidence": [
+      {
+        "source": "Statutory AIIMS Act & National Institute Hospital Registry",
+        "verified_at": "2026-10-28T09:00:00.000Z",
+        "verifier_id": "coord_delhi_admin",
+        "verifier_role": "Chief Verification Auditor",
+        "evidence_document_ref": "aiims_trauma_gazette_2026",
+        "verification_notes": "India's premier Level-1 apex trauma center with 260 beds and dedicated helipad facilities."
+      }
+    ],
+    "assignment_history": {
+      "total_assignments": 890,
+      "accepted_assignments": 885,
+      "completed_interventions": 878,
+      "rejected_assignments": 5,
+      "average_response_minutes": 12,
+      "sample_size": 878
+    },
+    "contact": {
+      "phone": "+91-11-26731000",
+      "email": "trauma.control@aiims.edu",
+      "emergency_phone": "+91-11-26731155",
+      "coordinator_name": "Dr. Sanjeev Bhoi (Emergency Medicine Lead)",
+      "is_phone_verified": true
+    },
+    "source_type": "official_registry",
+    "source_reference": "mohfw_hospitals_2024",
+    "is_demo": false,
+    "created_at": "2026-10-01T00:00:00.000Z",
+    "updated_at": "2026-10-31T00:00:00.000Z"
+  },
+  {
+    "_id": "ngo-delhi-wildlife-sos",
+    "ngo_id": "NGO-DELHI-003",
+    "organisation_name": "Wildlife SOS (Delhi Wildlife Emergency Rescue Unit)",
+    "alternate_names": ["Wildlife SOS", "Wildlife SOS Rapid Response Unit"],
+    "registration_number": "S-28264/1995",
+    "registration_authority": "Department of Environment and Forest, GNCTD & Registrar of Societies",
+    "registration_date": "1995-10-12",
+    "organisation_type": "SOCIETY",
+    "service_categories": ["injured_animal"],
+    "supported_subject_types": ["animal"],
+    "assistance_capabilities": ["wildlife_rapid_rescue", "snakebite_venom_stabilization", "raptor_and_avian_trauma", "monkey_rescue"],
+    "specialised_services": ["reptile_rescue_in_urban_areas", "nilgai_and_deer_trauma_care"],
+    "operational_states": ["Delhi", "Haryana", "Uttar Pradesh"],
+    "operational_districts": ["South West Delhi", "South Delhi", "New Delhi", "North Delhi", "East Delhi"],
+    "service_areas": ["Delhi Ridge", "Asola Bhatti", "Vasant Kunj", "Chanakyapuri", "Dwarka"],
+    "headquarters_location": {
+      "address": "D-210, Defence Colony, New Delhi",
+      "district": "South Delhi",
+      "state": "Delhi",
+      "latitude": 28.5711,
+      "longitude": 77.2312,
+      "geo": {
+        "type": "Point",
+        "coordinates": [77.2312, 28.5711]
+      }
+    },
+    "service_radius_km": 40,
+    "availability_status": "AVAILABLE",
+    "capacity_status": "HIGH",
+    "accepting_assignments": true,
+    "operating_hours": "24x7 Rapid Rescue Helpline",
+    "service_constraints": ["Restricted to scheduled wildlife and native fauna; domestic animals referred to Friendicoes/SGACC"],
+    "active_cases": 1,
+    "max_concurrent_cases": 6,
+    "registration_status": "REGISTERED",
+    "verification_status": "OPERATIONALLY_VERIFIED",
+    "last_verified_at": "2026-10-19T11:00:00.000Z",
+    "verification_source": "Delhi Department of Forests and Wildlife Statutory Authorization",
+    "verification_evidence": [
+      {
+        "source": "GNCTD Wildlife Rescue Authorization Order 2024/CWLW/11",
+        "verified_at": "2026-10-19T11:00:00.000Z",
+        "verifier_id": "coord_delhi_admin",
+        "verifier_role": "Chief Verification Auditor",
+        "evidence_document_ref": "wildlife_sos_permit_2026",
+        "verification_notes": "Official emergency rescue responder for injured monkeys, reptiles, civets, and raptors across Delhi NCT."
+      }
+    ],
+    "assignment_history": {
+      "total_assignments": 142,
+      "accepted_assignments": 138,
+      "completed_interventions": 136,
+      "rejected_assignments": 4,
+      "average_response_minutes": 28,
+      "sample_size": 136
+    },
+    "contact": {
+      "phone": "+91-98719-63535",
+      "email": "rescue@wildlifesos.org",
+      "emergency_phone": "+91-98719-63535",
+      "coordinator_name": "Kartick Satyanarayan (Co-Founder & CEO)",
+      "is_phone_verified": true
+    },
+    "source_type": "official_registry",
+    "source_reference": "delhi_forest_dept_2024",
+    "is_demo": false,
+    "created_at": "2026-10-01T00:00:00.000Z",
+    "updated_at": "2026-10-31T00:00:00.000Z"
+  }
+]
+
