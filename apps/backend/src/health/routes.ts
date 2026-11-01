@@ -6,18 +6,17 @@ const APP_VERSION = "1.0.0";
 const START_TIME = Date.now();
 
 export async function healthRoutes(fastify: FastifyInstance) {
-  // Liveness Probe
+  // Liveness Probe (process is alive and accepting connections)
   fastify.get("/health", async (_request, reply) => {
     const env = getBackendEnv();
     const dbStatus = await checkDatabaseReadiness();
-    const isProd = env.NODE_ENV === "production";
-    const isHealthy = isProd ? dbStatus.connected : true;
 
-    return reply.status(isHealthy ? 200 : 503).send({
-      status: isHealthy ? "healthy" : "unhealthy",
+    return reply.status(200).send({
+      status: "healthy",
       application: "UMEED_BACKEND",
       version: APP_VERSION,
       database: dbStatus.connected ? "connected" : "disconnected",
+      diagnostic_code: dbStatus.connected ? undefined : dbStatus.diagnosticCode,
       region: env.FLY_REGION,
       uptime_seconds: Math.floor((Date.now() - START_TIME) / 1000),
       timestamp: new Date().toISOString(),
