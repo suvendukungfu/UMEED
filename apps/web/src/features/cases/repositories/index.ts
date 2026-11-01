@@ -14,6 +14,7 @@ let inMemoryCaseFallbackSingleton: InMemoryCaseRepository | null = null;
 
 export function setCaseRepository(repo: ICaseRepository | null): void {
   defaultCaseRepo = repo;
+  (globalThis as any)._umeedCaseRepo = repo;
 }
 
 export function getCaseRepository(customRepo?: ICaseRepository): ICaseRepository {
@@ -25,9 +26,14 @@ export function getCaseRepository(customRepo?: ICaseRepository): ICaseRepository
     return defaultCaseRepo;
   }
 
+  if ((globalThis as any)._umeedCaseRepo) {
+    return (globalThis as any)._umeedCaseRepo;
+  }
+
   const env = getServerEnv();
 
-  // Fail-Closed Production Boundary
+  // Fail-Closed Production Boundary:
+  // In production, MongoDB Atlas is strictly required. Under no circumstances may in-memory fallback be used.
   if (env.NODE_ENV === "production") {
     if (!isMongoConfigured(env.MONGODB_URI)) {
       throw new Error(
@@ -55,5 +61,6 @@ export function getCaseRepository(customRepo?: ICaseRepository): ICaseRepository
     );
   }
 
+  (globalThis as any)._umeedCaseRepo = inMemoryCaseFallbackSingleton;
   return inMemoryCaseFallbackSingleton;
 }

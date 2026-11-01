@@ -8,7 +8,9 @@ export type NotificationChannel =
 export type NotificationDeliveryStatus =
   | "QUEUED"
   | "DELIVERED"
+  | "ACCEPTED_BY_PROVIDER"
   | "SIMULATED_MOCK"
+  | "NOT_CONFIGURED"
   | "FAILED";
 
 export interface NotificationPayload {

@@ -95,22 +95,45 @@ export class GeminiTriageService {
         }
       }
 
-      // 3. Execute with Timeout Deadline
-      const apiPromise = activeClient.models.generateContent({
-        model: modelId,
-        contents: contentParts as never,
-        config: {
-          systemInstruction: GEMINI_TRIAGE_SYSTEM_INSTRUCTION,
-          responseMimeType: "application/json",
-          temperature: 0.2, // Conservative, low-hallucination factual extraction
-        },
-      });
+      // 3. Execute with Timeout Deadline & Bounded Transient Retries (Phase 4)
+      let response: any = null;
+      let lastAttemptError: unknown = null;
+      const maxRetries = 2;
 
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new GeminiTimeoutError(`Triage timed out after ${timeoutMs}ms`)), timeoutMs)
-      );
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const apiPromise = activeClient.models.generateContent({
+            model: modelId,
+            contents: contentParts as never,
+            config: {
+              systemInstruction: GEMINI_TRIAGE_SYSTEM_INSTRUCTION,
+              responseMimeType: "application/json",
+              temperature: 0.2, // Conservative, low-hallucination factual extraction
+            },
+          });
 
-      const response = await Promise.race([apiPromise, timeoutPromise]);
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new GeminiTimeoutError(`Triage timed out after ${timeoutMs}ms`)), timeoutMs)
+          );
+
+          response = await Promise.race([apiPromise, timeoutPromise]);
+          break;
+        } catch (err) {
+          lastAttemptError = err;
+          if (attempt < maxRetries && this.isTransientError(err)) {
+            const delayMs = (attempt + 1) * 300;
+            logger.warn(`Transient error on Gemini triage attempt ${attempt + 1}; retrying in ${delayMs}ms`, "GEMINI_TRIAGE", { error: err });
+            await new Promise((res) => setTimeout(res, delayMs));
+          } else {
+            throw err;
+          }
+        }
+      }
+
+      if (!response && lastAttemptError) {
+        throw lastAttemptError;
+      }
+
       const latencyMs = Date.now() - startTime;
 
       // 4. Extract and Parse Raw Response
@@ -167,6 +190,7 @@ export class GeminiTriageService {
         limitations: validatedOutput.limitations,
         confidence: this.computeAggregatedConfidence(validatedOutput),
         analysis_status: "SUCCESS",
+        triage_classification: "LIVE_AI_SUCCESS",
         raw_response_summary: `Analyzed via ${modelId} in ${latencyMs}ms. Recommended ${validatedOutput.urgency_recommendation.level} triage.`,
         created_at: new Date().toISOString(),
         human_review_status: "PENDING",
@@ -234,6 +258,21 @@ export class GeminiTriageService {
     return "UNKNOWN_ERROR";
   }
 
+  private isTransientError(err: unknown): boolean {
+    if (err instanceof GeminiTimeoutError) return true;
+    if (err instanceof GeminiQuotaError) return true;
+    if (err instanceof GeminiUnavailableError) return true;
+    const msg = err instanceof Error ? err.message.toLowerCase() : "";
+    return (
+      msg.includes("429") ||
+      msg.includes("503") ||
+      msg.includes("rate limit") ||
+      msg.includes("quota exceeded") ||
+      msg.includes("timeout") ||
+      msg.includes("network")
+    );
+  }
+
   /**
    * Constructs a safe, fail-closed MANUAL_REVIEW_REQUIRED fallback analysis.
    */
@@ -244,6 +283,9 @@ export class GeminiTriageService {
     modelId: string,
     latencyMs: number
   ): IncidentTriageAnalysis {
+    const classification =
+      errorCode === "GEMINI_UNCONFIGURED" ? "MANUAL_FALLBACK" : "AI_PROVIDER_ERROR";
+
     return {
       analysis_id: crypto.randomUUID(),
       incident_id: incident._id,
@@ -267,6 +309,7 @@ export class GeminiTriageService {
       ],
       confidence: 0.0,
       analysis_status: "MANUAL_REVIEW_REQUIRED",
+      triage_classification: classification,
       raw_response_summary: `Fallback activated (${errorCode}) in ${latencyMs}ms.`,
       created_at: new Date().toISOString(),
       human_review_status: "PENDING",

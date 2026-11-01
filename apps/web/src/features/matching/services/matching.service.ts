@@ -121,6 +121,18 @@ export class ExplainableMatchingService {
       );
     }
 
+    // Strict Partner Onboarding Check:
+    // Only genuinely onboarded UMEED partner organizations or verified active demo/production partners
+    // can be matched for automatic dispatch. Publicly listed institutions without bilateral onboarding
+    // are preserved as referral destinations rather than automatic dispatch partners.
+    if (ngo.verification_status === "PUBLICLY_LISTED" || ngo.verification_status === "UNVERIFIED") {
+      return this.buildIneligibleCandidate(
+        ngo,
+        "Organisation is publicly listed/unverified and has not completed bilateral UMEED partner onboarding.",
+        missingInfo
+      );
+    }
+
     // 2. Hard Capability Check: Subject Type & Incident Category
     const supportsSubject = ngo.supported_subject_types.includes(incident.subject_type);
     const supportsCategory = ngo.service_categories.includes(incident.incident_type);

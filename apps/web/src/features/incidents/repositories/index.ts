@@ -17,6 +17,7 @@ let inMemoryFallbackSingleton: InMemoryIncidentRepository | null = null;
  */
 export function setIncidentRepository(repo: IIncidentRepository | null): void {
   defaultRepo = repo;
+  (globalThis as any)._umeedIncidentRepo = repo;
 }
 
 /**
@@ -36,9 +37,15 @@ export function getIncidentRepository(customRepo?: IIncidentRepository): IIncide
     return defaultRepo;
   }
 
+  if ((globalThis as any)._umeedIncidentRepo) {
+    return (globalThis as any)._umeedIncidentRepo;
+  }
+
   const env = getServerEnv();
 
-  // Fail-Closed Production Boundary
+  // Fail-Closed Production Boundary:
+  // In production, MongoDB Atlas is strictly required. Under no circumstances may in-memory fallback be used,
+  // even if an environment variable attempts to enable it.
   if (env.NODE_ENV === "production") {
     if (!isMongoConfigured(env.MONGODB_URI)) {
       throw new Error(
@@ -73,5 +80,6 @@ export function getIncidentRepository(customRepo?: IIncidentRepository): IIncide
     }
   }
 
+  (globalThis as any)._umeedIncidentRepo = inMemoryFallbackSingleton;
   return inMemoryFallbackSingleton;
 }

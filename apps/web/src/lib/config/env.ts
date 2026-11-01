@@ -1,15 +1,23 @@
 import { z } from "zod";
 
 const emptyToUndefined = z.preprocess((val) => {
-  if (typeof val === "string" && val.trim() === "") {
-    return undefined;
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (trimmed === "") {
+      return undefined;
+    }
+    return trimmed;
   }
   return val;
 }, z.string().optional());
 
 const optionalUrl = z.preprocess((val) => {
-  if (typeof val === "string" && val.trim() === "") {
-    return undefined;
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (trimmed === "") {
+      return undefined;
+    }
+    return trimmed;
   }
   return val;
 }, z.string().url().optional());
@@ -51,6 +59,13 @@ const ServerEnvSchema = z.object({
   // Database (MongoDB Atlas)
   MONGODB_URI: emptyToUndefined,
   MONGODB_DB: z.string().default("umeed_db"),
+  ALLOW_INMEMORY_FALLBACK: z.preprocess((val) => {
+    if (typeof val === "string") {
+      const trimmed = val.trim().toLowerCase();
+      return trimmed === "true" || trimmed === "1";
+    }
+    return Boolean(val);
+  }, z.boolean().default(false)),
 
   // AI Multimodal Triage (Google Gemini) - Phase 3
   GEMINI_API_KEY: emptyToUndefined,

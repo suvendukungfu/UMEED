@@ -70,6 +70,7 @@ let notificationOutboxRepoSingleton: INotificationOutboxRepository | null = null
 export function getServiceLocationRepository(custom?: IServiceLocationRepository): IServiceLocationRepository {
   if (custom) return custom;
   if (serviceLocationRepoSingleton) return serviceLocationRepoSingleton;
+  if ((globalThis as any)._umeedServiceLocationRepo) return (globalThis as any)._umeedServiceLocationRepo;
 
   const env = getServerEnv();
   if (env.NODE_ENV === "production") {
@@ -86,12 +87,14 @@ export function getServiceLocationRepository(custom?: IServiceLocationRepository
   }
 
   serviceLocationRepoSingleton = new InMemoryServiceLocationRepository();
+  (globalThis as any)._umeedServiceLocationRepo = serviceLocationRepoSingleton;
   return serviceLocationRepoSingleton;
 }
 
 export function getOrganizationRepository(custom?: IOrganizationRepository): IOrganizationRepository {
   if (custom) return custom;
   if (organizationRepoSingleton) return organizationRepoSingleton;
+  if ((globalThis as any)._umeedOrganizationRepo) return (globalThis as any)._umeedOrganizationRepo;
 
   const env = getServerEnv();
   if (env.NODE_ENV === "production") {
@@ -108,12 +111,14 @@ export function getOrganizationRepository(custom?: IOrganizationRepository): IOr
   }
 
   organizationRepoSingleton = new InMemoryOrganizationRepository();
+  (globalThis as any)._umeedOrganizationRepo = organizationRepoSingleton;
   return organizationRepoSingleton;
 }
 
 export function getAssistanceRequirementRepository(custom?: IAssistanceRequirementRepository): IAssistanceRequirementRepository {
   if (custom) return custom;
   if (requirementRepoSingleton) return requirementRepoSingleton;
+  if ((globalThis as any)._umeedRequirementRepo) return (globalThis as any)._umeedRequirementRepo;
 
   const env = getServerEnv();
   if (env.NODE_ENV === "production") {
@@ -130,12 +135,14 @@ export function getAssistanceRequirementRepository(custom?: IAssistanceRequireme
   }
 
   requirementRepoSingleton = new InMemoryAssistanceRequirementRepository();
+  (globalThis as any)._umeedRequirementRepo = requirementRepoSingleton;
   return requirementRepoSingleton;
 }
 
 export function getOutreachAttemptRepository(custom?: IOutreachAttemptRepository): IOutreachAttemptRepository {
   if (custom) return custom;
   if (outreachAttemptRepoSingleton) return outreachAttemptRepoSingleton;
+  if ((globalThis as any)._umeedOutreachAttemptRepo) return (globalThis as any)._umeedOutreachAttemptRepo;
 
   const env = getServerEnv();
   if (env.NODE_ENV === "production") {
@@ -152,12 +159,14 @@ export function getOutreachAttemptRepository(custom?: IOutreachAttemptRepository
   }
 
   outreachAttemptRepoSingleton = new InMemoryOutreachAttemptRepository();
+  (globalThis as any)._umeedOutreachAttemptRepo = outreachAttemptRepoSingleton;
   return outreachAttemptRepoSingleton;
 }
 
 export function getEngineAssignmentRepository(custom?: IEngineAssignmentRepository): IEngineAssignmentRepository {
   if (custom) return custom;
   if (engineAssignmentRepoSingleton) return engineAssignmentRepoSingleton;
+  if ((globalThis as any)._umeedEngineAssignmentRepo) return (globalThis as any)._umeedEngineAssignmentRepo;
 
   const env = getServerEnv();
   if (env.NODE_ENV === "production") {
@@ -174,12 +183,14 @@ export function getEngineAssignmentRepository(custom?: IEngineAssignmentReposito
   }
 
   engineAssignmentRepoSingleton = new InMemoryEngineAssignmentRepository();
+  (globalThis as any)._umeedEngineAssignmentRepo = engineAssignmentRepoSingleton;
   return engineAssignmentRepoSingleton;
 }
 
 export function getEngineCaseEventRepository(custom?: IEngineCaseEventRepository): IEngineCaseEventRepository {
   if (custom) return custom;
   if (engineCaseEventRepoSingleton) return engineCaseEventRepoSingleton;
+  if ((globalThis as any)._umeedEngineCaseEventRepo) return (globalThis as any)._umeedEngineCaseEventRepo;
 
   const env = getServerEnv();
   if (env.NODE_ENV === "production") {
@@ -196,12 +207,14 @@ export function getEngineCaseEventRepository(custom?: IEngineCaseEventRepository
   }
 
   engineCaseEventRepoSingleton = new InMemoryEngineCaseEventRepository();
+  (globalThis as any)._umeedEngineCaseEventRepo = engineCaseEventRepoSingleton;
   return engineCaseEventRepoSingleton;
 }
 
 export function getNotificationOutboxRepository(custom?: INotificationOutboxRepository): INotificationOutboxRepository {
   if (custom) return custom;
   if (notificationOutboxRepoSingleton) return notificationOutboxRepoSingleton;
+  if ((globalThis as any)._umeedNotificationOutboxRepo) return (globalThis as any)._umeedNotificationOutboxRepo;
 
   const env = getServerEnv();
   if (env.NODE_ENV === "production") {
@@ -218,6 +231,7 @@ export function getNotificationOutboxRepository(custom?: INotificationOutboxRepo
   }
 
   notificationOutboxRepoSingleton = new InMemoryNotificationOutboxRepository();
+  (globalThis as any)._umeedNotificationOutboxRepo = notificationOutboxRepoSingleton;
   return notificationOutboxRepoSingleton;
 }
 

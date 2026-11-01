@@ -157,6 +157,12 @@ export class CaseLifecycleService {
       throw ApiError.notFound(`Assignment '${assignmentId}' not found.`);
     }
 
+    if (asgn.status === "RESOLVED" || asgn.status === "CANCELLED") {
+      throw ApiError.conflict(
+        `Cannot record progress on assignment '${assignmentId}' with terminal status '${asgn.status}'. Case must be explicitly reopened.`
+      );
+    }
+
     if (asgn.status !== "ACCEPTED") {
       throw ApiError.badRequest(
         `Cannot start work on assignment with status '${asgn.status}'. Expected 'ACCEPTED'.`
@@ -215,6 +221,12 @@ export class CaseLifecycleService {
     const asgn = await this.assignmentRepo.findById(assignmentId);
     if (!asgn) {
       throw ApiError.notFound(`Assignment '${assignmentId}' not found.`);
+    }
+
+    if (asgn.status === "RESOLVED" || asgn.status === "CANCELLED") {
+      throw ApiError.conflict(
+        `Cannot record progress on assignment '${assignmentId}' with terminal status '${asgn.status}'. Case must be explicitly reopened.`
+      );
     }
 
     const now = new Date();

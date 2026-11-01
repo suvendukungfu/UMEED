@@ -14,6 +14,7 @@ let inMemoryNgoFallbackSingleton: InMemoryNGORepository | null = null;
 
 export function setNGORepository(repo: INGORepository | null): void {
   defaultNgoRepo = repo;
+  (globalThis as any)._umeedNgoRepo = repo;
 }
 
 export function getNGORepository(customRepo?: INGORepository): INGORepository {
@@ -25,9 +26,14 @@ export function getNGORepository(customRepo?: INGORepository): INGORepository {
     return defaultNgoRepo;
   }
 
+  if ((globalThis as any)._umeedNgoRepo) {
+    return (globalThis as any)._umeedNgoRepo;
+  }
+
   const env = getServerEnv();
 
-  // Fail-Closed Production Boundary
+  // Fail-Closed Production Boundary:
+  // In production, MongoDB Atlas is strictly required. Under no circumstances may in-memory fallback be used.
   if (env.NODE_ENV === "production") {
     if (!isMongoConfigured(env.MONGODB_URI)) {
       throw new Error(
@@ -62,5 +68,6 @@ export function getNGORepository(customRepo?: INGORepository): INGORepository {
     }
   }
 
+  (globalThis as any)._umeedNgoRepo = inMemoryNgoFallbackSingleton;
   return inMemoryNgoFallbackSingleton;
 }

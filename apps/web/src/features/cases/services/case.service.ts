@@ -13,8 +13,7 @@ import {
 import { ICaseRepository, getCaseRepository } from "../repositories";
 import { IIncidentRepository, getIncidentRepository } from "@/features/incidents/repositories";
 import { INGORepository, getNGORepository } from "@/features/ngos/repositories";
-import { INotificationAdapter } from "@/features/notifications/adapters/notification.adapter";
-import { MockNotificationAdapter } from "@/features/notifications/adapters/mock.adapter";
+import { INotificationAdapter, getNotificationAdapter } from "@/features/notifications";
 import {
   assertValidCaseTransition,
   assertValidAssignmentTransition,
@@ -37,7 +36,7 @@ export class CaseService {
     this.caseRepo = options?.caseRepo || getCaseRepository();
     this.incidentRepo = options?.incidentRepo || getIncidentRepository();
     this.ngoRepo = options?.ngoRepo || getNGORepository();
-    this.notificationAdapter = options?.notificationAdapter || new MockNotificationAdapter();
+    this.notificationAdapter = options?.notificationAdapter || getNotificationAdapter();
   }
 
   /**
@@ -256,7 +255,7 @@ export class CaseService {
         is_mock: this.notificationAdapter.isMock(),
       });
 
-      contactAttempt.status = deliveryResult.status;
+      contactAttempt.status = deliveryResult.status as AssignmentContactAttempt["status"];
       contactAttempt.details = deliveryResult.success
         ? `Delivered via ${this.notificationAdapter.getChannelName()} (is_mock: ${this.notificationAdapter.isMock()})`
         : `Delivery failed: ${deliveryResult.error || "Unknown delivery error"}`;

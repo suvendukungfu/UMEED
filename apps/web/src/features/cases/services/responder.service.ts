@@ -60,6 +60,13 @@ export class ResponderService {
       throw ApiError.notFound(`Assignment '${assignmentId}' not found.`);
     }
 
+    // Invariant: Terminal/Resolved cases cannot be modified by responder updates without explicit coordinator reopening
+    if (foundCase.case_status === "RESOLVED" || foundCase.case_status === "CANCELLED") {
+      throw ApiError.conflict(
+        `Cannot perform responder action on case '${foundCase.public_case_reference}' with terminal status '${foundCase.case_status}'. Case must be explicitly reopened by a coordinator.`
+      );
+    }
+
     // Tenancy Check: NGO A cannot access or act upon NGO B's assignment
     if (ngoId && foundAssignment.organisation_id !== ngoId) {
       throw ApiError.forbidden(

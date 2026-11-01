@@ -3,8 +3,7 @@ import {
   INotificationOutboxRepository,
   getNotificationOutboxRepository,
 } from "../repositories";
-import { INotificationAdapter } from "@/features/notifications/adapters/notification.adapter";
-import { MockNotificationAdapter } from "@/features/notifications/adapters/mock.adapter";
+import { INotificationAdapter, getNotificationAdapter } from "@/features/notifications";
 import { NotificationOutbox, OutreachChannel } from "../types";
 import { logger } from "@/lib/logging";
 
@@ -20,7 +19,7 @@ export class NotificationOutboxService {
     this.outboxRepo =
       options?.outboxRepo || getNotificationOutboxRepository();
     this.notificationAdapter =
-      options?.notificationAdapter || new MockNotificationAdapter();
+      options?.notificationAdapter || getNotificationAdapter();
   }
 
   /**
@@ -108,8 +107,10 @@ export class NotificationOutboxService {
         });
 
         if (sendResult.success) {
+          const isMockAdapter = this.notificationAdapter.isMock();
+          const recordedStatus = isMockAdapter ? "SIMULATED" : "DELIVERED";
           await this.outboxRepo.update(item.notificationId, {
-            status: "DELIVERED",
+            status: recordedStatus,
             sentAt: new Date().toISOString(),
             lastError: null,
           });
