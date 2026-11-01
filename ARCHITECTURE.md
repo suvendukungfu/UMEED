@@ -1,66 +1,109 @@
 # UMEED Architecture Specification
 
 **Project**: UMEED (HackCBS 9.0)  
-**System Type**: AI-Powered Social Distress Discovery & Closed-Loop Assistance Coordination Platform
+**System Type**: AI-Powered Social Distress Discovery & Closed-Loop Assistance Coordination Platform  
+**Target Topology**: Next.js 15 BFF (Vercel) + Dedicated Fastify Core & Worker (Fly.io Mumbai `bom` — Code Implemented, Awaiting Cloud Infrastructure Activation)
 
 ---
 
-## 1. System Overview
+## 1. System Overview & Deployment Topology
 
-UMEED is designed with a strict separation of concerns to guarantee resilience:
-- **Core Platform (Workstream A)**: Built on **Next.js App Router**, **TypeScript**, **Tailwind CSS**, and **MongoDB Atlas**. Manages citizen reports, human triage verification, NGO intelligence, capability-aware geospatial matching, multi-responder coordination, and recursive follow-up loops.
-- **Discovery Crawler (Workstream B - Optional / Independent)**: Built with **Python / FastAPI**, **FFmpeg**, and multimodal models. Ingests publicly accessible and authorized media, extracts distress evidence, and pushes validated payloads to the Core Platform via a shared REST contract.
-- **External Integrations**:
-  - **Gemini (Multimodal)**: Structured incident extraction and triage recommendation.
-  - **Meko**: Persistent coordination memory and coordinator preference recall.
+UMEED is architected with a decoupled frontend/backend separation to guarantee latency resilience, multi-tenant RBAC enforcement, background asynchronous job execution, and strict static egress firewall compliance with MongoDB Atlas:
+
+- **Frontend & BFF Layer (Workstream A — Vercel)**:
+  - Built with **Next.js 15 App Router**, **React 19**, and **Tailwind CSS**.
+  - Serves citizen distress reporting forms, coordinator command center, and NGO responder portals.
+  - Acts as a Backend-For-Frontend (BFF), forwarding operational API requests via an HMAC-SHA256 authenticated server-side proxy (`apps/web/src/lib/proxy/backend-proxy.ts`).
+- **Dedicated Operational Backend & Worker (Fly.io Mumbai `bom` — Code Implemented, Deployment Pending)**:
+  - Built with **Fastify**, **TypeScript**, and **Node.js 22** (`apps/backend`).
+  - Co-located in Mumbai (`bom`) adjacent to MongoDB Atlas (`ap-south-1`) to minimize database query latency.
+  - Multi-process architecture defined in `fly.toml`:
+    - `api`: HTTP REST API service handling distress ingestion, case lifecycle, matching, and coordination.
+    - `worker`: Asynchronous background worker processing notification outbox deliveries and SLA escalation watchdogs.
+  - *Infrastructure Status*: The backend service code, Dockerfile, worker, proxy, and integration tests are fully implemented in the codebase; production activation is pending Fly application creation, static egress IP allocation, and Atlas IP allowlisting.
+- **Persistent Storage & Network Security**:
+  - **MongoDB Atlas AWS Mumbai (`ap-south-1`)**: Stores canonical incidents, cases, NGO DARPAN registry, assignments, and audit logs.
+  - **Static Egress Isolation**: Dedicated `/32` Fly egress IPv4 in Mumbai for strict Atlas firewall conformance, eliminating wildcard `0.0.0.0/0` access.
+- **Discovery Crawler (Workstream B — Standalone)**:
+  - Built with **Python / FastAPI**, **FFmpeg**, and multimodal models. Ingests publicly accessible media, extracts distress evidence, and pushes validated payloads to the Core Platform via shared REST schemas (`@umeed/contracts`).
+- **Advisory AI & Context Memory**:
+  - **Gemini 2.5 Flash**: Advisory multimodal triage recommendations (non-medical, advisory only).
+  - **Meko**: Coordinator preference recall and contextual incident triage history.
 
 ```mermaid
 flowchart TD
-    subgraph Ingestion["1. Multi-Channel Intake"]
+    subgraph Clients["1. Ingestion & Portals"]
         CR["Citizen Mobile / Web Report\n(Photo, GPS, Description)"]
-        DC["Social Media Discovery Crawler\n(Sample / Authorized Media, FFmpeg)"]
+        DC["Social Media Discovery Crawler\n(Python / FFmpeg / Media Feeds)"]
+        COORD["Coordinator Command Center\n(Triage & Dispatch Review)"]
+        RESP["NGO Responder Mobile Web\n(En Route, Arrived, Interventions)"]
     end
 
-    subgraph CoreEngine["2. Core CARELINK / UMEED Engine"]
-        API["POST /api/incidents/ingest\n(Zod Validation, Deduplication)"]
-        AI["Gemini Multimodal Triage\n(Structured Recommendation)"]
-        REV["Human Reviewer Verification\n(Approve / Reject / Flag)"]
-        
-        DB[("MongoDB Atlas\n(Incidents, Cases, NGOs, Events)")]
+    subgraph VercelBFF["2. Next.js BFF & Edge Proxy (Vercel)"]
+        WEB_UI["Next.js App Router UI Pages\n(SSR + Client Components)"]
+        PROXY["Server-Side Proxy & Signing\n(HMAC-SHA256, Nonce, Timestamp)"]
+    end
+
+    subgraph FlyBackend["3. Dedicated Core Backend & Worker (Fly.io Mumbai bom) [Implemented, Pending Cloud Activation]"]
+        FASTIFY["Fastify API Server (Process: api)\n(Proxy HMAC Verification, Multi-Tenant RBAC)"]
+        WORKER["Background Worker (Process: worker)\n(Notification Outbox Dispatch & SLA Watchdog)"]
         
         MATCH["Capability-Aware Matching Engine\n(Geography, Capability, Availability)"]
-        STATE["Response State Machine\n(REPORTED → ARRIVED → RESOLVED)"]
+        STATE["Response State Machine\n(REPORTED → APPROVED → ARRIVED → RESOLVED)"]
         RECURSIVE["Recursive Assistance Coordinator\n(Secondary matching if needs remain)"]
     end
 
-    subgraph Responders["3. NGO Response Network"]
-        DASH["NGO Dispatch & Responder Portal\n(Accept, En Route, Arrive, Record)"]
-        NGO_REG["NGO DARPAN Intelligence Registry\n(Verified Capabilities & Operational Scope)"]
+    subgraph StorageSecurity["4. Database & Cloud Perimeter (AWS Mumbai ap-south-1)"]
+        ATLAS_FW["Atlas Network Access Firewall\n(Restricted to Fly Dedicated /32 Egress IP)"]
+        DB[("MongoDB Atlas umeed_db\n(Incidents, Cases, NGOs, Assignments, Outbox)")]
     end
 
-    subgraph AnalyticsMemory["4. Memory & Analytics"]
-        MEKO["Meko Coordination Memory\n(Coordinator Preferences & Session Recall)"]
-        OUTBOX["Operational Telemetry &\nAssistance Event Metrics"]
+    subgraph ExternalAI["5. AI & Memory Services"]
+        GEMINI["Gemini Multimodal AI\n(Advisory Triage Recommendation)"]
+        MEKO["Meko Coordination Memory\n(Context & Preference Recall)"]
     end
 
-    CR --> API
-    DC --> API
-    API --> DB
-    API --> AI
-    AI --> REV
-    REV -->|Approved| STATE
-    STATE --> MATCH
-    NGO_REG --> MATCH
-    MATCH --> DASH
-    DASH -->|Intervention Incomplete| RECURSIVE
+    CR --> WEB_UI
+    COORD --> WEB_UI
+    RESP --> WEB_UI
+    DC -->|Signed POST /v1/incidents/ingest| FASTIFY
+
+    WEB_UI --> PROXY
+    PROXY -->|HMAC-SHA256 Authenticated /v1/*| FASTIFY
+
+    FASTIFY --> STATE
+    FASTIFY --> MATCH
+    MATCH --> STATE
+    STATE --> RECURSIVE
     RECURSIVE --> MATCH
-    STATE --> OUTBOX
-    REV <--> MEKO
+
+    FASTIFY --> ATLAS_FW
+    WORKER --> ATLAS_FW
+    ATLAS_FW --> DB
+
+    FASTIFY -.->|Advisory Triage| GEMINI
+    FASTIFY -.->|Session Context| MEKO
 ```
 
 ---
 
-## 2. Canonical Ingestion Contract
+## 2. Infrastructure Activation & Readiness State
+
+> [!IMPORTANT]
+> **Operational Distinction**: Code migration is implemented and locally validated (42 test files, 308 tests passing). Production cloud deployment is awaiting operator activation of cloud infrastructure.
+
+| Component | Architecture Role | Implementation Status | Deployment Status |
+| :--- | :--- | :--- | :--- |
+| **Frontend UI & BFF** | Next.js 15 Web & Proxy | Implemented (`apps/web`) | Deployed on Vercel |
+| **Fastify Core API** | Node.js 22 REST Server | Implemented (`apps/backend/src/server.ts`) | Awaiting Fly.io Launch (`bom`) |
+| **Outbox & SLA Worker** | Asynchronous Task Worker | Implemented (`apps/backend/src/worker.ts`) | Awaiting Fly Process Group Spawn |
+| **BFF Proxy Auth** | HMAC-SHA256 Inter-Service | Implemented (`apps/backend/src/plugins/proxy-auth.ts`) | Awaiting Shared Secret Configuration |
+| **Static Egress IP** | Atlas Firewall Allowlist | Configured in `fly.toml` | Awaiting `fly ips allocate-egress` |
+| **MongoDB Atlas** | Persistent Data Store | Schema & Repositories Complete | Awaiting Egress IP Whitelist Activation |
+
+---
+
+## 3. Canonical Ingestion Contract
 
 All incident sources (Citizen Reporting UI and Discovery Crawler) must adhere to the versioned canonical schema:
 
@@ -103,7 +146,7 @@ All incident sources (Citizen Reporting UI and Discovery Crawler) must adhere to
 
 ---
 
-## 3. Case Coordination Lifecycle State Machine
+## 4. Case Coordination Lifecycle State Machine
 
 A case must never transition directly from reported to resolved without verification and proof of outcome.
 
@@ -133,7 +176,7 @@ stateDiagram-v2
 
 ---
 
-## 4. NGO Capability-Aware Matching Engine
+## 5. NGO Capability-Aware Matching Engine
 
 Instead of naive nearest-distance sorting, the engine ranks organizations using a multi-factor score:
 
@@ -148,7 +191,7 @@ Where:
 
 ---
 
-## 5. Resilience & Integration Outbox
+## 6. Resilience & Integration Outbox
 
 To prevent external vendor outages (Gemini, Meko) from degrading core operational coordination:
 1. **Fallback Triage**: If Gemini API is unreachable, incidents transition to `UNDER_REVIEW` with an `AI_UNAVAILABLE` flag for direct human triage.
@@ -157,7 +200,7 @@ To prevent external vendor outages (Gemini, Meko) from degrading core operationa
 
 ---
 
-## 6. Ethical Non-Negotiables & Security Guardrails
+## 7. Ethical Non-Negotiables & Security Guardrails
 
 - **No Autonomous Dispatch**: AI outputs structured triage suggestions; an authorized coordinator must confirm action for high-risk incidents.
 - **No Autonomous Medical Diagnosis**: AI identifies visible conditions and potential assistance types, explicitly flagged as non-medical observations.
