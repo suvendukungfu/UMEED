@@ -1,0 +1,30 @@
+# ==============================================================================
+# Render Blueprint Specification for UMEED Operational Backend
+# https://render.com/docs/blueprint-spec
+# ==============================================================================
+services:
+  - type: web
+    name: umeed-api
+    runtime: docker
+    dockerfilePath: ./apps/backend/Dockerfile
+    dockerContext: .
+    region: singapore
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8080
+      - key: HOST
+        value: 0.0.0.0
+      - key: MONGODB_DB
+        value: umeed_db
+      - key: MONGODB_URI
+        sync: false
+      - key: UMEED_PROXY_SIGNING_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: COORDINATOR_API_KEY
+        sync: false

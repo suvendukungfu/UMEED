@@ -1,17 +1,27 @@
 import { buildApp } from "./app.js";
 import { getBackendEnv } from "./config/env.js";
 import { closeDatabaseClient } from "./plugins/database.js";
+import { startWorkerLoop } from "./worker.js";
 
 async function main() {
   const env = getBackendEnv();
   const app = await buildApp();
 
+  let worker: { stop: () => void } | null = null;
+  if (process.env.START_WORKER !== "false") {
+    app.log.info("Starting background worker loop within server process...");
+    worker = startWorkerLoop();
+  }
+
   const shutdown = async (signal: string) => {
-    app.log.info(`Received ${signal}. Shutting down HTTP server gracefully...`);
+    app.log.info(`Received ${signal}. Shutting down gracefully...`);
+    if (worker) {
+      worker.stop();
+    }
     try {
       await app.close();
       await closeDatabaseClient();
-      app.log.info("Server closed successfully.");
+      app.log.info("Server and database connections closed successfully.");
       process.exit(0);
     } catch (err) {
       app.log.error(err, "Error during shutdown");
@@ -27,7 +37,7 @@ async function main() {
       port: env.PORT,
       host: env.HOST,
     });
-    app.log.info(`🚀 UMEED Backend API running in region '${env.FLY_REGION}' at ${address}`);
+    app.log.info(`🚀 UMEED Backend API running at ${address}`);
   } catch (err) {
     app.log.error(err, "Fatal error during startup");
     process.exit(1);

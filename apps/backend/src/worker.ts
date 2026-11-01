@@ -94,15 +94,48 @@ async function runWatchdogScan() {
   }
 }
 
-async function main() {
+export function startWorkerLoop(): { stop: () => void } {
   const env = getBackendEnv();
-  console.log(`⚙️  UMEED Background Worker started in region '${env.FLY_REGION}'`);
+  console.log(`⚙️  UMEED Background Worker loop initiated in region '${env.FLY_REGION}'`);
 
   let isRunning = true;
+  let lastWatchdogRun = 0;
+
+  const loop = async () => {
+    while (isRunning) {
+      try {
+        await processOutboxBatch();
+
+        const now = Date.now();
+        if (now - lastWatchdogRun > 60000) {
+          await runWatchdogScan();
+          lastWatchdogRun = now;
+        }
+      } catch (err) {
+        console.error("[WORKER] Unhandled error in background worker cycle:", err);
+      }
+
+      // Sleep 5 seconds between poll cycles
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+  };
+
+  loop().catch((err) => console.error("[WORKER] Fatal loop error:", err));
+
+  return {
+    stop: () => {
+      console.log("[WORKER] Halting background worker loop...");
+      isRunning = false;
+    },
+  };
+}
+
+async function main() {
+  const worker = startWorkerLoop();
 
   const shutdown = async (signal: string) => {
-    console.log(`[WORKER] Received ${signal}. Stopping background worker loops...`);
-    isRunning = false;
+    console.log(`[WORKER] Received ${signal}. Stopping background worker...`);
+    worker.stop();
     await closeDatabaseClient();
     console.log("[WORKER] Background worker exited cleanly.");
     process.exit(0);
@@ -110,23 +143,10 @@ async function main() {
 
   process.on("SIGTERM", () => shutdown("SIGTERM"));
   process.on("SIGINT", () => shutdown("SIGINT"));
-
-  // Polling intervals
-  let lastWatchdogRun = 0;
-
-  while (isRunning) {
-    await processOutboxBatch();
-
-    const now = Date.now();
-    if (now - lastWatchdogRun > 60000) {
-      await runWatchdogScan();
-      lastWatchdogRun = now;
-    }
-
-    // Sleep 5 seconds between poll cycles
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-  }
 }
 
-main();
+// If executed directly as standalone process
+if (process.argv[1]?.includes("worker")) {
+  main();
+}
 
